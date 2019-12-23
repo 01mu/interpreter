@@ -53,7 +53,7 @@ func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
 
     if result.Value != expected {
         t.Errorf("object has wrong value. got=%d, want=%d",
-        result.Value, expected)
+            result.Value, expected)
         return false
     }
 
@@ -228,13 +228,13 @@ func TestErrorHandling(t *testing.T) {
 
         if !ok {
             t.Errorf("no error object returned. got=%T(%+v)",
-            evaluated, evaluated)
+                evaluated, evaluated)
             continue
         }
 
         if errObj.Message != tt.expectedMessage {
             t.Errorf("wrong error message. expected=%q, got=%q",
-            tt.expectedMessage, errObj.Message)
+                tt.expectedMessage, errObj.Message)
         }
     }
 }
