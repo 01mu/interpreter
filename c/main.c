@@ -54,6 +54,35 @@ struct Lexer {
     int read_pos;
 };
 
+struct Identifier {
+    struct Token token;
+    char * value;
+};
+
+struct LetStatement {
+    struct Token token;
+    struct Identifier name;
+};
+
+struct Statement {
+    char * type;
+    TokenLiteral literal;
+    void * st;
+};
+
+struct Program {
+    struct Statement * statements;
+    int sc;
+};
+
+struct Parser {
+    struct Lexer * lexer;
+    struct Token current_token;
+    struct Token peek_token;
+    char ** errors;
+    int ec;
+};
+
 struct Token new_token(TokenType type, char ch) {
     char a[2];
     struct Token token;
@@ -154,7 +183,7 @@ char peek_char(struct Lexer * lexer) {
         return lexer->input[lexer->read_pos];
 }
 
-struct Token next_token(struct Lexer * lexer) {
+struct Token lexer_next_token(struct Lexer * lexer) {
     struct Token token;
 
     skip_whitespace(lexer);
@@ -260,7 +289,7 @@ void test_next_token() {
         {SEMICOLON, ";"},
         {EOF_, ""}};
     struct Lexer * lexer = new_lexer(input);
-    struct Token token = next_token(lexer);
+    struct Token token = lexer_next_token(lexer);
 
     for(i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
         printf("%s %s '%c' %i %i \n", token.literal, token.type, lexer->ch,
@@ -278,38 +307,11 @@ void test_next_token() {
             || token.type == IDENT || token.type == INT)
             free(token.literal);
 
-        token = next_token(lexer);
+        token = lexer_next_token(lexer);
     }
 
     free(lexer);
 }
-
-struct Identifier {
-    struct Token token;
-    char * value;
-};
-
-struct LetStatement {
-    struct Token token;
-    struct Identifier name;
-};
-
-struct Statement {
-    char * type;
-    TokenLiteral literal;
-    struct LetStatement * let_statement;
-};
-
-struct Program {
-    struct Statement * statements;
-    int sc;
-};
-
-struct Parser {
-    struct Lexer * lexer;
-    struct Token current_token;
-    struct Token peek_token;
-};
 
 char * token_literal(struct Program * program) {
     size_t size = sizeof(program->statements) / sizeof(program->statements[0]);
@@ -322,15 +324,26 @@ char * token_literal(struct Program * program) {
 
 void parser_next_token(struct Parser * parser) {
     parser->current_token = parser->peek_token;
-    parser->peek_token = next_token(parser->lexer);
+    parser->peek_token = lexer_next_token(parser->lexer);
 }
 
 struct Parser * new_parser(struct Lexer * lexer) {
     struct Parser * parser = malloc(sizeof(struct Parser));
     parser->lexer = lexer;
+    parser->errors = malloc(sizeof(char *));
+    parser->ec = 0;
     parser_next_token(parser);
     parser_next_token(parser);
     return parser;
+}
+
+void peek_error(struct Parser * parser, TokenType type) {
+    int ex_len = strlen(type);
+    int gt_len = strlen(parser->peek_token.type);
+    char * str = malloc((14+ex_len+gt_len)*sizeof(char));
+    sprintf(str, "Expected %s got %s", type, parser->peek_token.type);
+    parser->errors[parser->ec] = str;
+    parser->errors[++parser->ec] = malloc(sizeof(char *));
 }
 
 bool cur_token_is(struct Parser * parser, TokenType type) {
@@ -346,57 +359,120 @@ bool expect_peek(struct Parser * parser, TokenType type) {
         parser_next_token(parser);
         return true;
     } else {
+        peek_error(parser, type);
         return false;
     }
 }
 
-struct LetStatement * parse_let_statement(struct Parser * parser) {
-    struct LetStatement * statement = malloc(sizeof(struct LetStatement));
+void parse_let_statement(struct Parser * par, struct Statement * smt) {
+    smt->st = malloc(sizeof(struct LetStatement));
 
-    if(!expect_peek(parser, IDENT))
-        return NULL;
+    if(!expect_peek(par, IDENT))
+        return;
 
-    statement->name.token = parser->current_token;
-    statement->name.value = parser->current_token.literal;
+    ((struct LetStatement *)smt->st)->name.token = par->current_token;
+    ((struct LetStatement *)smt->st)->name.value = par->current_token.literal;
 
-    if(!expect_peek(parser, ASSIGN))
-        return NULL;
+    if(!expect_peek(par, ASSIGN))
+        return;
 
-    while(!cur_token_is(parser, SEMICOLON))
-        parser_next_token(parser);
-
-    return statement;
+    while(!cur_token_is(par, SEMICOLON))
+        parser_next_token(par);
 }
 
 struct Program * parse_program(struct Parser * parser) {
-    struct Program * program = malloc(sizeof(struct Program));
-    program->statements = malloc(sizeof(struct Statement));
-    int i = 0;
+    size_t sz;
+    struct Program * prg = malloc(sizeof(struct Program));
+    prg->statements = malloc(sizeof(struct Statement));
+    prg->sc = 0;
 
     while(strcmp(parser->current_token.type, EOF_) != 0) {
         if(strcmp(parser->current_token.type, LET) == 0) {
-            program->statements = realloc(program->statements,
-                sizeof(struct Statement) * (i+1));
-            program->statements[i].type = LET;
-            program->statements[i].literal = parser->current_token.literal;
-            program->statements[i].let_statement = parse_let_statement(parser);
-            program->sc++;
-            i++;
+            sz = sizeof(struct Statement) * (prg->sc+1);
+            prg->statements = realloc(prg->statements, sz);
+            prg->statements[prg->sc].type = LET;
+            prg->statements[prg->sc].literal = parser->current_token.literal;
+            parse_let_statement(parser, &prg->statements[prg->sc++]);
         }
+
         parser_next_token(parser);
     }
 
-    return program;
+    return prg;
 }
+
+bool test_let_statement(struct Statement smt, const char * name) {
+    char * nv = ((struct LetStatement *)(smt.st))->name.value;
+    char * tl = ((struct LetStatement *)(smt.st))->name.token.literal;
+
+    if(strcmp(smt.literal, "let") != 0)
+        printf("Statement's literal not \"let\", got \"%s\"\n", smt.literal);
+
+    if(strcmp(smt.type, LET) != 0)
+        printf("Statement's type not \"LET\", got \"%s\"\n", smt.type);
+
+    if(strcmp(nv, name) != 0)
+        printf("st.name's value not '%s', got '%s'\n", name, nv);
+
+    if(strcmp(tl, name) != 0)
+        printf("Statement's name not '%s', got '%s'\n", name, tl);
+}
+
+bool check_parser_errors(struct Parser * parser) {
+    int i;
+
+    if(parser->ec == 0)
+        return false;
+
+    if(parser->ec != 0) {
+        for(i = 0; i < parser->ec; i++)
+            printf("%s\n", parser->errors[i]);
+    }
+
+    return true;
+}
+
+void test_let_statements() {
+    int i;
+    const char * input = " \
+            let x = 5; \
+            let y = 10; \
+            let foobar = 838383;";
+    const char * tests[3] = {"x", "y", "foobar"};
+    struct Lexer * lexer = new_lexer(input);
+    struct Parser * parser = new_parser(lexer);
+    struct Program * program = parse_program(parser);
+
+    if(check_parser_errors(parser))
+        return;
+
+    if(program == NULL)
+        printf("parse_program() returned NULL");
+
+    if(program->sc != 3)
+        printf("Expected 3 statements, got %i", program->sc);
+
+    for(i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
+        test_let_statement(program->statements[i], tests[i]);
+    }
+}
+
 int main(int argc, char * argv[])
 {
     if(strcmp(argv[1], "parser") == 0) {
-        const char * input = "let x = 5; let y = 3;";
+        const char * input = "let x = 5; let a = 3;";
+
         struct Lexer * lexer = new_lexer(input);
         struct Parser * parser = new_parser(lexer);
         struct Program * program = parse_program(parser);
+        struct Statement statement = program->statements[0];
 
-        printf("%s", program->statements[0].let_statement->name.token.literal);
+        printf("%s\n", statement.type);
+        printf("%s", ((struct LetStatement *)(statement.st))->name.value);
+    }
+
+    if(strcmp(argv[1], "test-let-statements") == 0) {
+        test_let_statements();
     }
 
     if(strcmp(argv[1], "repl") == 0) {
@@ -410,15 +486,9 @@ int main(int argc, char * argv[])
             token.type = ILLEGAL;
 
             while(strcmp(token.type, EOF_) != 0) {
-                token = next_token(lexer);
+                token = lexer_next_token(lexer);
                 printf("{Literal: %s, Type: %s}\n", token.literal, token.type);
-
-                if(token.type == LET || token.type == FUNCTION
-                    || token.type == IDENT || token.type == INT)
-                    free(token.literal);
             }
-
-            free(lexer);
         }
     }
 
