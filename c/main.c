@@ -41,6 +41,8 @@
 
 typedef char * TokenType;
 typedef char * TokenLiteral;
+typedef char * StatementType;
+typedef char * ValueType;
 
 struct Token {
     TokenType type;
@@ -62,11 +64,18 @@ struct Identifier {
 struct LetStatement {
     struct Token token;
     struct Identifier name;
+    void * value;
+    ValueType type; // Identifier, ExpressionStatement, IntegerLiteral, ...
+};
+
+struct ReturnStatement {
+    struct Token token;
+    void * value;
+    ValueType type;
 };
 
 struct Statement {
-    char * type;
-    TokenLiteral literal;
+    StatementType type;
     void * st;
 };
 
@@ -313,15 +322,6 @@ void test_next_token() {
     free(lexer);
 }
 
-char * token_literal(struct Program * program) {
-    size_t size = sizeof(program->statements) / sizeof(program->statements[0]);
-
-    if(size > 0)
-        return program->statements[0].literal;
-    else
-        return "";
-}
-
 void parser_next_token(struct Parser * parser) {
     parser->current_token = parser->peek_token;
     parser->peek_token = lexer_next_token(parser->lexer);
@@ -366,6 +366,7 @@ bool expect_peek(struct Parser * parser, TokenType type) {
 
 void parse_let_statement(struct Parser * par, struct Statement * smt) {
     smt->st = malloc(sizeof(struct LetStatement));
+    ((struct LetStatement *)smt->st)->token = par->current_token;
 
     if(!expect_peek(par, IDENT))
         return;
@@ -375,6 +376,16 @@ void parse_let_statement(struct Parser * par, struct Statement * smt) {
 
     if(!expect_peek(par, ASSIGN))
         return;
+
+    while(!cur_token_is(par, SEMICOLON))
+        parser_next_token(par);
+}
+
+void parse_return_statement(struct Parser * par, struct Statement * smt) {
+    smt->st = malloc(sizeof(struct ReturnStatement));
+    ((struct ReturnStatement *)smt->st)->token = par->current_token;
+
+    parser_next_token(par);
 
     while(!cur_token_is(par, SEMICOLON))
         parser_next_token(par);
@@ -391,8 +402,12 @@ struct Program * parse_program(struct Parser * parser) {
             sz = sizeof(struct Statement) * (prg->sc+1);
             prg->statements = realloc(prg->statements, sz);
             prg->statements[prg->sc].type = LET;
-            prg->statements[prg->sc].literal = parser->current_token.literal;
             parse_let_statement(parser, &prg->statements[prg->sc++]);
+        } else if(strcmp(parser->current_token.type, RETURN) == 0) {
+            sz = sizeof(struct Statement) * (prg->sc+1);
+            prg->statements = realloc(prg->statements, sz);
+            prg->statements[prg->sc].type = RETURN;
+            parse_return_statement(parser, &prg->statements[prg->sc++]);
         }
 
         parser_next_token(parser);
@@ -401,35 +416,35 @@ struct Program * parse_program(struct Parser * parser) {
     return prg;
 }
 
-bool test_let_statement(struct Statement smt, const char * name) {
-    char * nv = ((struct LetStatement *)(smt.st))->name.value;
-    char * tl = ((struct LetStatement *)(smt.st))->name.token.literal;
-
-    if(strcmp(smt.literal, "let") != 0)
-        printf("Statement's literal not \"let\", got \"%s\"\n", smt.literal);
-
-    if(strcmp(smt.type, LET) != 0)
-        printf("Statement's type not \"LET\", got \"%s\"\n", smt.type);
-
-    if(strcmp(nv, name) != 0)
-        printf("st.name's value not '%s', got '%s'\n", name, nv);
-
-    if(strcmp(tl, name) != 0)
-        printf("Statement's name not '%s', got '%s'\n", name, tl);
-}
-
 bool check_parser_errors(struct Parser * parser) {
     int i;
 
     if(parser->ec == 0)
         return false;
 
-    if(parser->ec != 0) {
+    if(parser->ec != 0)
         for(i = 0; i < parser->ec; i++)
             printf("%s\n", parser->errors[i]);
-    }
 
     return true;
+}
+
+bool test_let_statement(struct Statement smt, const char * name) {
+    char * nv = ((struct LetStatement *)(smt.st))->name.value;
+    char * tl = ((struct LetStatement *)(smt.st))->name.token.literal;
+    char * tt = ((struct LetStatement *)(smt.st))->token.type;
+
+    if(strcmp(smt.type, LET) != 0)
+        printf("Statement's type not \"LET\", got \"%s\"\n", smt.type);
+
+    if(strcmp(tt, LET) != 0)
+        printf("Token's type not \"LET\", got \"%s\"\n", tt);
+
+    if(strcmp(nv, name) != 0)
+        printf("Name's value not '%s', got '%s'\n", name, nv);
+
+    if(strcmp(tl, name) != 0)
+        printf("Name's token literal not '%s', got '%s'\n", name, tl);
 }
 
 void test_let_statements() {
@@ -457,8 +472,48 @@ void test_let_statements() {
     }
 }
 
+void test_return_statements() {
+    int i;
+    struct Statement smt;
+    char * tl;
+    const char * input = " \
+            return 5; \
+            return 10; \
+            return 993322;";
+    const char * tests[3] = {"x", "y", "foobar"};
+    struct Lexer * lexer = new_lexer(input);
+    struct Parser * parser = new_parser(lexer);
+    struct Program * program = parse_program(parser);
+
+    if(check_parser_errors(parser))
+        return;
+
+    if(program->sc != 3)
+        printf("Expected 3 statements, got %i", program->sc);
+
+    for(i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
+        smt = program->statements[i];
+        tl = ((struct ReturnStatement *)(smt.st))->token.literal;
+
+        if(strcmp(tl, "return") != 0)
+            printf("Token literal not \"RETURN\", got \"%s\"\n", tl);
+
+        if(strcmp(smt.type, RETURN) != 0)
+            printf("Statement's type not \"RETURN\", got \"%s\"\n", smt.type);
+    }
+}
+
 int main(int argc, char * argv[])
 {
+    if(strcmp(argv[1], "test-return-statements") == 0)
+        test_return_statements();
+
+    if(strcmp(argv[1], "test-next-token") == 0)
+        test_next_token();
+
+    if(strcmp(argv[1], "test-let-statements") == 0)
+        test_let_statements();
+
     if(strcmp(argv[1], "parser") == 0) {
         const char * input = "let x = 5; let a = 3;";
 
@@ -469,10 +524,6 @@ int main(int argc, char * argv[])
 
         printf("%s\n", statement.type);
         printf("%s", ((struct LetStatement *)(statement.st))->name.value);
-    }
-
-    if(strcmp(argv[1], "test-let-statements") == 0) {
-        test_let_statements();
     }
 
     if(strcmp(argv[1], "repl") == 0) {
@@ -491,9 +542,6 @@ int main(int argc, char * argv[])
             }
         }
     }
-
-    if(strcmp(argv[1], "test-next-token") == 0)
-        test_next_token();
 
     return 0;
 }
