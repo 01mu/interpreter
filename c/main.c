@@ -64,6 +64,11 @@ struct Lexer {
     int read_pos;
 };
 
+struct IntegerLiteral {
+    struct Token token;
+    int value;
+};
+
 struct Identifier {
     struct Token token;
     char * value;
@@ -124,6 +129,28 @@ void read_char(struct Lexer * lexer) {
 
     lexer->pos = lexer->read_pos;
     lexer->read_pos += 1;
+}
+
+int str_to_int(char * str)
+{
+    int result;
+    int puiss;
+    result = 0;
+    puiss = 1;
+
+    while (('-' == (*str)) || ((*str) == '+')) {
+        if (*str == '-')
+            puiss = puiss * -1;
+
+        str++;
+    }
+
+    while ((*str >= '0') && (*str <= '9')) {
+        result = (result * 10) + ((*str) - '0');
+        str++;
+    }
+
+    return (result * puiss);
 }
 
 struct Lexer * new_lexer(const char * input) {
@@ -402,9 +429,18 @@ void * parse_identifier(struct Parser * par) {
     return identifier;
 }
 
+void * parse_integer_literal(struct Parser * par) {
+    struct IntegerLiteral * lit = malloc(sizeof(struct IntegerLiteral));
+    lit->token = par->current_token;
+    lit->value = str_to_int(par->current_token.literal);
+    return lit;
+}
+
 void * parse_expression(struct Parser * par, int precedence) {
     if(par->current_token.type == IDENT)
         return parse_identifier(par);
+    else if(par->current_token.type == INT)
+        return parse_integer_literal(par);
 }
 
 void parse_expression_statement(struct Parser * par, struct Statement * smt) {
@@ -547,7 +583,6 @@ void test_return_statements() {
 }
 
 void test_identifier_expression() {
-    int i;
     struct Statement smt;
     char * tl;
     struct ExpressionStatement * e_st;
@@ -580,11 +615,39 @@ void test_identifier_expression() {
 
     if(strcmp(smt.type, "EXPRESSION") != 0)
         printf("Statement's type not \"EXPRESSION\", got \"%s\"\n", smt.type);
+}
 
+void test_integer_literal_expression() {
+    struct Statement smt;
+    struct ExpressionStatement * est;
+    struct IntegerLiteral * il;
+    const char * input = "5;";
+    struct Lexer * lexer = new_lexer(input);
+    struct Parser * parser = new_parser(lexer);
+    struct Program * program = parse_program(parser);
+
+    if(check_parser_errors(parser))
+        return;
+
+    if(program->sc != 1)
+        printf("Expected 1 statements, got %i", program->sc);
+
+    smt = program->statements[0];
+    est = ((struct ExpressionStatement *)(smt.st));
+    il = ((struct IntegerLiteral *)(est->expression));
+
+    if(il->value != 5)
+        printf("Integer literal's value not 5, got %i\n", il->value);
+
+    if(strcmp(smt.type, "EXPRESSION") != 0)
+        printf("Statement's type not \"EXPRESSION\", got \"%s\"\n", smt.type);
 }
 
 int main(int argc, char * argv[])
 {
+    if(strcmp(argv[1], "test-integer-literal") == 0)
+        test_integer_literal_expression();
+
     if(strcmp(argv[1], "test-identifier-expression") == 0)
         test_identifier_expression();
 
