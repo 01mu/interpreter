@@ -39,6 +39,14 @@
 #define EQ "=="
 #define NOT_EQ "!="
 
+#define LOWEST 1
+#define EQUALS 2
+#define LESSGREATER 3
+#define SUM 4
+#define PRODUCT 5
+#define PREFIX 6
+#define CALL 7
+
 typedef char * TokenType;
 typedef char * TokenLiteral;
 typedef char * StatementType;
@@ -59,6 +67,12 @@ struct Lexer {
 struct Identifier {
     struct Token token;
     char * value;
+};
+
+struct ExpressionStatement {
+    struct Token token;
+    ValueType expression_type;
+    void * expression;
 };
 
 struct LetStatement {
@@ -381,6 +395,30 @@ void parse_let_statement(struct Parser * par, struct Statement * smt) {
         parser_next_token(par);
 }
 
+void * parse_identifier(struct Parser * par) {
+    struct Identifier * identifier = malloc(sizeof(struct Identifier));
+    identifier->token = par->current_token;
+    identifier->value = par->current_token.literal;
+    return identifier;
+}
+
+void * parse_expression(struct Parser * par, int precedence) {
+    if(par->current_token.type == IDENT)
+        return parse_identifier(par);
+}
+
+void parse_expression_statement(struct Parser * par, struct Statement * smt) {
+    smt->st = malloc(sizeof(struct ExpressionStatement));
+    ((struct ExpressionStatement *)smt->st)->token = par->current_token;
+    ((struct ExpressionStatement *)smt->st)->expression_type =
+        par->current_token.type;
+    ((struct ExpressionStatement *)smt->st)->expression =
+        parse_expression(par, LOWEST);
+
+    if(peek_token_is(par, SEMICOLON))
+        parser_next_token(par);
+}
+
 void parse_return_statement(struct Parser * par, struct Statement * smt) {
     smt->st = malloc(sizeof(struct ReturnStatement));
     ((struct ReturnStatement *)smt->st)->token = par->current_token;
@@ -408,6 +446,11 @@ struct Program * parse_program(struct Parser * parser) {
             prg->statements = realloc(prg->statements, sz);
             prg->statements[prg->sc].type = RETURN;
             parse_return_statement(parser, &prg->statements[prg->sc++]);
+        } else {
+            sz = sizeof(struct Statement) * (prg->sc+1);
+            prg->statements = realloc(prg->statements, sz);
+            prg->statements[prg->sc].type = "EXPRESSION";
+            parse_expression_statement(parser, &prg->statements[prg->sc++]);
         }
 
         parser_next_token(parser);
@@ -503,8 +546,48 @@ void test_return_statements() {
     }
 }
 
+void test_identifier_expression() {
+    int i;
+    struct Statement smt;
+    char * tl;
+    struct ExpressionStatement * e_st;
+    struct Identifier * id;
+    const char * input = "foobar;";
+    struct Lexer * lexer = new_lexer(input);
+    struct Parser * parser = new_parser(lexer);
+    struct Program * program = parse_program(parser);
+
+    if(check_parser_errors(parser))
+        return;
+
+    if(program->sc != 1)
+        printf("Expected 1 statements, got %i", program->sc);
+
+    smt = program->statements[0];
+    e_st = ((struct ExpressionStatement *)(smt.st));
+    id = ((struct Identifier *)(e_st->expression));
+    tl = e_st->token.literal;
+
+    if(strcmp(e_st->expression_type, "IDENT") != 0)
+        printf("Expression type not \"IDENT\", got \"%s\"\n",
+            e_st->expression_type);
+
+    if(strcmp(tl, "foobar") != 0)
+        printf("Token literal not \"foobar\", got \"%s\"\n", tl);
+
+    if(strcmp(tl, "foobar") != 0)
+        printf("Identifier value not \"foobar\", got \"%s\"\n", id->value);
+
+    if(strcmp(smt.type, "EXPRESSION") != 0)
+        printf("Statement's type not \"EXPRESSION\", got \"%s\"\n", smt.type);
+
+}
+
 int main(int argc, char * argv[])
 {
+    if(strcmp(argv[1], "test-identifier-expression") == 0)
+        test_identifier_expression();
+
     if(strcmp(argv[1], "test-return-statements") == 0)
         test_return_statements();
 
