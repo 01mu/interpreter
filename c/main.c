@@ -64,6 +64,13 @@ struct Lexer {
     int read_pos;
 };
 
+struct PrefixExpression {
+    struct Token token;
+    char * operator;
+    ValueType expression_type;
+    void * right;
+};
+
 struct IntegerLiteral {
     struct Token token;
     int value;
@@ -83,8 +90,8 @@ struct ExpressionStatement {
 struct LetStatement {
     struct Token token;
     struct Identifier name;
-    void * value;
     ValueType type; // Identifier, ExpressionStatement, IntegerLiteral, ...
+    void * value;
 };
 
 struct ReturnStatement {
@@ -436,11 +443,25 @@ void * parse_integer_literal(struct Parser * par) {
     return lit;
 }
 
+void * parse_expression(struct Parser * par, int precedence);
+
+void * parse_prefix_expression(struct Parser * par) {
+    struct PrefixExpression * pe = malloc(sizeof(struct PrefixExpression));
+    pe->token = par->current_token;
+    pe->operator = par->current_token.literal;
+    parser_next_token(par);
+    pe->right = parse_expression(par, PREFIX);
+    return pe;
+}
+
 void * parse_expression(struct Parser * par, int precedence) {
-    if(par->current_token.type == IDENT)
+    if(par->current_token.type == IDENT) {
         return parse_identifier(par);
-    else if(par->current_token.type == INT)
+    } else if(par->current_token.type == INT) {
         return parse_integer_literal(par);
+    } else if(par->current_token.type == BANG || par->current_token.type == MINUS) {
+        return parse_prefix_expression(par);
+    }
 }
 
 void parse_expression_statement(struct Parser * par, struct Statement * smt) {
@@ -508,10 +529,35 @@ bool check_parser_errors(struct Parser * parser) {
     return true;
 }
 
+char * print_let_statement(struct LetStatement * smt) {
+    int v = (strlen(smt->token.literal) + strlen(smt->name.value) + 6);
+    char * let = malloc(sizeof(char) * v);
+    let[0] = '\0';
+    strcat(let, smt->token.literal);
+    strcat(let, " ");
+    strcat(let, smt->name.value);
+    strcat(let, " = ");
+    strcat(let, ";");
+    return let;
+}
+
+char * print_return_statement(struct ReturnStatement * smt) {
+    int v = (strlen(smt->token.literal) + 2);
+    char * let = malloc(sizeof(char) * v);
+    let[0] = '\0';
+    strcat(let, smt->token.literal);
+    strcat(let, ";");
+    return let;
+}
+
 bool test_let_statement(struct Statement smt, const char * name) {
-    char * nv = ((struct LetStatement *)(smt.st))->name.value;
-    char * tl = ((struct LetStatement *)(smt.st))->name.token.literal;
-    char * tt = ((struct LetStatement *)(smt.st))->token.type;
+    struct LetStatement * ls = (struct LetStatement *)(smt.st);
+
+    char * nv = ls->name.value;
+    char * tl = ls->name.token.literal;
+    char * tt = ls->token.type;
+
+    printf("%s\n", print_let_statement(ls));
 
     if(strcmp(smt.type, LET) != 0)
         printf("Statement's type not \"LET\", got \"%s\"\n", smt.type);
@@ -634,6 +680,8 @@ void test_integer_literal_expression() {
 
     smt = program->statements[0];
     est = ((struct ExpressionStatement *)(smt.st));
+
+    printf("%s", est->token.literal);
     il = ((struct IntegerLiteral *)(est->expression));
 
     if(il->value != 5)
@@ -643,8 +691,48 @@ void test_integer_literal_expression() {
         printf("Statement's type not \"EXPRESSION\", got \"%s\"\n", smt.type);
 }
 
+void * test_parsing_prefix_expressions() {
+    struct T {
+        char * input;
+        char * operator;
+        int integer_value;
+    };
+    int i;
+    struct T tests[2] = {{"!5", "!", 5}, {"-15", "-", 15}};
+
+    for(i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
+        struct Lexer * lexer = new_lexer(tests[i].input);
+        struct Parser * parser = new_parser(lexer);
+        struct Program * program = parse_program(parser);
+
+        if(check_parser_errors(parser))
+            break;
+
+        if(program->sc != 1)
+            printf("Expected 1 statements, got %i", program->sc);
+
+        if(strcmp(program->statements[0].type, "EXPRESSION") != 0)
+            printf("Expression type not \"EXPRESSION\", got \"%s\"\n",
+                program->statements[0].type);
+
+        struct ExpressionStatement * est =
+            ((struct ExpressionStatement *)(program->statements[0].st));
+
+        struct PrefixExpression * pes =
+            ((struct PrefixExpression *)(est->expression));
+
+        struct IntegerLiteral * il =
+            ((struct IntegerLiteral *)(pes->right));
+
+        printf("%i\n", il->value);
+    }
+}
+
 int main(int argc, char * argv[])
 {
+    if(strcmp(argv[1], "test-parsing-prefix-expressions") == 0)
+        test_parsing_prefix_expressions();
+
     if(strcmp(argv[1], "test-integer-literal") == 0)
         test_integer_literal_expression();
 
