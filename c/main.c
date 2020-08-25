@@ -123,14 +123,13 @@ typedef struct Parser_ {
 } Parser;
 
 Token new_token(char * type, char ch) {
-    char a[2];
     Token token;
-    a[0] = ch;
-    a[1] = '\0';
+
     token.type = type;
-    token.literal = malloc(sizeof(char));
+    token.literal = malloc(sizeof(char) * 2);
     token.literal[0] = ch;
     token.literal[1] = '\0';
+
     return token;
 }
 
@@ -401,7 +400,7 @@ void * parse_integer_literal(Parser * par) {
     return lit;
 }
 
-void * parse_expression(Parser * par, int precedence);
+void * parse_expression(Parser * par, int precedence, ExpressionStatement * est);
 
 int parser_get_precedence(Parser * par, char * type) {
     char * pt;
@@ -429,36 +428,43 @@ void * parse_prefix_expression(Parser * par) {
     pe->token = par->current_token;
     pe->operator = par->current_token.literal;
     parser_next_token(par);
-    pe->right = parse_expression(par, PREFIX);
+    pe->right = parse_expression(par, PREFIX, NULL);
     pe->expression_type = par->current_token.type;
     return pe;
 }
 
-void * parse_infix_expression(Parser * par, void * left) {
+void * parse_infix_expression(Parser * par, void * left, char * zz) {
     InfixExpression * ie = malloc(sizeof(InfixExpression));
     int precedence = parser_get_precedence(par, "current");
 
     ie->token = par->current_token;
     ie->operator = par->current_token.literal;
     ie->left = left;
+    ie->left_expression_type = zz;
 
     parser_next_token(par);
 
-    ie->right = parse_expression(par, precedence);
+    ie->right_expression_type = par->current_token.type;
+    ie->right = parse_expression(par, precedence, NULL);
 
     return ie;
 }
 
-void * parse_expression(Parser * par, int precedence) {
+void * parse_expression(Parser * par, int precedence, ExpressionStatement * est) {
     char * type = par->current_token.type;
     void * expr;
+    char * t;
 
-    if(type == IDENT)
+    if(type == IDENT) {
+        t = IDENT;
         expr = parse_identifier(par);
-    else if(type == INT)
+    } else if(type == INT) {
+        t = INT;
         expr = parse_integer_literal(par);
-    else if(type == BANG || type == MINUS)
+    } else if(type == BANG || type == MINUS) {
         expr = parse_prefix_expression(par);
+        t = "PREFIX";
+    }
 
     while(!peek_token_is(par, SEMICOLON) &&
         precedence < parser_get_precedence(par, "peek")) {
@@ -469,12 +475,18 @@ void * parse_expression(Parser * par, int precedence) {
             type == ASTERISK || type == EQ || type == NOT_EQ ||
             type == LT || type == GT) {
 
+            t = "INFIX";
+            char * zz = par->current_token.type;
             parser_next_token(par);
-            expr = parse_infix_expression(par, expr);
+            expr = parse_infix_expression(par, expr, zz);
         } else {
-            return expr;
+            break;
+            //return expr;
         }
     }
+
+    if(est != NULL)
+        est->expression_type = t;
 
     return expr;
 }
@@ -482,10 +494,10 @@ void * parse_expression(Parser * par, int precedence) {
 void parse_expression_statement(Parser * par, Statement * smt) {
     smt->st = malloc(sizeof(ExpressionStatement));
     ((ExpressionStatement *)smt->st)->token = par->current_token;
-    ((ExpressionStatement *)smt->st)->expression_type =
-        par->current_token.type;
+    /*((ExpressionStatement *)smt->st)->expression_type =
+        par->current_token.type;*/
     ((ExpressionStatement *)smt->st)->expression =
-        parse_expression(par, LOWEST);
+        parse_expression(par, LOWEST, ((ExpressionStatement *)smt->st));
 
     if(peek_token_is(par, SEMICOLON))
         parser_next_token(par);
@@ -546,23 +558,96 @@ bool check_parser_errors(Parser * parser) {
 
 char * print_let_statement(LetStatement * smt) {
     int v = (strlen(smt->token.literal) + strlen(smt->name.value) + 6);
+
     char * let = malloc(sizeof(char) * v);
+
     let[0] = '\0';
+
     strcat(let, smt->token.literal);
     strcat(let, " ");
     strcat(let, smt->name.value);
     strcat(let, " = ");
     strcat(let, ";");
+
     return let;
 }
 
 char * print_return_statement(ReturnStatement * smt) {
     int v = (strlen(smt->token.literal) + 2);
+
     char * let = malloc(sizeof(char) * v);
+
     let[0] = '\0';
+
     strcat(let, smt->token.literal);
     strcat(let, ";");
+
     return let;
+}
+
+char * print_integer_literal(IntegerLiteral * il) {
+    return il->token.literal;
+}
+
+char * print_identifier_value(Identifier * i) {
+    return i->value;
+}
+
+char * print_prefix_expression(PrefixExpression * pe);
+char * print_infix_expression(InfixExpression * ie);
+
+char * get_print_expression(char * type, void * expr) {
+    char * s;
+
+    if(strcmp(type, INT) == 0)
+        s = print_integer_literal((IntegerLiteral *) expr);
+    else if (strcmp(type, IDENT) == 0)
+        s = print_identifier_value((Identifier *) expr);
+    else if (strcmp(type, "PREFIX") == 0)
+        s = print_prefix_expression((PrefixExpression *) expr);
+    else if (strcmp(type, "INFIX") == 0)
+        s = print_infix_expression((InfixExpression *) expr);
+
+    return s;
+}
+
+char * print_prefix_expression(PrefixExpression * pe) {
+    int v = (strlen(pe->operator) + 2);
+
+    char * exp = malloc(v);
+    char * s;
+
+    exp[0] = '\0';
+
+    strcat(exp, "(");
+    strcat(exp, pe->operator);
+
+    s = get_print_expression(pe->expression_type, pe->right);
+    exp = realloc(exp, 1 + v + strlen(s));
+
+    strcat(exp, s);
+    strcat(exp, ")");
+
+    return exp;
+}
+
+char * print_infix_expression(InfixExpression * ie) {
+    char * left = get_print_expression(ie->left_expression_type, ie->left);
+    char * right = get_print_expression(ie->right_expression_type, ie->right);
+    char * exp = malloc(1 + (strlen(ie->operator) + 5) + strlen(left) +
+        strlen(right));
+
+    exp[0] = '\0';
+
+    strcat(exp, "(");
+    strcat(exp, left);
+    strcat(exp, " ");
+    strcat(exp, ie->operator);
+    strcat(exp, " ");
+    strcat(exp, right);
+    strcat(exp, ")");
+
+    return exp;
 }
 
 void test_next_token() {
@@ -775,6 +860,8 @@ void * test_parsing_prefix_expressions() {
         if(check_parser_errors(parser))
             break;
 
+        printf("%s\n", print_prefix_expression(pex));
+
         if(program->sc != 1)
             printf("Expected 1 statements, got %i", program->sc);
 
@@ -785,11 +872,11 @@ void * test_parsing_prefix_expressions() {
             printf("Got %i, expected %i \n", il->value, tests[i].v);
         }
 
-        printf("Statement count: %i\n", program->sc);
+        /*printf("Statement count: %i\n", program->sc);
         printf("Statement type: %s\n", stmt.type);
         printf("Expression statement type: %s\n", est->expression_type);
         printf("Prefix expression type: %s\n", pex->expression_type);
-        printf("Integer literal value: %i\n\n", il->value);
+        printf("Integer literal value: %i\n\n", il->value);*/
     }
 }
 
@@ -811,7 +898,7 @@ void * test_parsing_infix_expressions() {
     Program * program;
     Statement stmt;
     ExpressionStatement * est;
-    InfixExpression * pex;
+    InfixExpression * iex;
     IntegerLiteral * right_il;
     IntegerLiteral * left_il;
 
@@ -821,21 +908,29 @@ void * test_parsing_infix_expressions() {
         program = parse_program(parser);
         stmt = program->statements[0];
         est = (ExpressionStatement *) stmt.st;
-        pex = (InfixExpression *) est->expression;
-        //il = (IntegerLiteral *) pex->right;
+        iex = (InfixExpression *) est->expression;
+        right_il = (IntegerLiteral *) iex->right;
+        left_il = (IntegerLiteral *) iex->left;
 
         if(check_parser_errors(parser))
             break;
 
+        printf("%s\n", print_infix_expression(iex));
+
         if(program->sc != 1)
-            printf("Expected 1 statements, got %i\n", program->sc);
+            printf("[%i] Expected 1 statements, got %i\n", i, program->sc);
 
-        printf("%s\n", stmt.type);
-        printf("%s\n", est->expression_type);
-        printf("%s\n", pex->operator);
+        if(strcmp(iex->operator, tests[i].operator) != 0)
+            printf("[%i] Expected operator %s, got %s\n", i, tests[i].operator,
+                iex->operator);
 
-        //if(strcmp(stmt.type, "EXPRESSION") != 0)
-        //    printf("st type not \"EXPRESSION\", got \"%s\"\n", stmt.type);
+        if(left_il->value != tests[i].left_val)
+            printf("[%i] Expected left value %i, got %i\n", i,
+                tests[i].left_val, left_il->value);
+
+        if(right_il->value != tests[i].right_val)
+            printf("[%i] Expected right value %i, got %i\n", i,
+                tests[i].right_val, right_il->value);
     }
 }
 
