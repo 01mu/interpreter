@@ -47,88 +47,94 @@
 #define PREFIX 6
 #define CALL 7
 
-typedef char * TokenType;
-typedef char * TokenLiteral;
-typedef char * StatementType;
-typedef char * ValueType;
-
-struct Token {
-    TokenType type;
+typedef struct Token_ {
+    char * type;
     char * literal;
-};
+} Token;
 
-struct Lexer {
+typedef struct Lexer_ {
     char ch;
     const char * input;
     int pos;
     int read_pos;
-};
+} Lexer;
 
-struct PrefixExpression {
-    struct Token token;
+typedef struct InfixExpression_ {
+    Token token;
     char * operator;
-    ValueType expression_type;
+    char * left_expression_type;
+    char * right_expression_type;
+    void * left;
     void * right;
-};
+} InfixExpression;
 
-struct IntegerLiteral {
-    struct Token token;
+typedef struct PrefixExpression_ {
+    Token token;
+    char * operator;
+    char * expression_type;
+    void * right;
+} PrefixExpression;
+
+typedef struct IntegerLiteral_ {
+    Token token;
     int value;
-};
+} IntegerLiteral;
 
-struct Identifier {
-    struct Token token;
+typedef struct Identifier_ {
+    Token token;
     char * value;
-};
+} Identifier;
 
-struct ExpressionStatement {
-    struct Token token;
-    ValueType expression_type;
+typedef struct ExpressionStatement_ {
+    Token token;
+    char * expression_type;
     void * expression;
-};
+} ExpressionStatement;
 
-struct LetStatement {
-    struct Token token;
-    struct Identifier name;
-    ValueType type; // Identifier, ExpressionStatement, IntegerLiteral, ...
+typedef struct LetStatement_ {
+    Token token;
+    Identifier name;
+    char * type;
     void * value;
-};
+} LetStatement;
 
-struct ReturnStatement {
-    struct Token token;
+typedef struct ReturnStatement_ {
+    Token token;
+    char * type;
     void * value;
-    ValueType type;
-};
+} ReturnStatement;
 
-struct Statement {
-    StatementType type;
+typedef struct Statement_ {
+    char * type;
     void * st;
-};
+} Statement;
 
-struct Program {
-    struct Statement * statements;
+typedef struct Program_ {
+    Statement * statements;
     int sc;
-};
+} Program;
 
-struct Parser {
-    struct Lexer * lexer;
-    struct Token current_token;
-    struct Token peek_token;
+typedef struct Parser_ {
+    Lexer * lexer;
+    Token current_token;
+    Token peek_token;
     char ** errors;
     int ec;
-};
+} Parser;
 
-struct Token new_token(TokenType type, char ch) {
+Token new_token(char * type, char ch) {
     char a[2];
-    struct Token token;
+    Token token;
     a[0] = ch;
     a[1] = '\0';
     token.type = type;
-    token.literal = a;
+    token.literal = malloc(sizeof(char));
+    token.literal[0] = ch;
+    token.literal[1] = '\0';
     return token;
 }
 
-void read_char(struct Lexer * lexer) {
+void read_char(Lexer * lexer) {
     if(lexer->read_pos >= strlen(lexer->input))
         lexer->ch = 0;
     else
@@ -160,8 +166,8 @@ int str_to_int(char * str)
     return (result * puiss);
 }
 
-struct Lexer * new_lexer(const char * input) {
-    struct Lexer * lexer = malloc(sizeof(struct Lexer));
+Lexer * new_lexer(const char * input) {
+    Lexer * lexer = malloc(sizeof(Lexer));
     lexer->input = input;
     lexer->pos = 0;
     lexer->read_pos = 0;
@@ -189,7 +195,7 @@ bool is_digit(char ch) {
     return '0' <= ch && ch <= '9';
 }
 
-char * read_identifier(struct Lexer * lexer) {
+char * read_identifier(Lexer * lexer) {
     int position = lexer->pos;
 
     while(is_letter(lexer->ch))
@@ -198,7 +204,7 @@ char * read_identifier(struct Lexer * lexer) {
     return get_substr(position, lexer->pos, lexer->input);
 }
 
-char * read_number(struct Lexer * lexer) {
+char * read_number(Lexer * lexer) {
     int position = lexer->pos;
 
     while(is_digit(lexer->ch))
@@ -226,22 +232,22 @@ char * lookup_ident(char * literal) {
         return IDENT;
 }
 
-void skip_whitespace(struct Lexer * lexer) {
+void skip_whitespace(Lexer * lexer) {
     while(lexer->ch == ' ' || lexer-> ch == '\t' || lexer->ch == '\n'
         || lexer->ch  == '\r') {
         read_char(lexer);
     }
 }
 
-char peek_char(struct Lexer * lexer) {
+char peek_char(Lexer * lexer) {
     if(lexer->read_pos >= strlen(lexer->input))
         return 0;
     else
         return lexer->input[lexer->read_pos];
 }
 
-struct Token lexer_next_token(struct Lexer * lexer) {
-    struct Token token;
+Token lexer_next_token(Lexer * lexer) {
+    Token token;
 
     skip_whitespace(lexer);
 
@@ -322,12 +328,251 @@ struct Token lexer_next_token(struct Lexer * lexer) {
     return token;
 }
 
+void parser_next_token(Parser * parser) {
+    parser->current_token = parser->peek_token;
+    parser->peek_token = lexer_next_token(parser->lexer);
+}
+
+Parser * new_parser(Lexer * lexer) {
+    Parser * parser = malloc(sizeof(Parser));
+    parser->lexer = lexer;
+    parser->errors = malloc(sizeof(char *));
+    parser->ec = 0;
+    parser_next_token(parser);
+    parser_next_token(parser);
+    return parser;
+}
+
+void peek_error(Parser * parser, char * type) {
+    int ex_len = strlen(type);
+    int gt_len = strlen(parser->peek_token.type);
+    char * str = malloc((14+ex_len+gt_len)*sizeof(char));
+    sprintf(str, "Expected %s got %s", type, parser->peek_token.type);
+    parser->errors[parser->ec] = str;
+    parser->errors[++parser->ec] = malloc(sizeof(char *));
+}
+
+bool cur_token_is(Parser * parser, char * type) {
+    return strcmp(parser->current_token.type, type) == 0;
+}
+
+bool peek_token_is(Parser * parser, char * type) {
+    return strcmp(parser->peek_token.type, type) == 0;
+}
+
+bool expect_peek(Parser * parser, char * type) {
+    if(peek_token_is(parser, type)) {
+        parser_next_token(parser);
+        return true;
+    } else {
+        peek_error(parser, type);
+        return false;
+    }
+}
+
+void parse_let_statement(Parser * par, Statement * smt) {
+    smt->st = malloc(sizeof(LetStatement));
+    ((LetStatement *)smt->st)->token = par->current_token;
+
+    if(!expect_peek(par, IDENT))
+        return;
+
+    ((LetStatement *)smt->st)->name.token = par->current_token;
+    ((LetStatement *)smt->st)->name.value = par->current_token.literal;
+
+    if(!expect_peek(par, ASSIGN))
+        return;
+
+    while(!cur_token_is(par, SEMICOLON))
+        parser_next_token(par);
+}
+
+void * parse_identifier(Parser * par) {
+    Identifier * identifier = malloc(sizeof(Identifier));
+    identifier->token = par->current_token;
+    identifier->value = par->current_token.literal;
+    return identifier;
+}
+
+void * parse_integer_literal(Parser * par) {
+    IntegerLiteral * lit = malloc(sizeof(IntegerLiteral));
+    lit->token = par->current_token;
+    lit->value = str_to_int(par->current_token.literal);
+    return lit;
+}
+
+void * parse_expression(Parser * par, int precedence);
+
+int parser_get_precedence(Parser * par, char * type) {
+    char * pt;
+
+    if(strcmp(type, "peek") == 0)
+        pt = par->peek_token.type;
+    else if(strcmp(type, "current") == 0)
+        pt = par->current_token.type;
+
+    if(strcmp(pt, EQ) == 0 || strcmp(pt, NOT_EQ) == 0) {
+        return EQUALS;
+    } else if(strcmp(pt, LT) == 0 || strcmp(pt, GT) == 0) {
+        return LESSGREATER;
+    } else if(strcmp(pt, PLUS) == 0 || strcmp(pt, MINUS) == 0) {
+        return SUM;
+    } else if(strcmp(pt, SLASH) == 0 || strcmp(pt, ASTERISK) == 0) {
+        return PRODUCT;
+    }
+
+    return LOWEST;
+};
+
+void * parse_prefix_expression(Parser * par) {
+    PrefixExpression * pe = malloc(sizeof(PrefixExpression));
+    pe->token = par->current_token;
+    pe->operator = par->current_token.literal;
+    parser_next_token(par);
+    pe->right = parse_expression(par, PREFIX);
+    pe->expression_type = par->current_token.type;
+    return pe;
+}
+
+void * parse_infix_expression(Parser * par, void * left) {
+    InfixExpression * ie = malloc(sizeof(InfixExpression));
+    int precedence = parser_get_precedence(par, "current");
+
+    ie->token = par->current_token;
+    ie->operator = par->current_token.literal;
+    ie->left = left;
+
+    parser_next_token(par);
+
+    ie->right = parse_expression(par, precedence);
+
+    return ie;
+}
+
+void * parse_expression(Parser * par, int precedence) {
+    char * type = par->current_token.type;
+    void * expr;
+
+    if(type == IDENT)
+        expr = parse_identifier(par);
+    else if(type == INT)
+        expr = parse_integer_literal(par);
+    else if(type == BANG || type == MINUS)
+        expr = parse_prefix_expression(par);
+
+    while(!peek_token_is(par, SEMICOLON) &&
+        precedence < parser_get_precedence(par, "peek")) {
+
+        type = par->peek_token.type;
+
+        if(type == PLUS || type == MINUS || type == SLASH ||
+            type == ASTERISK || type == EQ || type == NOT_EQ ||
+            type == LT || type == GT) {
+
+            parser_next_token(par);
+            expr = parse_infix_expression(par, expr);
+        } else {
+            return expr;
+        }
+    }
+
+    return expr;
+}
+
+void parse_expression_statement(Parser * par, Statement * smt) {
+    smt->st = malloc(sizeof(ExpressionStatement));
+    ((ExpressionStatement *)smt->st)->token = par->current_token;
+    ((ExpressionStatement *)smt->st)->expression_type =
+        par->current_token.type;
+    ((ExpressionStatement *)smt->st)->expression =
+        parse_expression(par, LOWEST);
+
+    if(peek_token_is(par, SEMICOLON))
+        parser_next_token(par);
+}
+
+void parse_return_statement(Parser * par, Statement * smt) {
+    smt->st = malloc(sizeof(ReturnStatement));
+    ((ReturnStatement *)smt->st)->token = par->current_token;
+
+    parser_next_token(par);
+
+    while(!cur_token_is(par, SEMICOLON))
+        parser_next_token(par);
+}
+
+Program * parse_program(Parser * parser) {
+    size_t sz;
+    Program * prg = malloc(sizeof(Program));
+    prg->statements = malloc(sizeof(Statement));
+    prg->sc = 0;
+
+    while(strcmp(parser->current_token.type, EOF_) != 0) {
+        if(strcmp(parser->current_token.type, LET) == 0) {
+            sz = sizeof(Statement) * (prg->sc+1);
+            prg->statements = realloc(prg->statements, sz);
+            prg->statements[prg->sc].type = LET;
+            parse_let_statement(parser, &prg->statements[prg->sc++]);
+        } else if(strcmp(parser->current_token.type, RETURN) == 0) {
+            sz = sizeof(Statement) * (prg->sc+1);
+            prg->statements = realloc(prg->statements, sz);
+            prg->statements[prg->sc].type = RETURN;
+            parse_return_statement(parser, &prg->statements[prg->sc++]);
+        } else {
+            sz = sizeof(Statement) * (prg->sc+1);
+            prg->statements = realloc(prg->statements, sz);
+            prg->statements[prg->sc].type = "EXPRESSION";
+            parse_expression_statement(parser, &prg->statements[prg->sc++]);
+        }
+
+        parser_next_token(parser);
+    }
+
+    return prg;
+}
+
+bool check_parser_errors(Parser * parser) {
+    int i;
+
+    if(parser->ec == 0)
+        return false;
+
+    if(parser->ec != 0)
+        for(i = 0; i < parser->ec; i++)
+            printf("%s\n", parser->errors[i]);
+
+    return true;
+}
+
+char * print_let_statement(LetStatement * smt) {
+    int v = (strlen(smt->token.literal) + strlen(smt->name.value) + 6);
+    char * let = malloc(sizeof(char) * v);
+    let[0] = '\0';
+    strcat(let, smt->token.literal);
+    strcat(let, " ");
+    strcat(let, smt->name.value);
+    strcat(let, " = ");
+    strcat(let, ";");
+    return let;
+}
+
+char * print_return_statement(ReturnStatement * smt) {
+    int v = (strlen(smt->token.literal) + 2);
+    char * let = malloc(sizeof(char) * v);
+    let[0] = '\0';
+    strcat(let, smt->token.literal);
+    strcat(let, ";");
+    return let;
+}
+
 void test_next_token() {
     int i;
+
     const char * input =
         "let x = 5; \
         let y = 10; \
         let foobar = 838383;";
+
     const char * tests[16][2] = {
         {LET, "let"},
         {IDENT, "x"},
@@ -345,8 +590,9 @@ void test_next_token() {
         {INT, "838383"},
         {SEMICOLON, ";"},
         {EOF_, ""}};
-    struct Lexer * lexer = new_lexer(input);
-    struct Token token = lexer_next_token(lexer);
+
+    Lexer * lexer = new_lexer(input);
+    Token token = lexer_next_token(lexer);
 
     for(i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
         printf("%s %s '%c' %i %i \n", token.literal, token.type, lexer->ch,
@@ -370,218 +616,22 @@ void test_next_token() {
     free(lexer);
 }
 
-void parser_next_token(struct Parser * parser) {
-    parser->current_token = parser->peek_token;
-    parser->peek_token = lexer_next_token(parser->lexer);
-}
-
-struct Parser * new_parser(struct Lexer * lexer) {
-    struct Parser * parser = malloc(sizeof(struct Parser));
-    parser->lexer = lexer;
-    parser->errors = malloc(sizeof(char *));
-    parser->ec = 0;
-    parser_next_token(parser);
-    parser_next_token(parser);
-    return parser;
-}
-
-void peek_error(struct Parser * parser, TokenType type) {
-    int ex_len = strlen(type);
-    int gt_len = strlen(parser->peek_token.type);
-    char * str = malloc((14+ex_len+gt_len)*sizeof(char));
-    sprintf(str, "Expected %s got %s", type, parser->peek_token.type);
-    parser->errors[parser->ec] = str;
-    parser->errors[++parser->ec] = malloc(sizeof(char *));
-}
-
-bool cur_token_is(struct Parser * parser, TokenType type) {
-    return strcmp(parser->current_token.type, type) == 0;
-}
-
-bool peek_token_is(struct Parser * parser, TokenType type) {
-    return strcmp(parser->peek_token.type, type) == 0;
-}
-
-bool expect_peek(struct Parser * parser, TokenType type) {
-    if(peek_token_is(parser, type)) {
-        parser_next_token(parser);
-        return true;
-    } else {
-        peek_error(parser, type);
-        return false;
-    }
-}
-
-void parse_let_statement(struct Parser * par, struct Statement * smt) {
-    smt->st = malloc(sizeof(struct LetStatement));
-    ((struct LetStatement *)smt->st)->token = par->current_token;
-
-    if(!expect_peek(par, IDENT))
-        return;
-
-    ((struct LetStatement *)smt->st)->name.token = par->current_token;
-    ((struct LetStatement *)smt->st)->name.value = par->current_token.literal;
-
-    if(!expect_peek(par, ASSIGN))
-        return;
-
-    while(!cur_token_is(par, SEMICOLON))
-        parser_next_token(par);
-}
-
-void * parse_identifier(struct Parser * par) {
-    struct Identifier * identifier = malloc(sizeof(struct Identifier));
-    identifier->token = par->current_token;
-    identifier->value = par->current_token.literal;
-    return identifier;
-}
-
-void * parse_integer_literal(struct Parser * par) {
-    struct IntegerLiteral * lit = malloc(sizeof(struct IntegerLiteral));
-    lit->token = par->current_token;
-    lit->value = str_to_int(par->current_token.literal);
-    return lit;
-}
-
-void * parse_expression(struct Parser * par, int precedence);
-
-void * parse_prefix_expression(struct Parser * par) {
-    struct PrefixExpression * pe = malloc(sizeof(struct PrefixExpression));
-    pe->token = par->current_token;
-    pe->operator = par->current_token.literal;
-    parser_next_token(par);
-    pe->right = parse_expression(par, PREFIX);
-    return pe;
-}
-
-void * parse_expression(struct Parser * par, int precedence) {
-    if(par->current_token.type == IDENT) {
-        return parse_identifier(par);
-    } else if(par->current_token.type == INT) {
-        return parse_integer_literal(par);
-    } else if(par->current_token.type == BANG || par->current_token.type == MINUS) {
-        return parse_prefix_expression(par);
-    }
-}
-
-void parse_expression_statement(struct Parser * par, struct Statement * smt) {
-    smt->st = malloc(sizeof(struct ExpressionStatement));
-    ((struct ExpressionStatement *)smt->st)->token = par->current_token;
-    ((struct ExpressionStatement *)smt->st)->expression_type =
-        par->current_token.type;
-    ((struct ExpressionStatement *)smt->st)->expression =
-        parse_expression(par, LOWEST);
-
-    if(peek_token_is(par, SEMICOLON))
-        parser_next_token(par);
-}
-
-void parse_return_statement(struct Parser * par, struct Statement * smt) {
-    smt->st = malloc(sizeof(struct ReturnStatement));
-    ((struct ReturnStatement *)smt->st)->token = par->current_token;
-
-    parser_next_token(par);
-
-    while(!cur_token_is(par, SEMICOLON))
-        parser_next_token(par);
-}
-
-struct Program * parse_program(struct Parser * parser) {
-    size_t sz;
-    struct Program * prg = malloc(sizeof(struct Program));
-    prg->statements = malloc(sizeof(struct Statement));
-    prg->sc = 0;
-
-    while(strcmp(parser->current_token.type, EOF_) != 0) {
-        if(strcmp(parser->current_token.type, LET) == 0) {
-            sz = sizeof(struct Statement) * (prg->sc+1);
-            prg->statements = realloc(prg->statements, sz);
-            prg->statements[prg->sc].type = LET;
-            parse_let_statement(parser, &prg->statements[prg->sc++]);
-        } else if(strcmp(parser->current_token.type, RETURN) == 0) {
-            sz = sizeof(struct Statement) * (prg->sc+1);
-            prg->statements = realloc(prg->statements, sz);
-            prg->statements[prg->sc].type = RETURN;
-            parse_return_statement(parser, &prg->statements[prg->sc++]);
-        } else {
-            sz = sizeof(struct Statement) * (prg->sc+1);
-            prg->statements = realloc(prg->statements, sz);
-            prg->statements[prg->sc].type = "EXPRESSION";
-            parse_expression_statement(parser, &prg->statements[prg->sc++]);
-        }
-
-        parser_next_token(parser);
-    }
-
-    return prg;
-}
-
-bool check_parser_errors(struct Parser * parser) {
-    int i;
-
-    if(parser->ec == 0)
-        return false;
-
-    if(parser->ec != 0)
-        for(i = 0; i < parser->ec; i++)
-            printf("%s\n", parser->errors[i]);
-
-    return true;
-}
-
-char * print_let_statement(struct LetStatement * smt) {
-    int v = (strlen(smt->token.literal) + strlen(smt->name.value) + 6);
-    char * let = malloc(sizeof(char) * v);
-    let[0] = '\0';
-    strcat(let, smt->token.literal);
-    strcat(let, " ");
-    strcat(let, smt->name.value);
-    strcat(let, " = ");
-    strcat(let, ";");
-    return let;
-}
-
-char * print_return_statement(struct ReturnStatement * smt) {
-    int v = (strlen(smt->token.literal) + 2);
-    char * let = malloc(sizeof(char) * v);
-    let[0] = '\0';
-    strcat(let, smt->token.literal);
-    strcat(let, ";");
-    return let;
-}
-
-bool test_let_statement(struct Statement smt, const char * name) {
-    struct LetStatement * ls = (struct LetStatement *)(smt.st);
-
-    char * nv = ls->name.value;
-    char * tl = ls->name.token.literal;
-    char * tt = ls->token.type;
-
-    printf("%s\n", print_let_statement(ls));
-
-    if(strcmp(smt.type, LET) != 0)
-        printf("Statement's type not \"LET\", got \"%s\"\n", smt.type);
-
-    if(strcmp(tt, LET) != 0)
-        printf("Token's type not \"LET\", got \"%s\"\n", tt);
-
-    if(strcmp(nv, name) != 0)
-        printf("Name's value not '%s', got '%s'\n", name, nv);
-
-    if(strcmp(tl, name) != 0)
-        printf("Name's token literal not '%s', got '%s'\n", name, tl);
-}
-
 void test_let_statements() {
     int i;
+
     const char * input = " \
             let x = 5; \
             let y = 10; \
             let foobar = 838383;";
+
     const char * tests[3] = {"x", "y", "foobar"};
-    struct Lexer * lexer = new_lexer(input);
-    struct Parser * parser = new_parser(lexer);
-    struct Program * program = parse_program(parser);
+
+    Lexer * lexer = new_lexer(input);
+    Parser * parser = new_parser(lexer);
+    Program * program = parse_program(parser);
+    Statement stmt;
+    LetStatement * ls;
+    const char * name;
 
     if(check_parser_errors(parser))
         return;
@@ -593,22 +643,40 @@ void test_let_statements() {
         printf("Expected 3 statements, got %i", program->sc);
 
     for(i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
-        test_let_statement(program->statements[i], tests[i]);
+        stmt = program->statements[i];
+        name = tests[i];
+        ls = (LetStatement *) stmt.st;
+
+        if(strcmp(stmt.type, LET) != 0)
+            printf("Statement's type not \"LET\", got \"%s\"\n", stmt.type);
+
+        if(strcmp(ls->token.type, LET) != 0)
+            printf("Token's type not \"LET\", got \"%s\"\n", ls->token.type);
+
+        if(strcmp(ls->name.value, name) != 0)
+            printf("Name's value not '%s', got '%s'\n", name, ls->name.value);
+
+        if(strcmp(ls->name.token.literal, name) != 0)
+            printf("Name's token literal not '%s', got '%s'\n", name,
+                ls->name.token.literal);
     }
 }
 
 void test_return_statements() {
     int i;
-    struct Statement smt;
-    char * tl;
+
     const char * input = " \
             return 5; \
             return 10; \
             return 993322;";
+
     const char * tests[3] = {"x", "y", "foobar"};
-    struct Lexer * lexer = new_lexer(input);
-    struct Parser * parser = new_parser(lexer);
-    struct Program * program = parse_program(parser);
+
+    Lexer * lexer = new_lexer(input);
+    Parser * parser = new_parser(lexer);
+    Program * program = parse_program(parser);
+    Statement stmt;
+    ReturnStatement * rst;
 
     if(check_parser_errors(parser))
         return;
@@ -617,26 +685,27 @@ void test_return_statements() {
         printf("Expected 3 statements, got %i", program->sc);
 
     for(i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
-        smt = program->statements[i];
-        tl = ((struct ReturnStatement *)(smt.st))->token.literal;
+        stmt = program->statements[i];
+        rst = (ReturnStatement *) stmt.st;
 
-        if(strcmp(tl, "return") != 0)
-            printf("Token literal not \"RETURN\", got \"%s\"\n", tl);
+        if(strcmp(rst->token.literal, "return") != 0)
+            printf("Token literal not \"RETURN\", got \"%s\"\n",
+                rst->token.literal);
 
-        if(strcmp(smt.type, RETURN) != 0)
-            printf("Statement's type not \"RETURN\", got \"%s\"\n", smt.type);
+        if(strcmp(stmt.type, RETURN) != 0)
+            printf("Statement's type not \"RETURN\", got \"%s\"\n", stmt.type);
     }
 }
 
 void test_identifier_expression() {
-    struct Statement smt;
-    char * tl;
-    struct ExpressionStatement * e_st;
-    struct Identifier * id;
     const char * input = "foobar;";
-    struct Lexer * lexer = new_lexer(input);
-    struct Parser * parser = new_parser(lexer);
-    struct Program * program = parse_program(parser);
+
+    Lexer * lexer = new_lexer(input);
+    Parser * parser = new_parser(lexer);
+    Program * program = parse_program(parser);
+    Statement stmt = program->statements[0];
+    ExpressionStatement * est = (ExpressionStatement *) stmt.st;
+    Identifier * id = (Identifier *) est->expression;
 
     if(check_parser_errors(parser))
         return;
@@ -644,66 +713,64 @@ void test_identifier_expression() {
     if(program->sc != 1)
         printf("Expected 1 statements, got %i", program->sc);
 
-    smt = program->statements[0];
-    e_st = ((struct ExpressionStatement *)(smt.st));
-    id = ((struct Identifier *)(e_st->expression));
-    tl = e_st->token.literal;
+    if(strcmp(stmt.type, "EXPRESSION") != 0)
+        printf("Stmt's type not \"EXPRESSION\", got \"%s\"\n", stmt.type);
 
-    if(strcmp(e_st->expression_type, "IDENT") != 0)
-        printf("Expression type not \"IDENT\", got \"%s\"\n",
-            e_st->expression_type);
+    if(strcmp(est->expression_type, "IDENT") != 0)
+        printf("Exp type not \"IDENT\", got \"%s\"\n", est->expression_type);
 
-    if(strcmp(tl, "foobar") != 0)
-        printf("Token literal not \"foobar\", got \"%s\"\n", tl);
-
-    if(strcmp(tl, "foobar") != 0)
-        printf("Identifier value not \"foobar\", got \"%s\"\n", id->value);
-
-    if(strcmp(smt.type, "EXPRESSION") != 0)
-        printf("Statement's type not \"EXPRESSION\", got \"%s\"\n", smt.type);
+    if(strcmp(est->token.literal, "foobar") != 0)
+        printf("Literal not \"foobar\", got \"%s\"\n", est->token.literal);
 }
 
 void test_integer_literal_expression() {
-    struct Statement smt;
-    struct ExpressionStatement * est;
-    struct IntegerLiteral * il;
     const char * input = "5;";
-    struct Lexer * lexer = new_lexer(input);
-    struct Parser * parser = new_parser(lexer);
-    struct Program * program = parse_program(parser);
+
+    Lexer * lexer = new_lexer(input);
+    Parser * parser = new_parser(lexer);
+    Program * program = parse_program(parser);
+    Statement stmt = program->statements[0];
+    ExpressionStatement * est = (ExpressionStatement *) stmt.st;
+    IntegerLiteral * il = (IntegerLiteral *) est->expression;
 
     if(check_parser_errors(parser))
         return;
 
     if(program->sc != 1)
         printf("Expected 1 statements, got %i", program->sc);
-
-    smt = program->statements[0];
-    est = ((struct ExpressionStatement *)(smt.st));
-
-    printf("%s", est->token.literal);
-    il = ((struct IntegerLiteral *)(est->expression));
 
     if(il->value != 5)
         printf("Integer literal's value not 5, got %i\n", il->value);
 
-    if(strcmp(smt.type, "EXPRESSION") != 0)
-        printf("Statement's type not \"EXPRESSION\", got \"%s\"\n", smt.type);
+    if(strcmp(stmt.type, "EXPRESSION") != 0)
+        printf("Statement's type not \"EXPRESSION\", got \"%s\"\n", stmt.type);
 }
 
 void * test_parsing_prefix_expressions() {
-    struct T {
+    int i;
+
+    struct {
         char * input;
         char * operator;
-        int integer_value;
-    };
-    int i;
-    struct T tests[2] = {{"!5", "!", 5}, {"-15", "-", 15}};
+        int v;
+    } tests[2] = {{"!5", "!", 5}, {"-15", "-", 15}};
+
+    Lexer * lexer;
+    Parser * parser;
+    Program * program;
+    Statement stmt;
+    ExpressionStatement * est;
+    PrefixExpression * pex;
+    IntegerLiteral * il;
 
     for(i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
-        struct Lexer * lexer = new_lexer(tests[i].input);
-        struct Parser * parser = new_parser(lexer);
-        struct Program * program = parse_program(parser);
+        lexer = new_lexer(tests[i].input);
+        parser = new_parser(lexer);
+        program = parse_program(parser);
+        stmt = program->statements[0];
+        est = (ExpressionStatement *) stmt.st;
+        pex = (PrefixExpression *) est->expression;
+        il = (IntegerLiteral *) pex->right;
 
         if(check_parser_errors(parser))
             break;
@@ -711,60 +778,88 @@ void * test_parsing_prefix_expressions() {
         if(program->sc != 1)
             printf("Expected 1 statements, got %i", program->sc);
 
-        if(strcmp(program->statements[0].type, "EXPRESSION") != 0)
-            printf("Expression type not \"EXPRESSION\", got \"%s\"\n",
-                program->statements[0].type);
+        if(strcmp(stmt.type, "EXPRESSION") != 0)
+            printf("st type not \"EXPRESSION\", got \"%s\"\n", stmt.type);
 
-        struct ExpressionStatement * est =
-            ((struct ExpressionStatement *)(program->statements[0].st));
+        if(il->value != tests[i].v) {
+            printf("Got %i, expected %i \n", il->value, tests[i].v);
+        }
 
-        struct PrefixExpression * pes =
-            ((struct PrefixExpression *)(est->expression));
+        printf("Statement count: %i\n", program->sc);
+        printf("Statement type: %s\n", stmt.type);
+        printf("Expression statement type: %s\n", est->expression_type);
+        printf("Prefix expression type: %s\n", pex->expression_type);
+        printf("Integer literal value: %i\n\n", il->value);
+    }
+}
 
-        struct IntegerLiteral * il =
-            ((struct IntegerLiteral *)(pes->right));
+void * test_parsing_infix_expressions() {
+    int i;
 
-        printf("%i\n", il->value);
+    struct {
+        char * input;
+        int left_val;
+        char * operator;
+        int right_val;
+    } tests[8] = {{"5 + 5;", 5, "+", 5}, {"5 - 5;", 5, "-", 5},
+        {"5 * 5;", 5, "*", 5}, {"5 / 5;", 5, "/", 5},
+        {"5 > 5;", 5, ">", 5}, {"5 < 5;", 5, "<", 5},
+        {"5 == 5;", 5, "==", 5}, {"5 != 5;", 5, "!=", 5}};
+
+    Lexer * lexer;
+    Parser * parser;
+    Program * program;
+    Statement stmt;
+    ExpressionStatement * est;
+    InfixExpression * pex;
+    IntegerLiteral * right_il;
+    IntegerLiteral * left_il;
+
+    for(i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
+        lexer = new_lexer(tests[i].input);
+        parser = new_parser(lexer);
+        program = parse_program(parser);
+        stmt = program->statements[0];
+        est = (ExpressionStatement *) stmt.st;
+        pex = (InfixExpression *) est->expression;
+        //il = (IntegerLiteral *) pex->right;
+
+        if(check_parser_errors(parser))
+            break;
+
+        if(program->sc != 1)
+            printf("Expected 1 statements, got %i\n", program->sc);
+
+        printf("%s\n", stmt.type);
+        printf("%s\n", est->expression_type);
+        printf("%s\n", pex->operator);
+
+        //if(strcmp(stmt.type, "EXPRESSION") != 0)
+        //    printf("st type not \"EXPRESSION\", got \"%s\"\n", stmt.type);
     }
 }
 
 int main(int argc, char * argv[])
 {
-    if(strcmp(argv[1], "test-parsing-prefix-expressions") == 0)
+    if(strcmp(argv[1], "tppe") == 0)
         test_parsing_prefix_expressions();
-
-    if(strcmp(argv[1], "test-integer-literal") == 0)
+    else if(strcmp(argv[1], "tpie") == 0)
+        test_parsing_infix_expressions();
+    else if(strcmp(argv[1], "tile") == 0)
         test_integer_literal_expression();
-
-    if(strcmp(argv[1], "test-identifier-expression") == 0)
+    else if(strcmp(argv[1], "tie") == 0)
         test_identifier_expression();
-
-    if(strcmp(argv[1], "test-return-statements") == 0)
+    else if(strcmp(argv[1], "trs") == 0)
         test_return_statements();
-
-    if(strcmp(argv[1], "test-next-token") == 0)
+    else if(strcmp(argv[1], "tnt") == 0)
         test_next_token();
-
-    if(strcmp(argv[1], "test-let-statements") == 0)
+    else if(strcmp(argv[1], "tls") == 0)
         test_let_statements();
-
-    if(strcmp(argv[1], "parser") == 0) {
-        const char * input = "let x = 5; let a = 3;";
-
-        struct Lexer * lexer = new_lexer(input);
-        struct Parser * parser = new_parser(lexer);
-        struct Program * program = parse_program(parser);
-        struct Statement statement = program->statements[0];
-
-        printf("%s\n", statement.type);
-        printf("%s", ((struct LetStatement *)(statement.st))->name.value);
-    }
-
-    if(strcmp(argv[1], "repl") == 0) {
+    else if(strcmp(argv[1], "repl") == 0) {
         while(1) {
             char str[120];
-            struct Lexer * lexer;
-            struct Token token;
+            Lexer * lexer;
+            Token token;
             printf(">> ");
             fgets(str, 120, stdin);
             lexer = new_lexer(str);
