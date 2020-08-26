@@ -39,13 +39,17 @@
 #define EQ "=="
 #define NOT_EQ "!="
 
-#define LOWEST 1
-#define EQUALS 2
-#define LESSGREATER 3
-#define SUM 4
-#define PRODUCT 5
-#define PREFIX 6
-#define CALL 7
+#define PRE_LOWEST 1
+#define PRE_EQUALS 2
+#define PRE_LESSGREATER 3
+#define PRE_SUM 4
+#define PRE_PRODUCT 5
+#define PRE_PREFIX 6
+#define PRE_CALL 7
+
+#define EXPRESSION "EXPRESSION"
+#define INFIX "INFIX"
+#define PREFIX "PREFIX"
 
 typedef struct Token_ {
     char * type;
@@ -74,6 +78,11 @@ typedef struct PrefixExpression_ {
     char * expression_type;
     void * right;
 } PrefixExpression;
+
+typedef struct Boolean_ {
+    Token token;
+    bool value;
+} Boolean;
 
 typedef struct IntegerLiteral_ {
     Token token;
@@ -122,6 +131,28 @@ typedef struct Parser_ {
     int ec;
 } Parser;
 
+Token new_token(char * type, char ch);
+void read_char(Lexer * lexer);
+int str_to_int(char * str);
+Lexer * new_lexer(const char * input);
+char * get_substr(int position, int final_pos, const char * input);
+bool is_letter(char ch);
+bool is_digit(char ch);
+char * read_identifier(Lexer * lexer);
+char * read_number(Lexer * lexer);
+char * lookup_ident(char * literal);
+void skip_whitespace(Lexer * lexer);
+char peek_char(Lexer * lexer);
+Token lexer_next_token(Lexer * lexer);
+void parser_next_token(Parser * parser);
+Parser * new_parser(Lexer * lexer);
+bool cur_token_is(Parser * parser, char * type);
+bool peek_token_is(Parser * parser, char * type);
+
+void peek_error(Parser * parser, char * type);
+bool expect_peek(Parser * parser, char * type);
+bool check_parser_errors(Parser * parser);
+
 void parse_let_statement(Parser * par, Statement * smt);
 void parse_return_statement(Parser * par, Statement * smt);
 void * parse_identifier(Parser * par);
@@ -129,7 +160,9 @@ void * parse_integer_literal(Parser * par);
 int parser_get_precedence(Parser * par, char * type);
 void * parse_prefix_expression(Parser * par);
 void * parse_infix_expression(Parser * par, void * left, char * left_type);
-void * parse_expression(Parser * par, int precedence, char * change);
+void * parse_boolean(Parser * par, bool value);
+void * parse_grouped_expression(Parser * par);
+void * parse_expression(Parser * par, int precedence, char * set_type);
 void parse_expression_statement(Parser * par, Statement * smt);
 Program * parse_program(Parser * parser);
 bool check_parser_errors(Parser * parser);
@@ -138,6 +171,7 @@ char * get_print_expression(char * type, void * expr);
 char * print_let_statement(LetStatement * smt);
 char * print_return_statement(ReturnStatement * smt);
 char * print_integer_literal(IntegerLiteral * il);
+char * print_boolean(Boolean * b);
 char * print_identifier_value(Identifier * i);
 char * print_prefix_expression(PrefixExpression * pe);
 char * print_infix_expression(InfixExpression * ie);
@@ -150,6 +184,7 @@ void test_identifier_expression();
 void test_integer_literal_expression();
 void test_parsing_prefix_expressions();
 void test_parsing_infix_expressions();
+void test_print_program();
 
 Token new_token(char * type, char ch) {
     Token token;
@@ -163,55 +198,63 @@ Token new_token(char * type, char ch) {
 }
 
 void read_char(Lexer * lexer) {
-    if(lexer->read_pos >= strlen(lexer->input))
+    if(lexer->read_pos >= strlen(lexer->input)) {
         lexer->ch = 0;
-    else
+    } else {
         lexer->ch = lexer->input[lexer->read_pos];
+    }
 
     lexer->pos = lexer->read_pos;
     lexer->read_pos += 1;
 }
 
-int str_to_int(char * str)
-{
+int str_to_int(char * str) {
     int result;
-    int puiss;
+    int p;
+
     result = 0;
-    puiss = 1;
+    p = 1;
 
-    while (('-' == (*str)) || ((*str) == '+')) {
-        if (*str == '-')
-            puiss = puiss * -1;
+    while(('-' == (* str)) || ((* str) == '+')) {
+        if (*str == '-') {
+            p = p * -1;
+        }
 
         str++;
     }
 
-    while ((*str >= '0') && (*str <= '9')) {
-        result = (result * 10) + ((*str) - '0');
+    while((* str >= '0') && (* str <= '9')) {
+        result = (result * 10) + ((* str) - '0');
         str++;
     }
 
-    return (result * puiss);
+    return result * p;
 }
 
 Lexer * new_lexer(const char * input) {
     Lexer * lexer = malloc(sizeof(Lexer));
+
     lexer->input = input;
     lexer->pos = 0;
     lexer->read_pos = 0;
+
     read_char(lexer);
+
     return lexer;
 }
 
 char * get_substr(int position, int final_pos, const char * input) {
     int i;
-    int size = final_pos-position;
-    char * buff = malloc(sizeof(char) * size + 1);
+    int size = final_pos - position;
 
-    for(i = 0; position < final_pos; position++, i++)
+    char * buff = malloc(size + 1);
+
+    for(i = 0; position < final_pos; position++, i++) {
         buff[i] = input[position];
+    }
 
     buff[size] = '\0';
+
     return buff;
 }
 
@@ -226,8 +269,9 @@ bool is_digit(char ch) {
 char * read_identifier(Lexer * lexer) {
     int position = lexer->pos;
 
-    while(is_letter(lexer->ch))
+    while(is_letter(lexer->ch)) {
         read_char(lexer);
+    }
 
     return get_substr(position, lexer->pos, lexer->input);
 }
@@ -235,43 +279,47 @@ char * read_identifier(Lexer * lexer) {
 char * read_number(Lexer * lexer) {
     int position = lexer->pos;
 
-    while(is_digit(lexer->ch))
+    while(is_digit(lexer->ch)) {
         read_char(lexer);
+    }
 
     return get_substr(position, lexer->pos, lexer->input);
 }
 
 char * lookup_ident(char * literal) {
-    if(strcmp("fn", literal) == 0)
+    if(strcmp("fn", literal) == 0) {
         return FUNCTION;
-    else if(strcmp("let", literal) == 0)
+    } else if(strcmp("let", literal) == 0) {
         return LET;
-    else if(strcmp("true", literal) == 0)
+    } else if(strcmp("true", literal) == 0) {
         return TRUE;
-    else if(strcmp("false", literal) == 0)
+    } else if(strcmp("false", literal) == 0) {
         return FALSE;
-    else if(strcmp("if", literal) == 0)
+    } else if(strcmp("if", literal) == 0) {
         return IF;
-    else if(strcmp("else", literal) == 0)
+    } else if(strcmp("else", literal) == 0) {
         return ELSE;
-    else if(strcmp("return", literal) == 0)
+    } else if(strcmp("return", literal) == 0) {
         return RETURN;
-    else
+    } else {
         return IDENT;
+    }
 }
 
 void skip_whitespace(Lexer * lexer) {
-    while(lexer->ch == ' ' || lexer-> ch == '\t' || lexer->ch == '\n'
-        || lexer->ch  == '\r') {
+    while(  lexer->ch == ' ' || lexer-> ch == '\t' || lexer->ch == '\n'
+            || lexer->ch  == '\r') {
+
         read_char(lexer);
     }
 }
 
 char peek_char(Lexer * lexer) {
-    if(lexer->read_pos >= strlen(lexer->input))
+    if(lexer->read_pos >= strlen(lexer->input)) {
         return 0;
-    else
+    } else {
         return lexer->input[lexer->read_pos];
+    }
 }
 
 Token lexer_next_token(Lexer * lexer) {
@@ -342,10 +390,12 @@ Token lexer_next_token(Lexer * lexer) {
         if(is_letter(lexer->ch)) {
             token.literal = read_identifier(lexer);
             token.type = lookup_ident(token.literal);
+
             return token;
         } else if(is_digit(lexer->ch)) {
             token.literal = read_number(lexer);
             token.type = INT;
+
             return token;
         } else {
             token = new_token(ILLEGAL, lexer->ch);
@@ -363,21 +413,15 @@ void parser_next_token(Parser * parser) {
 
 Parser * new_parser(Lexer * lexer) {
     Parser * parser = malloc(sizeof(Parser));
+
     parser->lexer = lexer;
     parser->errors = malloc(sizeof(char *));
     parser->ec = 0;
-    parser_next_token(parser);
-    parser_next_token(parser);
-    return parser;
-}
 
-void peek_error(Parser * parser, char * type) {
-    int ex_len = strlen(type);
-    int gt_len = strlen(parser->peek_token.type);
-    char * str = malloc((14+ex_len+gt_len)*sizeof(char));
-    sprintf(str, "Expected %s got %s", type, parser->peek_token.type);
-    parser->errors[parser->ec] = str;
-    parser->errors[++parser->ec] = malloc(sizeof(char *));
+    parser_next_token(parser);
+    parser_next_token(parser);
+
+    return parser;
 }
 
 bool cur_token_is(Parser * parser, char * type) {
@@ -386,6 +430,18 @@ bool cur_token_is(Parser * parser, char * type) {
 
 bool peek_token_is(Parser * parser, char * type) {
     return strcmp(parser->peek_token.type, type) == 0;
+}
+
+void peek_error(Parser * parser, char * type) {
+    int ex_len = strlen(type);
+    int gt_len = strlen(parser->peek_token.type);
+
+    char * str = malloc(19 + ex_len + gt_len);
+
+    sprintf(str, "ERROR: Expected %s, got %s", type, parser->peek_token.type);
+
+    parser->errors[parser->ec] = str;
+    parser->errors[++parser->ec] = malloc(sizeof(char *));
 }
 
 bool expect_peek(Parser * parser, char * type) {
@@ -398,6 +454,22 @@ bool expect_peek(Parser * parser, char * type) {
     }
 }
 
+bool check_parser_errors(Parser * parser) {
+    int i;
+
+    if(parser->ec == 0) {
+        return false;
+    }
+
+    if(parser->ec != 0) {
+        for(i = 0; i < parser->ec; i++) {
+            printf("%s\n", parser->errors[i]);
+        }
+    }
+
+    return true;
+}
+
 void parse_let_statement(Parser * par, Statement * smt) {
     LetStatement * let;
     ExpressionStatement  * ex;
@@ -407,14 +479,16 @@ void parse_let_statement(Parser * par, Statement * smt) {
 
     let->token = par->current_token;
 
-    if(!expect_peek(par, IDENT))
+    if(!expect_peek(par, IDENT)) {
         return;
+    }
 
     let->name.token = par->current_token;
     let->name.value = par->current_token.literal;
 
-    if(!expect_peek(par, ASSIGN))
+    if(!expect_peek(par, ASSIGN)) {
         return;
+    }
 
     parser_next_token(par);
 
@@ -423,11 +497,12 @@ void parse_let_statement(Parser * par, Statement * smt) {
 
     ex->expression_type = malloc(sizeof(char *));
 
-    ex->expression = parse_expression(par, LOWEST, ex->expression_type);
+    ex->expression = parse_expression(par, PRE_LOWEST, ex->expression_type);
     let->type = ex->expression_type;
 
-    while(!cur_token_is(par, SEMICOLON))
+    while(!cur_token_is(par, SEMICOLON)) {
         parser_next_token(par);
+    }
 }
 
 void parse_return_statement(Parser * par, Statement * smt) {
@@ -446,24 +521,29 @@ void parse_return_statement(Parser * par, Statement * smt) {
 
     ex->expression_type = malloc(sizeof(char *));
 
-    ex->expression = parse_expression(par, LOWEST, ex->expression_type);
+    ex->expression = parse_expression(par, PRE_LOWEST, ex->expression_type);
     ret->type = ex->expression_type;
 
-    while(!cur_token_is(par, SEMICOLON))
+    while(!cur_token_is(par, SEMICOLON)) {
         parser_next_token(par);
+    }
 }
 
 void * parse_identifier(Parser * par) {
     Identifier * identifier = malloc(sizeof(Identifier));
+
     identifier->token = par->current_token;
     identifier->value = par->current_token.literal;
+
     return identifier;
 }
 
 void * parse_integer_literal(Parser * par) {
     IntegerLiteral * lit = malloc(sizeof(IntegerLiteral));
+
     lit->token = par->current_token;
     lit->value = str_to_int(par->current_token.literal);
+
     return lit;
 }
 
@@ -476,26 +556,29 @@ int parser_get_precedence(Parser * par, char * type) {
         pt = par->current_token.type;
 
     if(strcmp(pt, EQ) == 0 || strcmp(pt, NOT_EQ) == 0) {
-        return EQUALS;
+        return PRE_EQUALS;
     } else if(strcmp(pt, LT) == 0 || strcmp(pt, GT) == 0) {
-        return LESSGREATER;
+        return PRE_LESSGREATER;
     } else if(strcmp(pt, PLUS) == 0 || strcmp(pt, MINUS) == 0) {
-        return SUM;
+        return PRE_SUM;
     } else if(strcmp(pt, SLASH) == 0 || strcmp(pt, ASTERISK) == 0) {
-        return PRODUCT;
+        return PRE_PRODUCT;
     }
 
-    return LOWEST;
+    return PRE_LOWEST;
 };
 
 void * parse_prefix_expression(Parser * par) {
     PrefixExpression * pe = malloc(sizeof(PrefixExpression));
+
     pe->token = par->current_token;
     pe->operator = par->current_token.literal;
+
     parser_next_token(par);
+
     pe->expression_type = malloc(sizeof(char *));
-    pe->right = parse_expression(par, PREFIX, pe->expression_type);
-    //pe->expression_type = par->current_token.type;
+    pe->right = parse_expression(par, PRE_PREFIX, pe->expression_type);
+
     return pe;
 }
 
@@ -505,8 +588,8 @@ void * parse_infix_expression(Parser * par, void * left, char * left_type) {
 
     ie->token = par->current_token;
     ie->operator = par->current_token.literal;
-    ie->left = left;
     ie->left_expression_type = left_type;
+    ie->left = left;
 
     parser_next_token(par);
 
@@ -516,10 +599,34 @@ void * parse_infix_expression(Parser * par, void * left, char * left_type) {
     return ie;
 }
 
-void * parse_expression(Parser * par, int precedence, char * change) {
+void * parse_boolean(Parser * par, bool value) {
+    Boolean * bool_ = malloc(sizeof(Boolean));
+
+    bool_->token = par->current_token;
+    bool_->value = value;
+
+    return bool_;
+}
+
+void * parse_grouped_expression(Parser * par) {
+    void * s;
+
+    parser_next_token(par);
+
+    s = parse_expression(par, PRE_LOWEST, NULL);
+
+    if(!expect_peek(par, RPAREN)) {
+        return NULL;
+    }
+
+    return s;
+}
+
+void * parse_expression(Parser * par, int precedence, char * set_type) {
     char * type = par->current_token.type;
-    void * expr;
+
     char * exp_type = malloc(sizeof(char *));
+    void * expr;
 
     if(type == IDENT) {
         exp_type = IDENT;
@@ -527,9 +634,18 @@ void * parse_expression(Parser * par, int precedence, char * change) {
     } else if(type == INT) {
         exp_type = INT;
         expr = parse_integer_literal(par);
+    } else if(type == TRUE) {
+        exp_type = TRUE;
+        expr = parse_boolean(par, true);
+    } else if(type == FALSE) {
+        exp_type = FALSE;
+        expr = parse_boolean(par, false);
     } else if(type == BANG || type == MINUS) {
-        exp_type = "PREFIX";
+        exp_type = PREFIX;
         expr = parse_prefix_expression(par);
+    } else if(type == LPAREN) {
+        exp_type = INFIX;
+        expr = parse_grouped_expression(par);
     }
 
     while(!peek_token_is(par, SEMICOLON) &&
@@ -537,21 +653,19 @@ void * parse_expression(Parser * par, int precedence, char * change) {
 
         type = par->peek_token.type;
 
-        if(type == PLUS || type == MINUS || type == SLASH ||
+        if( type == PLUS || type == MINUS || type == SLASH ||
             type == ASTERISK || type == EQ || type == NOT_EQ ||
             type == LT || type == GT) {
 
             parser_next_token(par);
             expr = parse_infix_expression(par, expr, exp_type);
 
-            exp_type = "INFIX";
-        } else {
-            break;
+            exp_type = INFIX;
         }
     }
 
-    if(change != NULL) {
-        strcpy(change, exp_type);
+    if(set_type != NULL) {
+        strcpy(set_type, exp_type);
     }
 
     return expr;
@@ -565,33 +679,36 @@ void parse_expression_statement(Parser * par, Statement * smt) {
 
     est->token = par->current_token;
     est->expression_type = malloc(sizeof(char *));
-    est->expression = parse_expression(par, LOWEST, est->expression_type);
+    est->expression = parse_expression(par, PRE_LOWEST, est->expression_type);
 
-    if(peek_token_is(par, SEMICOLON))
+    if(peek_token_is(par, SEMICOLON)) {
         parser_next_token(par);
+    }
 }
 
 Program * parse_program(Parser * parser) {
-    size_t sz;
     Program * prg = malloc(sizeof(Program));
+
+    int statements_size = 0;
+    char * token_type;
+
     prg->statements = malloc(sizeof(Statement));
     prg->sc = 0;
 
     while(strcmp(parser->current_token.type, EOF_) != 0) {
-        if(strcmp(parser->current_token.type, LET) == 0) {
-            sz = sizeof(Statement) * (prg->sc+1);
-            prg->statements = realloc(prg->statements, sz);
+        statements_size = sizeof(Statement) * (prg->sc + 1);
+        prg->statements = realloc(prg->statements, statements_size);
+
+        token_type = parser->current_token.type;
+
+        if(token_type == LET) {
             prg->statements[prg->sc].type = LET;
             parse_let_statement(parser, &prg->statements[prg->sc++]);
-        } else if(strcmp(parser->current_token.type, RETURN) == 0) {
-            sz = sizeof(Statement) * (prg->sc+1);
-            prg->statements = realloc(prg->statements, sz);
+        } else if(token_type == RETURN) {
             prg->statements[prg->sc].type = RETURN;
             parse_return_statement(parser, &prg->statements[prg->sc++]);
         } else {
-            sz = sizeof(Statement) * (prg->sc+1);
-            prg->statements = realloc(prg->statements, sz);
-            prg->statements[prg->sc].type = "EXPRESSION";
+            prg->statements[prg->sc].type = EXPRESSION;
             parse_expression_statement(parser, &prg->statements[prg->sc++]);
         }
 
@@ -601,30 +718,20 @@ Program * parse_program(Parser * parser) {
     return prg;
 }
 
-bool check_parser_errors(Parser * parser) {
-    int i;
-
-    if(parser->ec == 0)
-        return false;
-
-    if(parser->ec != 0)
-        for(i = 0; i < parser->ec; i++)
-            printf("%s\n", parser->errors[i]);
-
-    return true;
-}
-
 char * get_print_expression(char * type, void * expr) {
     char * s;
 
-    if(strcmp(type, INT) == 0)
+    if(strcmp(type, INT) == 0) {
         s = print_integer_literal((IntegerLiteral *) expr);
-    else if (strcmp(type, IDENT) == 0)
+    } else if (strcmp(type, IDENT) == 0) {
         s = print_identifier_value((Identifier *) expr);
-    else if (strcmp(type, "PREFIX") == 0)
+    } else if (strcmp(type, "PREFIX") == 0) {
         s = print_prefix_expression((PrefixExpression *) expr);
-    else if (strcmp(type, "INFIX") == 0)
+    } else if (strcmp(type, "INFIX") == 0) {
         s = print_infix_expression((InfixExpression *) expr);
+    } else if (strcmp(type, TRUE) == 0 || strcmp(type, FALSE) == 0) {
+        s = print_boolean((Boolean *) expr);
+    }
 
     return s;
 }
@@ -634,7 +741,7 @@ char * print_let_statement(LetStatement * smt) {
 
     char * let = malloc(sizeof(char) * v);
     ExpressionStatement * est = NULL;
-    char * lv;
+    char * ap;
 
     let[0] = '\0';
 
@@ -645,12 +752,13 @@ char * print_let_statement(LetStatement * smt) {
 
     if(smt->value != NULL) {
         est = (ExpressionStatement *) smt->value;
-        lv = get_print_expression(smt->type, est->expression);
-        let = realloc(let, v + strlen(lv));
-        strcat(let, lv);
+        ap = get_print_expression(smt->type, est->expression);
+        let = realloc(let, v + strlen(ap));
+        strcat(let, ap);
     }
 
     strcat(let, ";");
+    free(ap);
 
     return let;
 }
@@ -660,7 +768,7 @@ char * print_return_statement(ReturnStatement * smt) {
 
     char * ret = malloc(sizeof(char) * v);
     ExpressionStatement * est = NULL;
-    char * lv;
+    char * ap;
 
     ret[0] = '\0';
 
@@ -669,12 +777,13 @@ char * print_return_statement(ReturnStatement * smt) {
 
     if(smt->value != NULL) {
         est = (ExpressionStatement *) smt->value;
-        lv = get_print_expression(smt->type, est->expression);
-        ret = realloc(ret, v + strlen(lv));
-        strcat(ret, lv);
+        ap = get_print_expression(smt->type, est->expression);
+        ret = realloc(ret, v + strlen(ap));
+        strcat(ret, ap);
     }
 
     strcat(ret, ";");
+    free(ap);
 
     return ret;
 }
@@ -683,76 +792,99 @@ char * print_integer_literal(IntegerLiteral * il) {
     return il->token.literal;
 }
 
+char * print_boolean(Boolean * b) {
+    return b->token.literal;
+}
+
 char * print_identifier_value(Identifier * i) {
     return i->value;
 }
 
 char * print_prefix_expression(PrefixExpression * pe) {
-    int v = (strlen(pe->operator) + 2);
-
-    char * exp = malloc(v);
-    char * s;
+    char * ap = get_print_expression(pe->expression_type, pe->right);
+    char * exp = malloc(strlen(ap) + strlen(pe->operator) + 3);
 
     exp[0] = '\0';
 
     strcat(exp, "(");
     strcat(exp, pe->operator);
-
-    s = get_print_expression(pe->expression_type, pe->right);
-    exp = realloc(exp, 1 + v + strlen(s));
-
-    strcat(exp, s);
+    strcat(exp, ap);
     strcat(exp, ")");
+
+    free(ap);
 
     return exp;
 }
 
 char * print_infix_expression(InfixExpression * ie) {
-    char * left = get_print_expression(ie->left_expression_type, ie->left);
-    char * right = get_print_expression(ie->right_expression_type, ie->right);
-    char * exp = malloc(5 + strlen(ie->operator) + strlen(left) +
-        strlen(right));
+    char * l = get_print_expression(ie->left_expression_type, ie->left);
+    char * r = get_print_expression(ie->right_expression_type, ie->right);
+    char * exp = malloc(5 + strlen(ie->operator) + strlen(l) + strlen(r));
 
     exp[0] = '\0';
 
     strcat(exp, "(");
-    strcat(exp, left);
+    strcat(exp, l);
     strcat(exp, " ");
     strcat(exp, ie->operator);
     strcat(exp, " ");
-    strcat(exp, right);
+    strcat(exp, r);
     strcat(exp, ")");
+
+    free(l);
+    free(r);
 
     return exp;
 }
 
 char * print_program(Program * program) {
     int i;
-    char * expr = NULL;
-    void * expr_stmt = NULL;
+
+    Statement stmt;
+    char * type = NULL;
+    ExpressionStatement * est = NULL;
+
+    char * pt = malloc(1);
+    char * ap = NULL;
+
+    int len = 1;
+
+    pt[0] = '\0';
 
     for(i = 0; i < program->sc; i++) {
-        Statement stmt = program->statements[i];
+        stmt = program->statements[i];
 
-        if(stmt.type == LET)
-            printf("%s\n", print_let_statement((LetStatement *) stmt.st));
-        else if(stmt.type == RETURN)
-            printf("%s\n", print_return_statement((ReturnStatement *) stmt.st));
-        else if(stmt.type == "EXPRESSION")
-            expr = ((ExpressionStatement *) stmt.st)->expression_type;
-            expr_stmt = ((ExpressionStatement *) stmt.st)->expression;
+        if(stmt.type == "LET") {
+            ap = print_let_statement((LetStatement *) stmt.st);
+        } else if(stmt.type == "RETURN") {
+            ap = print_return_statement((ReturnStatement *) stmt.st);
+        } else if(stmt.type == "EXPRESSION") {
+            type = ((ExpressionStatement *) stmt.st)->expression_type;
+            est = ((ExpressionStatement *) stmt.st)->expression;
 
-            if(strcmp(expr, "INFIX") == 0)
-                printf("%s\n", print_infix_expression((InfixExpression *) expr_stmt));
-            else if(strcmp(expr, "PREFIX") == 0)
-                printf("%s\n", print_prefix_expression((PrefixExpression *) expr_stmt));
-            else if(strcmp(expr, "IDENT") == 0)
-                printf("%s\n", print_identifier_value((Identifier *) expr_stmt));
-            else if(strcmp(expr, "INT") == 0)
-                printf("%s\n", print_integer_literal((IntegerLiteral *) expr_stmt));
+            if(strcmp(type, "INFIX") == 0) {
+                ap = print_infix_expression((InfixExpression *) est);
+            } else if(strcmp(type, "PREFIX") == 0) {
+                ap = print_prefix_expression((PrefixExpression *) est);
+            } else if(strcmp(type, "IDENT") == 0) {
+                ap = print_identifier_value((Identifier *) est);
+            } else if(strcmp(type, "INT") == 0) {
+                ap = print_integer_literal((IntegerLiteral *) est);
+            } else if(strcmp(type, TRUE) == 0 || strcmp(type, FALSE) == 0) {
+                ap = print_boolean((Boolean *) est);
+            }
+        }
+
+        len += strlen(ap) + 1;
+        pt = realloc(pt, len);
+
+        strcat(pt, ap);
+        strcat(pt, "\n");
+
+        free(ap);
     }
 
-    return "";
+    return pt;
 }
 
 void test_next_token() {
@@ -1031,23 +1163,55 @@ void test_parsing_infix_expressions() {
     }
 }
 
+void test_print_program() {
+    int i;
+
+    const char * input = " \
+        -(5 + 5) \
+        !!!4; \
+        a + b / 4; \
+        let a = a * 2 + 3; \
+        let v = n; \
+        3 > 5 == false \
+        false; \
+        !true; \
+        !!asd; \
+        return 500;";
+
+    Lexer * lexer = new_lexer(input);
+    Parser * parser = new_parser(lexer);
+    Program * program = parse_program(parser);
+
+    for(i = 0; i < parser->ec; i++) {
+        printf("%s\n", parser->errors[i]);
+    }
+
+    char * prog_str = print_program(program);
+
+    printf("%s", prog_str);
+
+    free(prog_str);
+}
+
 int main(int argc, char * argv[])
 {
-    if(strcmp(argv[1], "tppe") == 0)
+    if(strcmp(argv[1], "ppe") == 0) {
         test_parsing_prefix_expressions();
-    else if(strcmp(argv[1], "tpie") == 0)
+    } else if(strcmp(argv[1], "pie") == 0) {
         test_parsing_infix_expressions();
-    else if(strcmp(argv[1], "tile") == 0)
+    } else if(strcmp(argv[1], "ile") == 0) {
         test_integer_literal_expression();
-    else if(strcmp(argv[1], "tie") == 0)
+    } else if(strcmp(argv[1], "ie") == 0) {
         test_identifier_expression();
-    else if(strcmp(argv[1], "trs") == 0)
+    } else if(strcmp(argv[1], "rs") == 0) {
         test_return_statements();
-    else if(strcmp(argv[1], "tnt") == 0)
+    } else if(strcmp(argv[1], "nt") == 0) {
         test_next_token();
-    else if(strcmp(argv[1], "tls") == 0)
+    } else if(strcmp(argv[1], "ls") == 0) {
         test_let_statements();
-    else if(strcmp(argv[1], "repl") == 0) {
+    } else if(strcmp(argv[1], "pp") == 0) {
+        test_print_program();
+    } else if(strcmp(argv[1], "repl") == 0) {
         while(1) {
             char str[120];
             Lexer * lexer;
