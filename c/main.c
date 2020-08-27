@@ -78,8 +78,8 @@ typedef struct IfExpression {
     Token token;
     void * condition;
     char * condition_type;
-    BlockStatement consequence;
-    BlockStatement alternative;
+    BlockStatement * consequence;
+    BlockStatement * alternative;
 } IfExpression;
 
 typedef struct InfixExpression_ {
@@ -178,6 +178,8 @@ void * parse_boolean(Parser * par, bool value);
 void * parse_grouped_expression(Parser * par);
 void * parse_expression(Parser * par, int precedence, char * set_type);
 void parse_expression_statement(Parser * par, Statement * smt);
+void * parse_if_expression(Parser * par, Statement * smt);
+BlockStatement * parse_block_statement(Parser * parser);
 Program * parse_program(Parser * parser);
 bool check_parser_errors(Parser * parser);
 
@@ -189,6 +191,7 @@ char * print_boolean(Boolean * b);
 char * print_identifier_value(Identifier * i);
 char * print_prefix_expression(PrefixExpression * pe);
 char * print_infix_expression(InfixExpression * ie);
+char * get_print_statement_type(Statement stmt);
 char * print_program(Program * program);
 
 void test_next_token();
@@ -701,20 +704,62 @@ void parse_statement(Parser * par, Statement * stmts, int sc, int sz) {
     } else if(token_type == RETURN) {
         stmts[sc].type = RETURN;
         parse_return_statement(par, &stmts[sc]);
+    } else if(token_type == IF) {
+        stmts[sc].type = IF;
+        parse_if_expression(par, &stmts[sc]);
     } else {
         stmts[sc].type = EXPRESSION;
         parse_expression_statement(par, &stmts[sc]);
     }
 }
 
+void * parse_if_expression(Parser * par, Statement * smt) {
+    IfExpression * iex;
+
+    smt->st = malloc(sizeof(IfExpression));
+    iex = (IfExpression *) smt->st;
+
+    iex->token = par->current_token;
+
+    if(!expect_peek(par, LPAREN)) {
+        return NULL;
+    }
+
+    parser_next_token(par);
+    iex->condition_type = malloc(sizeof(char *));
+    iex->condition = parse_expression(par, PRE_LOWEST, iex->condition_type);
+
+    if(!expect_peek(par, RPAREN)) {
+        return NULL;
+    }
+
+    if(!expect_peek(par, LBRACE)) {
+        return NULL;
+    }
+
+    iex->consequence = parse_block_statement(par);
+
+    if(peek_token_is(par, ELSE)) {
+        parser_next_token(par);
+
+        if(!expect_peek(par, LBRACE)) {
+            return NULL;
+        }
+
+        iex->alternative = parse_block_statement(par);
+    }
+
+    return iex;
+}
+
 BlockStatement * parse_block_statement(Parser * parser) {
     BlockStatement * bs = malloc(sizeof(BlockStatement));
-
     int sz = 0;
-    char * token_type;
 
     bs->statements = malloc(sizeof(Statement));
     bs->sc = 0;
+
+    parser_next_token(parser);
 
     while(!cur_token_is(parser, RBRACE) && !cur_token_is(parser, EOF_)) {
         sz = sizeof(Statement) * (bs->sc + 1);
@@ -729,9 +774,7 @@ BlockStatement * parse_block_statement(Parser * parser) {
 
 Program * parse_program(Parser * parser) {
     Program * prg = malloc(sizeof(Program));
-
     int sz = 0;
-    char * token_type;
 
     prg->statements = malloc(sizeof(Statement));
     prg->sc = 0;
@@ -747,6 +790,64 @@ Program * parse_program(Parser * parser) {
     return prg;
 }
 
+char * print_block_statement(BlockStatement * bst) {
+    int i;
+
+    Statement stmt;
+
+    char * pt = malloc(sizeof(char *));
+    char * ap = NULL;
+
+    int len = 4;
+
+    pt[0] = '\0';
+
+    strcat(pt, "{ ");
+
+    for(i = 0; i < bst->sc; i++) {
+        ap = get_print_statement_type(bst->statements[i]);
+
+        len += strlen(ap) + 1;
+        pt = realloc(pt, len);
+
+        strcat(pt, ap);
+        strcat(pt, " ");
+
+        free(ap);
+    }
+
+    strcat(pt, "}");
+
+    return pt;
+}
+
+char * print_if_expression(IfExpression * iex) {
+    char * cond = get_print_expression(iex->condition_type, iex->condition);
+
+    char * cons = print_block_statement(iex->consequence);
+    char * alt = NULL;
+
+    char * pt = malloc(5 + strlen(cond) + strlen(cons));
+
+    pt[0] = '\0';
+
+    strcat(pt, "if");
+    strcat(pt, " ");
+    strcat(pt, cond);
+    strcat(pt, " ");
+    strcat(pt, cons);
+
+    if(iex->alternative != NULL) {
+        alt = print_block_statement(iex->alternative);
+        pt = realloc(pt, 6 + strlen(alt) +  strlen(cond) + strlen(cons));
+
+        strcat(pt, " ");
+        strcat(pt, alt);
+    }
+
+    return pt;
+}
+
 char * get_print_expression(char * type, void * expr) {
     char * s;
 
@@ -760,6 +861,8 @@ char * get_print_expression(char * type, void * expr) {
         s = print_infix_expression((InfixExpression *) expr);
     } else if (strcmp(type, TRUE) == 0 || strcmp(type, FALSE) == 0) {
         s = print_boolean((Boolean *) expr);
+    } else if(strcmp(type, IF) == 0) {
+        s = print_if_expression((IfExpression *) expr);
     }
 
     return s;
@@ -853,12 +956,31 @@ char * print_infix_expression(InfixExpression * ie) {
     return exp;
 }
 
+char * get_print_statement_type(Statement stmt) {
+    ExpressionStatement * est = NULL;
+
+    char * ap = NULL;
+    char * type = NULL;
+
+    if(stmt.type == LET) {
+        ap = print_let_statement((LetStatement *) stmt.st);
+    } else if(stmt.type == RETURN) {
+        ap = print_return_statement((ReturnStatement *) stmt.st);
+    } else if(strcmp(stmt.type, IF) == 0) {
+        ap = print_if_expression((IfExpression *) stmt.st);
+    } else if(stmt.type == EXPRESSION) {
+        type = ((ExpressionStatement *) stmt.st)->expression_type;
+        est = ((ExpressionStatement *) stmt.st)->expression;
+        ap = get_print_expression(type, est);
+    }
+
+    return ap;
+}
+
 char * print_program(Program * program) {
     int i;
 
     Statement stmt;
-    char * type = NULL;
-    ExpressionStatement * est = NULL;
 
     char * pt = malloc(1);
     char * ap = NULL;
@@ -870,27 +992,7 @@ char * print_program(Program * program) {
     for(i = 0; i < program->sc; i++) {
         stmt = program->statements[i];
 
-        if(stmt.type == LET) {
-            ap = print_let_statement((LetStatement *) stmt.st);
-        } else if(stmt.type == RETURN) {
-            ap = print_return_statement((ReturnStatement *) stmt.st);
-        } else if(stmt.type == EXPRESSION) {
-            type = ((ExpressionStatement *) stmt.st)->expression_type;
-            est = ((ExpressionStatement *) stmt.st)->expression;
-
-            if(strcmp(type, INFIX) == 0) {
-                ap = print_infix_expression((InfixExpression *) est);
-            } else if(strcmp(type, PREFIX) == 0) {
-                ap = print_prefix_expression((PrefixExpression *) est);
-            } else if(strcmp(type, IDENT) == 0) {
-                ap = print_identifier_value((Identifier *) est);
-            } else if(strcmp(type, INT) == 0) {
-                ap = print_integer_literal((IntegerLiteral *) est);
-            } else if(strcmp(type, TRUE) == 0 || strcmp(type, FALSE) == 0) {
-                ap = print_boolean((Boolean *) est);
-            }
-        }
-
+        ap = get_print_statement_type(stmt);
         len += strlen(ap) + 1;
         pt = realloc(pt, len);
 
@@ -1183,6 +1285,7 @@ void test_print_program() {
     int i;
 
     const char * input = " \
+        if (x < y) { x } else { !!!!5 } \
         -(5 + 5) \
         !!!4; \
         a + b / 4; \
@@ -1202,11 +1305,16 @@ void test_print_program() {
         printf("%s\n", parser->errors[i]);
     }
 
-    char * prog_str = print_program(program);
+    /*
+    Statement st = program->statements[0];
+    printf("%s\n", st.type);
+    IfExpression * iex = (IfExpression *) st.st;
+    printf("%s\n", iex->condition_type);
+    BlockStatement * cons = iex->consequence;
 
-    printf("%s", prog_str);
-
-    free(prog_str);
+    printf("%s", ((ExpressionStatement *) cons->statements[0].st)->expression_type);
+    */
+    printf("%s", print_program(program));
 }
 
 int main(int argc, char * argv[])
