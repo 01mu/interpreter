@@ -113,6 +113,12 @@ typedef struct Identifier_ {
     char * value;
 } Identifier;
 
+typedef struct FunctionLiteral_ {
+    Token token;
+    Identifier * parameters;
+    BlockStatement * body;
+} FunctionLiteral;
+
 typedef struct ExpressionStatement_ {
     Token token;
     char * expression_type;
@@ -178,11 +184,12 @@ void * parse_boolean(Parser * par, bool value);
 void * parse_grouped_expression(Parser * par);
 void * parse_expression(Parser * par, int precedence, char * set_type);
 void parse_expression_statement(Parser * par, Statement * smt);
-void * parse_if_expression(Parser * par, Statement * smt);
+void * parse_if_expression(Parser * par);
 BlockStatement * parse_block_statement(Parser * parser);
 Program * parse_program(Parser * parser);
-bool check_parser_errors(Parser * parser);
 
+char * print_block_statement(BlockStatement * bst);
+char * print_if_expression(IfExpression * iex);
 char * get_print_expression(char * type, void * expr);
 char * print_let_statement(LetStatement * smt);
 char * print_return_statement(ReturnStatement * smt);
@@ -655,6 +662,9 @@ void * parse_expression(Parser * par, int precedence, char * set_type) {
     } else if(type == LPAREN) {
         exp_type = INFIX;
         expr = parse_grouped_expression(par);
+    } else if(type == IF) {
+        exp_type = IF;
+        expr = parse_if_expression(par);
     }
 
     while(!peek_token_is(par, SEMICOLON) &&
@@ -698,27 +708,20 @@ void parse_expression_statement(Parser * par, Statement * smt) {
 void parse_statement(Parser * par, Statement * stmts, int sc, int sz) {
     char * token_type = par->current_token.type;
 
-    if(token_type == LET) {
+    if(strcmp(token_type, LET) == 0) {
         stmts[sc].type = LET;
         parse_let_statement(par, &stmts[sc]);
-    } else if(token_type == RETURN) {
+    } else if(strcmp(token_type, RETURN) == 0) {
         stmts[sc].type = RETURN;
         parse_return_statement(par, &stmts[sc]);
-    } else if(token_type == IF) {
-        stmts[sc].type = IF;
-        parse_if_expression(par, &stmts[sc]);
     } else {
         stmts[sc].type = EXPRESSION;
         parse_expression_statement(par, &stmts[sc]);
     }
 }
 
-void * parse_if_expression(Parser * par, Statement * smt) {
-    IfExpression * iex;
-
-    smt->st = malloc(sizeof(IfExpression));
-    iex = (IfExpression *) smt->st;
-
+void * parse_if_expression(Parser * par) {
+    IfExpression * iex = malloc(sizeof(IfExpression));
     iex->token = par->current_token;
 
     if(!expect_peek(par, LPAREN)) {
@@ -726,6 +729,7 @@ void * parse_if_expression(Parser * par, Statement * smt) {
     }
 
     parser_next_token(par);
+
     iex->condition_type = malloc(sizeof(char *));
     iex->condition = parse_expression(par, PRE_LOWEST, iex->condition_type);
 
@@ -966,8 +970,6 @@ char * get_print_statement_type(Statement stmt) {
         ap = print_let_statement((LetStatement *) stmt.st);
     } else if(stmt.type == RETURN) {
         ap = print_return_statement((ReturnStatement *) stmt.st);
-    } else if(strcmp(stmt.type, IF) == 0) {
-        ap = print_if_expression((IfExpression *) stmt.st);
     } else if(stmt.type == EXPRESSION) {
         type = ((ExpressionStatement *) stmt.st)->expression_type;
         est = ((ExpressionStatement *) stmt.st)->expression;
@@ -1281,17 +1283,79 @@ void test_parsing_infix_expressions() {
     }
 }
 
-void test_print_program() {
+void test_parsing_if_expressions() {
     int i;
 
+    struct {
+        char * input;
+        char * condition_type;;
+        char * cons_type;
+        char * alt_type;
+    } tests[4] = {
+            {"if (x) { let a = b; } else { return 1; }", IDENT, LET, RETURN},
+            {"if (x) { let a = b; } else { 5 }", IDENT, LET, EXPRESSION},
+            {"if (x) { let a = b; } else { if (z) { } else { } }",
+                    IDENT, LET, EXPRESSION},
+            {"if (a > 3) { !2 } else { 3 }", INFIX, EXPRESSION, EXPRESSION}};
+
+    Lexer * lexer;
+    Parser * parser;
+    Program * program;
+    Statement stmt;
+    ExpressionStatement * es;
+    IfExpression * ifx;
+    BlockStatement * cons;
+    BlockStatement * alt;
+
+    for(i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
+        lexer = new_lexer(tests[i].input);
+        parser = new_parser(lexer);
+        program = parse_program(parser);
+        stmt = program->statements[0];
+        es = stmt.st;
+        ifx = (IfExpression *) es->expression;
+        cons = (BlockStatement *) ifx->consequence;
+        alt = (BlockStatement *) ifx->alternative;
+
+        if(check_parser_errors(parser)) {
+            break;
+        }
+
+        if(strcmp(stmt.type, EXPRESSION) != 0) {
+            printf("[%i] Expected statement type IF, got: %s\n", i, stmt.type);
+        }
+
+        if(strcmp(ifx->condition_type, tests[i].condition_type) != 0) {
+            printf("[%i] Expected condition type %s, got: %s\n",
+                i, tests[i].condition_type, ifx->condition_type);
+        }
+
+        if(strcmp(cons->statements[0].type, tests[i].cons_type) != 0) {
+            printf("[%i] Expected consequence type %s, got: %s\n",
+                i, tests[i].cons_type, cons->statements[0].type);
+        }
+
+        if(strcmp(alt->statements[0].type, tests[i].alt_type) != 0) {
+            printf("[%i] Expected altnerative type %s, got: %s\n",
+                i, tests[i].alt_type, alt->statements[0].type);
+        }
+    }
+}
+
+void test_print_program() {
+    int i;
+    char * prg;
+
     const char * input = " \
-        if (x < y) { x } else { !!!!5 } \
-        -(5 + 5) \
+        if (x < y) { x } else { !!!!5 }; \
+        if (x < y) { a } else { if (x < y) { x } else { !!!!5 } }; \
+        -(5 + 5); \
         !!!4; \
         a + b / 4; \
+        -(1 + 2); \
         let a = a * 2 + 3; \
         let v = n; \
-        3 > 5 == false \
+        3 > 5 == false; \
         false; \
         !true; \
         !!asd; \
@@ -1305,22 +1369,19 @@ void test_print_program() {
         printf("%s\n", parser->errors[i]);
     }
 
-    /*
-    Statement st = program->statements[0];
-    printf("%s\n", st.type);
-    IfExpression * iex = (IfExpression *) st.st;
-    printf("%s\n", iex->condition_type);
-    BlockStatement * cons = iex->consequence;
+    printf("%i\n", program->sc);
 
-    printf("%s", ((ExpressionStatement *) cons->statements[0].st)->expression_type);
-    */
-    printf("%s", print_program(program));
+    prg = print_program(program);
+    printf("%s", prg);
+    free(prg);
 }
 
 int main(int argc, char * argv[])
 {
     if(strcmp(argv[1], "ppe") == 0) {
         test_parsing_prefix_expressions();
+    } else if(strcmp(argv[1], "if") == 0) {
+        test_parsing_if_expressions();
     } else if(strcmp(argv[1], "pie") == 0) {
         test_parsing_infix_expressions();
     } else if(strcmp(argv[1], "ile") == 0) {
