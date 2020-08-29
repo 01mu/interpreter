@@ -51,6 +51,14 @@
 #define INFIX "INFIX"
 #define PREFIX "PREFIX"
 
+#define PREC_PEEK 0
+#define PREC_CURRENT 1
+
+#define PE_EXPRESSION 0
+#define PE_PREFIX 1
+#define PE_INFIX 2
+#define PE_CONDITION 3
+
 typedef struct Token_ {
     char * type;
     char * literal;
@@ -174,16 +182,16 @@ void peek_error(Parser * parser, char * type);
 bool expect_peek(Parser * parser, char * type);
 bool check_parser_errors(Parser * parser);
 
+void * parse_expression(Parser * par, int precedence, void * ex, int et);
 void parse_let_statement(Parser * par, Statement * smt);
 void parse_return_statement(Parser * par, Statement * smt);
 void * parse_identifier(Parser * par);
 void * parse_integer_literal(Parser * par);
-int parser_get_precedence(Parser * par, char * type);
+int parser_get_precedence(Parser * par, int type);
 void * parse_prefix_expression(Parser * par);
 void * parse_infix_expression(Parser * par, void * left, char * left_type);
 void * parse_boolean(Parser * par, bool value);
 void * parse_grouped_expression(Parser * par);
-void * parse_expression(Parser * par, int precedence, char * set_type);
 void parse_expression_statement(Parser * par, Statement * smt);
 void * parse_if_expression(Parser * par);
 BlockStatement * parse_block_statement(Parser * parser);
@@ -489,158 +497,8 @@ bool check_parser_errors(Parser * parser) {
     return true;
 }
 
-void parse_let_statement(Parser * par, Statement * smt) {
-    LetStatement * let;
-    ExpressionStatement  * ex;
 
-    smt->st = malloc(sizeof(LetStatement));
-    let = (LetStatement *) smt->st;
-    let->token = par->current_token;
-
-    if(!expect_peek(par, IDENT)) {
-        return;
-    }
-
-    let->name.token = par->current_token;
-    let->name.value = par->current_token.literal;
-
-    if(!expect_peek(par, ASSIGN)) {
-        return;
-    }
-
-    parser_next_token(par);
-
-    let->value = malloc(sizeof(ExpressionStatement));
-    ex = (ExpressionStatement *) let->value;
-
-    ex->expression_type = malloc(sizeof(char));
-    ex->expression = parse_expression(par, PRE_LOWEST, ex->expression_type);
-
-    let->type = ex->expression_type;
-
-    while(!cur_token_is(par, SEMICOLON)) {
-        parser_next_token(par);
-    }
-}
-
-void parse_return_statement(Parser * par, Statement * smt) {
-    ReturnStatement * ret;
-    ExpressionStatement  * ex;
-
-    smt->st = malloc(sizeof(ReturnStatement));
-    ret = (ReturnStatement *) smt->st;
-
-    ret->token = par->current_token;
-
-    parser_next_token(par);
-
-    ret->value = malloc(sizeof(ExpressionStatement));
-    ex = (ExpressionStatement *) ret->value;
-
-    ex->expression_type = malloc(sizeof(char *));
-
-    ex->expression = parse_expression(par, PRE_LOWEST, ex->expression_type);
-    ret->type = ex->expression_type;
-
-    while(!cur_token_is(par, SEMICOLON)) {
-        parser_next_token(par);
-    }
-}
-
-void * parse_identifier(Parser * par) {
-    Identifier * identifier = malloc(sizeof(Identifier));
-
-    identifier->token = par->current_token;
-    identifier->value = par->current_token.literal;
-
-    return identifier;
-}
-
-void * parse_integer_literal(Parser * par) {
-    IntegerLiteral * lit = malloc(sizeof(IntegerLiteral));
-
-    lit->token = par->current_token;
-    lit->value = str_to_int(par->current_token.literal);
-
-    return lit;
-}
-
-int parser_get_precedence(Parser * par, char * type) {
-    char * pt;
-
-    if(strcmp(type, "peek") == 0)
-        pt = par->peek_token.type;
-    else if(strcmp(type, "current") == 0)
-        pt = par->current_token.type;
-
-    if(strcmp(pt, EQ) == 0 || strcmp(pt, NOT_EQ) == 0) {
-        return PRE_EQUALS;
-    } else if(strcmp(pt, LT) == 0 || strcmp(pt, GT) == 0) {
-        return PRE_LESSGREATER;
-    } else if(strcmp(pt, PLUS) == 0 || strcmp(pt, MINUS) == 0) {
-        return PRE_SUM;
-    } else if(strcmp(pt, SLASH) == 0 || strcmp(pt, ASTERISK) == 0) {
-        return PRE_PRODUCT;
-    }
-
-    return PRE_LOWEST;
-}
-
-void * parse_prefix_expression(Parser * par) {
-    PrefixExpression * pe = malloc(sizeof(PrefixExpression));
-
-    pe->token = par->current_token;
-    pe->operator = par->current_token.literal;
-
-    parser_next_token(par);
-
-    pe->expression_type = malloc(sizeof(char *));
-    pe->right = parse_expression(par, PRE_PREFIX, pe->expression_type);
-
-    return pe;
-}
-
-void * parse_infix_expression(Parser * par, void * left, char * left_type) {
-    InfixExpression * ie = malloc(sizeof(InfixExpression));
-    int precedence = parser_get_precedence(par, "current");
-
-    ie->token = par->current_token;
-    ie->operator = par->current_token.literal;
-    ie->left_expression_type = left_type;
-    ie->left = left;
-
-    parser_next_token(par);
-
-    ie->right_expression_type = malloc(sizeof(char *));
-    ie->right = parse_expression(par, precedence, ie->right_expression_type);
-
-    return ie;
-}
-
-void * parse_boolean(Parser * par, bool value) {
-    Boolean * bool_ = malloc(sizeof(Boolean));
-
-    bool_->token = par->current_token;
-    bool_->value = value;
-
-    return bool_;
-}
-
-void * parse_grouped_expression(Parser * par) {
-    void * s;
-
-    parser_next_token(par);
-
-    s = parse_expression(par, PRE_LOWEST, NULL);
-
-    if(!expect_peek(par, RPAREN)) {
-        return NULL;
-    }
-
-    return s;
-}
-
-void * parse_expression(Parser * par, int precedence, char * set_type) {
+void * parse_expression(Parser * par, int precedence, void * ex, int et) {
     char * type = par->current_token.type;
 
     char * exp_type;
@@ -673,7 +531,7 @@ void * parse_expression(Parser * par, int precedence, char * set_type) {
     }
 
     while(!peek_token_is(par, SEMICOLON) &&
-        precedence < parser_get_precedence(par, "peek")) {
+        precedence < parser_get_precedence(par, PREC_PEEK)) {
 
         type = par->peek_token.type;
 
@@ -688,12 +546,172 @@ void * parse_expression(Parser * par, int precedence, char * set_type) {
         }
     }
 
-    if(set_type != NULL) {
-        set_type = realloc(set_type, strlen(exp_type) + 6);
-        strcpy(set_type, exp_type);
+    if(ex != NULL) {
+        if(et == PE_EXPRESSION) {
+            ((ExpressionStatement *) ex)->expression_type =
+                malloc(strlen(exp_type) + 1);
+            strcpy(((ExpressionStatement *) ex)->expression_type, exp_type);
+        } else if(et == PE_PREFIX){
+            ((PrefixExpression *) ex)->expression_type =
+                malloc(strlen(exp_type) + 1);
+            strcpy(((PrefixExpression *) ex)->expression_type, exp_type);
+        } else if(et == PE_INFIX){
+            ((InfixExpression *) ex)->right_expression_type =
+                malloc(strlen(exp_type) + 1);
+            strcpy(((InfixExpression *) ex)->right_expression_type, exp_type);
+        } else if(et == PE_CONDITION){
+            ((IfExpression *) ex)->condition_type =
+                malloc(strlen(exp_type) + 1);
+            strcpy(((IfExpression *) ex)->condition_type, exp_type);
+        }
     }
 
     return expr;
+}
+
+void parse_let_statement(Parser * par, Statement * smt) {
+    LetStatement * let;
+    ExpressionStatement * ex;
+
+    smt->st = malloc(sizeof(LetStatement));
+    let = (LetStatement *) smt->st;
+    let->token = par->current_token;
+
+    if(!expect_peek(par, IDENT)) {
+        return;
+    }
+
+    let->name.token = par->current_token;
+    let->name.value = par->current_token.literal;
+
+    if(!expect_peek(par, ASSIGN)) {
+        return;
+    }
+
+    parser_next_token(par);
+
+    let->value = malloc(sizeof(ExpressionStatement));
+    ex = (ExpressionStatement *) let->value;
+    ex->expression = parse_expression(par, PRE_LOWEST, ex, PE_EXPRESSION);
+
+    let->type = ex->expression_type;
+
+    while(!cur_token_is(par, SEMICOLON)) {
+        parser_next_token(par);
+    }
+}
+
+void parse_return_statement(Parser * par, Statement * smt) {
+    ReturnStatement * ret;
+    ExpressionStatement  * ex;
+
+    smt->st = malloc(sizeof(ReturnStatement));
+    ret = (ReturnStatement *) smt->st;
+
+    ret->token = par->current_token;
+
+    parser_next_token(par);
+
+    ret->value = malloc(sizeof(ExpressionStatement));
+    ex = (ExpressionStatement *) ret->value;
+    ex->expression = parse_expression(par, PRE_LOWEST, ex, PE_EXPRESSION);
+
+    ret->type = ex->expression_type;
+
+    while(!cur_token_is(par, SEMICOLON)) {
+        parser_next_token(par);
+    }
+}
+
+void * parse_identifier(Parser * par) {
+    Identifier * identifier = malloc(sizeof(Identifier));
+
+    identifier->token = par->current_token;
+    identifier->value = par->current_token.literal;
+
+    return identifier;
+}
+
+void * parse_integer_literal(Parser * par) {
+    IntegerLiteral * lit = malloc(sizeof(IntegerLiteral));
+
+    lit->token = par->current_token;
+    lit->value = str_to_int(par->current_token.literal);
+
+    return lit;
+}
+
+int parser_get_precedence(Parser * par, int type) {
+    char * pt;
+
+    if(type == PREC_PEEK)
+        pt = par->peek_token.type;
+    else if(type == PREC_CURRENT)
+        pt = par->current_token.type;
+
+    if(strcmp(pt, EQ) == 0 || strcmp(pt, NOT_EQ) == 0) {
+        return PRE_EQUALS;
+    } else if(strcmp(pt, LT) == 0 || strcmp(pt, GT) == 0) {
+        return PRE_LESSGREATER;
+    } else if(strcmp(pt, PLUS) == 0 || strcmp(pt, MINUS) == 0) {
+        return PRE_SUM;
+    } else if(strcmp(pt, SLASH) == 0 || strcmp(pt, ASTERISK) == 0) {
+        return PRE_PRODUCT;
+    }
+
+    return PRE_LOWEST;
+}
+
+void * parse_prefix_expression(Parser * par) {
+    PrefixExpression * pe = malloc(sizeof(PrefixExpression));
+
+    pe->token = par->current_token;
+    pe->operator = par->current_token.literal;
+
+    parser_next_token(par);
+
+    pe->right = parse_expression(par, PRE_PREFIX, pe, PE_PREFIX);
+
+    return pe;
+}
+
+void * parse_infix_expression(Parser * par, void * left, char * left_type) {
+    InfixExpression * ie = malloc(sizeof(InfixExpression));
+    int precedence = parser_get_precedence(par, PREC_CURRENT);
+
+    ie->token = par->current_token;
+    ie->operator = par->current_token.literal;
+    ie->left_expression_type = left_type;
+    ie->left = left;
+
+    parser_next_token(par);
+
+    ie->right = parse_expression(par, precedence, ie, PE_INFIX);
+
+    return ie;
+}
+
+void * parse_boolean(Parser * par, bool value) {
+    Boolean * bool_ = malloc(sizeof(Boolean));
+
+    bool_->token = par->current_token;
+    bool_->value = value;
+
+    return bool_;
+}
+
+void * parse_grouped_expression(Parser * par) {
+    void * s;
+
+    parser_next_token(par);
+
+    s = parse_expression(par, PRE_LOWEST, NULL, 0);
+
+    if(!expect_peek(par, RPAREN)) {
+        return NULL;
+    }
+
+    return s;
 }
 
 void parse_expression_statement(Parser * par, Statement * smt) {
@@ -703,8 +721,7 @@ void parse_expression_statement(Parser * par, Statement * smt) {
     est = (ExpressionStatement *) smt->st;
 
     est->token = par->current_token;
-    est->expression_type = malloc(sizeof(char *));
-    est->expression = parse_expression(par, PRE_LOWEST, est->expression_type);
+    est->expression = parse_expression(par, PRE_LOWEST, est, PE_EXPRESSION);
 
     if(peek_token_is(par, SEMICOLON)) {
         parser_next_token(par);
@@ -736,8 +753,7 @@ void * parse_if_expression(Parser * par) {
 
     parser_next_token(par);
 
-    iex->condition_type = malloc(sizeof(char *));
-    iex->condition = parse_expression(par, PRE_LOWEST, iex->condition_type);
+    iex->condition = parse_expression(par, PRE_LOWEST, iex, PE_CONDITION);
 
     if(!expect_peek(par, RPAREN)) {
         return NULL;
@@ -864,12 +880,40 @@ void * parse_function_literal(Parser * parser) {
 char * print_function_literal(FunctionLiteral * fl) {
     int i;
 
+    Identifier * id;
+
     char * params = malloc(sizeof(char));
-    int sz = 0;
+    char * fin = malloc(sizeof(char) + 4);
+    char * block;
+
+    int psz = 1;
 
     params[0] = '\0';
+    fin[0] = '\0';
 
-    return params;
+    for(i = 0; i < fl->pc; i++) {
+        id = fl->parameters[i];
+
+        psz += strlen(id->value) + 2;
+        params = realloc(params, psz);
+        strcat(params, id->value);
+
+        if(i != fl->pc - 1) {
+            strcat(params, ", ");
+        }
+    }
+
+    block = print_block_statement(fl->body);
+
+    strcat(fin, "fn (");
+    fin = realloc(fin, strlen(params) + strlen(block) + 7);
+    strcat(fin, params);
+    strcat(fin, ") ");
+    strcat(fin, block);
+
+    free(params);
+
+    return fin;
 }
 
 char * print_block_statement(BlockStatement * bst) {
@@ -975,6 +1019,7 @@ char * print_let_statement(LetStatement * smt) {
     }
 
     strcat(let, ";");
+    free(ap);
 
     return let;
 }
@@ -1079,7 +1124,7 @@ char * print_program(Program * program) {
         strcat(pt, ap);
         strcat(pt, "\n");
 
-        //free(ap);
+        free(ap);
     }
 
     return pt;
@@ -1438,15 +1483,15 @@ void test_print_program() {
         !!asd; \
         return 500;";
 
-    //input = "let x = 4;";
+    input = "fn(x, y, z) { z }";
 
     Lexer * lexer = new_lexer(input);
     Parser * parser = new_parser(lexer);
     Program * program = parse_program(parser);
 
-    /*for(i = 0; i < parser->ec; i++) {
+    for(i = 0; i < parser->ec; i++) {
         printf("%s\n", parser->errors[i]);
-    }*/
+    }
 
     printf("%s", print_program(program));
 }
