@@ -115,8 +115,9 @@ typedef struct Identifier_ {
 
 typedef struct FunctionLiteral_ {
     Token token;
-    Identifier * parameters;
+    Identifier ** parameters;
     BlockStatement * body;
+    int pc;
 } FunctionLiteral;
 
 typedef struct ExpressionStatement_ {
@@ -151,7 +152,7 @@ typedef struct Parser_ {
     int ec;
 } Parser;
 
-Token new_token(char * type, char ch);
+Token new_token(char * type);
 void read_char(Lexer * lexer);
 int str_to_int(char * str);
 Lexer * new_lexer(const char * input);
@@ -187,7 +188,10 @@ void parse_expression_statement(Parser * par, Statement * smt);
 void * parse_if_expression(Parser * par);
 BlockStatement * parse_block_statement(Parser * parser);
 Program * parse_program(Parser * parser);
+Identifier ** parse_program_parameters(Parser * parser, int * c);
+void * parse_function_literal(Parser * parser);
 
+char * print_function_literal(FunctionLiteral * fl);
 char * print_block_statement(BlockStatement * bst);
 char * print_if_expression(IfExpression * iex);
 char * get_print_expression(char * type, void * expr);
@@ -210,13 +214,11 @@ void test_parsing_prefix_expressions();
 void test_parsing_infix_expressions();
 void test_print_program();
 
-Token new_token(char * type, char ch) {
+Token new_token(char * type) {
     Token token;
 
     token.type = type;
-    token.literal = malloc(sizeof(char) * 2);
-    token.literal[0] = ch;
-    token.literal[1] = '\0';
+    token.literal = type;
 
     return token;
 }
@@ -325,8 +327,8 @@ char * lookup_ident(char * literal) {
 }
 
 void skip_whitespace(Lexer * lexer) {
-    while(  lexer->ch == ' ' || lexer-> ch == '\t' || lexer->ch == '\n'
-            || lexer->ch  == '\r') {
+    while(lexer->ch == ' ' || lexer-> ch == '\t' || lexer->ch == '\n' ||
+        lexer->ch  == '\r') {
 
         read_char(lexer);
     }
@@ -347,40 +349,40 @@ Token lexer_next_token(Lexer * lexer) {
 
     switch(lexer->ch) {
     case ';':
-        token = new_token(SEMICOLON, lexer->ch);
+        token = new_token(SEMICOLON);
         break;
     case '(':
-        token = new_token(LPAREN, lexer->ch);
+        token = new_token(LPAREN);
         break;
     case ')':
-        token = new_token(RPAREN, lexer->ch);
+        token = new_token(RPAREN);
         break;
     case ',':
-        token = new_token(COMMA, lexer->ch);
+        token = new_token(COMMA);
         break;
     case '+':
-        token = new_token(PLUS, lexer->ch);
+        token = new_token(PLUS);
         break;
     case '{':
-        token = new_token(LBRACE, lexer->ch);
+        token = new_token(LBRACE);
         break;
     case '}':
-        token = new_token(RBRACE, lexer->ch);
+        token = new_token(RBRACE);
         break;
     case '-':
-        token = new_token(MINUS, lexer->ch);
+        token = new_token(MINUS);
         break;
     case '*':
-        token = new_token(ASTERISK, lexer->ch);
+        token = new_token(ASTERISK);
         break;
     case '/':
-        token = new_token(SLASH, lexer->ch);
+        token = new_token(SLASH);
         break;
     case '<':
-        token = new_token(LT, lexer->ch);
+        token = new_token(LT);
         break;
     case '>':
-        token = new_token(GT, lexer->ch);
+        token = new_token(GT);
         break;
     case '=':
         if(peek_char(lexer) == '=') {
@@ -388,7 +390,7 @@ Token lexer_next_token(Lexer * lexer) {
             token.type = EQ;
             token.literal = "==";
         } else {
-            token = new_token(ASSIGN, lexer->ch);
+            token = new_token(ASSIGN);
         }
         break;
     case '!':
@@ -397,7 +399,7 @@ Token lexer_next_token(Lexer * lexer) {
             token.type = NOT_EQ;
             token.literal = "!=";
         } else {
-            token = new_token(BANG, lexer->ch);
+            token = new_token(BANG);
         }
         break;
     case 0:
@@ -414,11 +416,12 @@ Token lexer_next_token(Lexer * lexer) {
             token.type = INT;
             return token;
         } else {
-            token = new_token(ILLEGAL, lexer->ch);
+            token = new_token(ILLEGAL);
         }
     };
 
     read_char(lexer);
+
     return token;
 }
 
@@ -492,7 +495,6 @@ void parse_let_statement(Parser * par, Statement * smt) {
 
     smt->st = malloc(sizeof(LetStatement));
     let = (LetStatement *) smt->st;
-
     let->token = par->current_token;
 
     if(!expect_peek(par, IDENT)) {
@@ -511,9 +513,9 @@ void parse_let_statement(Parser * par, Statement * smt) {
     let->value = malloc(sizeof(ExpressionStatement));
     ex = (ExpressionStatement *) let->value;
 
-    ex->expression_type = malloc(sizeof(char *));
-
+    ex->expression_type = malloc(sizeof(char));
     ex->expression = parse_expression(par, PRE_LOWEST, ex->expression_type);
+
     let->type = ex->expression_type;
 
     while(!cur_token_is(par, SEMICOLON)) {
@@ -665,6 +667,9 @@ void * parse_expression(Parser * par, int precedence, char * set_type) {
     } else if(type == IF) {
         exp_type = IF;
         expr = parse_if_expression(par);
+    } else if(type == FUNCTION) {
+        exp_type = FUNCTION;
+        expr = parse_function_literal(par);
     }
 
     while(!peek_token_is(par, SEMICOLON) &&
@@ -672,7 +677,7 @@ void * parse_expression(Parser * par, int precedence, char * set_type) {
 
         type = par->peek_token.type;
 
-        if( type == PLUS || type == MINUS || type == SLASH ||
+        if(type == PLUS || type == MINUS || type == SLASH ||
             type == ASTERISK || type == EQ || type == NOT_EQ ||
             type == LT || type == GT) {
 
@@ -684,6 +689,7 @@ void * parse_expression(Parser * par, int precedence, char * set_type) {
     }
 
     if(set_type != NULL) {
+        set_type = realloc(set_type, strlen(exp_type) + 6);
         strcpy(set_type, exp_type);
     }
 
@@ -794,6 +800,78 @@ Program * parse_program(Parser * parser) {
     return prg;
 }
 
+Identifier ** parse_program_parameters(Parser * parser, int * c) {
+    Identifier ** parameters = malloc(sizeof(Identifier *));
+    int pc = 0;
+
+    if(peek_token_is(parser, RPAREN)) {
+        parser_next_token(parser);
+        return parameters;
+    }
+
+    parser_next_token(parser);
+
+    Identifier * parameter = malloc(sizeof(Identifier));
+
+    parameter->token = parser->current_token;
+    parameter->value = parser->current_token.literal;
+
+    parameters[pc++] = parameter;
+    parameters = realloc(parameters, sizeof(Identifier *) * (pc + 1));
+
+    while(peek_token_is(parser, COMMA)) {
+        parser_next_token(parser);
+        parser_next_token(parser);
+
+        Identifier * parameter = malloc(sizeof(Identifier));
+
+        parameter->token = parser->current_token;
+        parameter->value = parser->current_token.literal;
+
+        parameters[pc++] = parameter;
+        parameters = realloc(parameters, sizeof(Identifier *) * (pc + 1));
+    }
+
+    if(!expect_peek(parser, RPAREN)) {
+        return NULL;
+    }
+
+    *c = pc;
+
+    return parameters;
+}
+
+void * parse_function_literal(Parser * parser) {
+    FunctionLiteral * fl = malloc(sizeof(FunctionLiteral));
+
+    fl->token = parser->current_token;
+
+    if(!expect_peek(parser, LPAREN)) {
+        return NULL;
+    }
+
+    fl->parameters = parse_program_parameters(parser, &fl->pc);
+
+    if(!expect_peek(parser, LBRACE)) {
+        return NULL;
+    }
+
+    fl->body = parse_block_statement(parser);
+
+    return fl;
+}
+
+char * print_function_literal(FunctionLiteral * fl) {
+    int i;
+
+    char * params = malloc(sizeof(char));
+    int sz = 0;
+
+    params[0] = '\0';
+
+    return params;
+}
+
 char * print_block_statement(BlockStatement * bst) {
     int i;
 
@@ -867,17 +945,20 @@ char * get_print_expression(char * type, void * expr) {
         s = print_boolean((Boolean *) expr);
     } else if(strcmp(type, IF) == 0) {
         s = print_if_expression((IfExpression *) expr);
+    } else if(strcmp(type, FUNCTION) == 0) {
+        s = print_function_literal((FunctionLiteral *) expr);
     }
 
     return s;
 }
 
 char * print_let_statement(LetStatement * smt) {
-    int v = (strlen(smt->token.literal) + strlen(smt->name.value) + 6);
+    int v = (strlen(smt->token.literal) + strlen(smt->name.value) + 5);
 
-    char * let = malloc(sizeof(char) * v);
     ExpressionStatement * est = NULL;
+
     char * ap;
+    char * let = malloc(sizeof(char) * v);
 
     let[0] = '\0';
 
@@ -888,13 +969,12 @@ char * print_let_statement(LetStatement * smt) {
 
     if(smt->value != NULL) {
         est = (ExpressionStatement *) smt->value;
-        ap = get_print_expression(smt->type, est->expression);
-        let = realloc(let, v + strlen(ap));
+        ap = get_print_expression(est->expression_type, est->expression);
+        let = realloc(let, sizeof(char) * (v + strlen(ap) + 1));
         strcat(let, ap);
     }
 
     strcat(let, ";");
-    free(ap);
 
     return let;
 }
@@ -963,8 +1043,10 @@ char * print_infix_expression(InfixExpression * ie) {
 char * get_print_statement_type(Statement stmt) {
     ExpressionStatement * est = NULL;
 
-    char * ap = NULL;
+    char * ap = malloc(sizeof(char *));
     char * type = NULL;
+
+    ap[0] = '\0';
 
     if(stmt.type == LET) {
         ap = print_let_statement((LetStatement *) stmt.st);
@@ -982,9 +1064,7 @@ char * get_print_statement_type(Statement stmt) {
 char * print_program(Program * program) {
     int i;
 
-    Statement stmt;
-
-    char * pt = malloc(1);
+    char * pt = malloc(sizeof(char));
     char * ap = NULL;
 
     int len = 1;
@@ -992,16 +1072,14 @@ char * print_program(Program * program) {
     pt[0] = '\0';
 
     for(i = 0; i < program->sc; i++) {
-        stmt = program->statements[i];
-
-        ap = get_print_statement_type(stmt);
+        ap = get_print_statement_type(program->statements[i]);
         len += strlen(ap) + 1;
         pt = realloc(pt, len);
 
         strcat(pt, ap);
         strcat(pt, "\n");
 
-        free(ap);
+        //free(ap);
     }
 
     return pt;
@@ -1344,12 +1422,11 @@ void test_parsing_if_expressions() {
 
 void test_print_program() {
     int i;
-    char * prg;
 
     const char * input = " \
         if (x < y) { x } else { !!!!5 }; \
-        if (x < y) { a } else { if (x < y) { x } else { !!!!5 } }; \
-        -(5 + 5); \
+        if (x < y) { a } else { if (x < y) { x } else { !!!!5 }; }; \
+        -5; \
         !!!4; \
         a + b / 4; \
         -(1 + 2); \
@@ -1361,19 +1438,17 @@ void test_print_program() {
         !!asd; \
         return 500;";
 
+    //input = "let x = 4;";
+
     Lexer * lexer = new_lexer(input);
     Parser * parser = new_parser(lexer);
     Program * program = parse_program(parser);
 
-    for(i = 0; i < parser->ec; i++) {
+    /*for(i = 0; i < parser->ec; i++) {
         printf("%s\n", parser->errors[i]);
-    }
+    }*/
 
-    printf("%i\n", program->sc);
-
-    prg = print_program(program);
-    printf("%s", prg);
-    free(prg);
+    printf("%s", print_program(program));
 }
 
 int main(int argc, char * argv[])
