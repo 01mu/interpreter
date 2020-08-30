@@ -50,6 +50,7 @@
 #define EXPRESSION "EXPRESSION"
 #define INFIX "INFIX"
 #define PREFIX "PREFIX"
+#define CALL "CALL"
 
 #define PREC_PEEK 0
 #define PREC_CURRENT 1
@@ -134,6 +135,14 @@ typedef struct ExpressionStatement_ {
     void * expression;
 } ExpressionStatement;
 
+typedef struct CallExpression_ {
+    Token token;
+    char * function_type;
+    void * function;
+    ExpressionStatement ** arguments;
+    int ac;
+} CallExpression;
+
 typedef struct LetStatement_ {
     Token token;
     Identifier name;
@@ -182,6 +191,8 @@ void peek_error(Parser * parser, char * type);
 bool expect_peek(Parser * parser, char * type);
 bool check_parser_errors(Parser * parser);
 
+void * parse_call_expression(Parser * par, char * type, void * function);
+ExpressionStatement ** parse_call_arguments(Parser * par, int * ac);
 void * parse_expression(Parser * par, int precedence, void * ex, int et);
 void parse_let_statement(Parser * par, Statement * smt);
 void parse_return_statement(Parser * par, Statement * smt);
@@ -463,9 +474,9 @@ void peek_error(Parser * parser, char * type) {
     int ex_len = strlen(type);
     int gt_len = strlen(parser->peek_token.type);
 
-    char * str = malloc(19 + ex_len + gt_len);
+    char * str = malloc(25 + ex_len + gt_len);
 
-    sprintf(str, "ERROR: Expected %s, got %s", type, parser->peek_token.type);
+    sprintf(str, "ERROR: Expected %s got %s", type, parser->peek_token.type);
 
     parser->errors[parser->ec] = str;
     parser->errors[++parser->ec] = malloc(sizeof(char *));
@@ -497,12 +508,63 @@ bool check_parser_errors(Parser * parser) {
     return true;
 }
 
+void * parse_call_expression(Parser * par, char * type, void * function) {
+    CallExpression * call = malloc(sizeof(CallExpression));
+
+    call->token = par->current_token;
+    call->function_type = type;
+    call->function = function;
+    call->arguments = parse_call_arguments(par, &call->ac);
+
+    return call;
+}
+
+ExpressionStatement ** parse_call_arguments(Parser * par, int * ac) {
+    ExpressionStatement ** args = malloc(sizeof(ExpressionStatement *));
+    int sz = 0;
+
+    ExpressionStatement * e;
+
+    if(peek_token_is(par, RPAREN)) {
+        * ac = sz;
+        parser_next_token(par);
+        return args;
+    }
+
+    parser_next_token(par);
+
+    args = realloc(args, sizeof(ExpressionStatement *) * (sz + 1));
+    args[sz] = malloc(sizeof(ExpressionStatement));
+    e = (ExpressionStatement *) args[sz++];
+    e->expression = parse_expression(par, PRE_LOWEST, e, PE_EXPRESSION);
+
+    while(peek_token_is(par, COMMA)) {
+        parser_next_token(par);
+        parser_next_token(par);
+
+        args = realloc(args, sizeof(ExpressionStatement *) * (sz + 1));
+        args[sz] = malloc(sizeof(ExpressionStatement));
+        e = (ExpressionStatement *) args[sz++];
+        e->expression = parse_expression(par, PRE_LOWEST, e, PE_EXPRESSION);
+    }
+
+    if(!expect_peek(par, RPAREN)) {
+        * ac = sz;
+        return NULL;
+    }
+
+    * ac = sz;
+
+    return args;
+}
 
 void * parse_expression(Parser * par, int precedence, void * ex, int et) {
     char * type = par->current_token.type;
 
     char * exp_type;
     void * expr;
+
+    int type_len;
 
     if(type == IDENT) {
         exp_type = IDENT;
@@ -534,34 +596,34 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
         precedence < parser_get_precedence(par, PREC_PEEK)) {
 
         type = par->peek_token.type;
+        parser_next_token(par);
 
         if(type == PLUS || type == MINUS || type == SLASH ||
             type == ASTERISK || type == EQ || type == NOT_EQ ||
             type == LT || type == GT) {
 
-            parser_next_token(par);
             expr = parse_infix_expression(par, expr, exp_type);
-
             exp_type = INFIX;
+        } else if(type == LPAREN) {
+            expr = parse_call_expression(par, exp_type, expr);
+            exp_type = CALL;
         }
     }
 
     if(ex != NULL) {
+        type_len = strlen(exp_type) + 1;
+
         if(et == PE_EXPRESSION) {
-            ((ExpressionStatement *) ex)->expression_type =
-                malloc(strlen(exp_type) + 1);
+            ((ExpressionStatement *) ex)->expression_type = malloc(type_len);
             strcpy(((ExpressionStatement *) ex)->expression_type, exp_type);
         } else if(et == PE_PREFIX){
-            ((PrefixExpression *) ex)->expression_type =
-                malloc(strlen(exp_type) + 1);
+            ((PrefixExpression *) ex)->expression_type = malloc(type_len);
             strcpy(((PrefixExpression *) ex)->expression_type, exp_type);
         } else if(et == PE_INFIX){
-            ((InfixExpression *) ex)->right_expression_type =
-                malloc(strlen(exp_type) + 1);
+            ((InfixExpression *) ex)->right_expression_type = malloc(type_len);
             strcpy(((InfixExpression *) ex)->right_expression_type, exp_type);
         } else if(et == PE_CONDITION){
-            ((IfExpression *) ex)->condition_type =
-                malloc(strlen(exp_type) + 1);
+            ((IfExpression *) ex)->condition_type = malloc(type_len);
             strcpy(((IfExpression *) ex)->condition_type, exp_type);
         }
     }
@@ -649,14 +711,16 @@ int parser_get_precedence(Parser * par, int type) {
     else if(type == PREC_CURRENT)
         pt = par->current_token.type;
 
-    if(strcmp(pt, EQ) == 0 || strcmp(pt, NOT_EQ) == 0) {
+    if(pt == EQ || pt == NOT_EQ) {
         return PRE_EQUALS;
-    } else if(strcmp(pt, LT) == 0 || strcmp(pt, GT) == 0) {
+    } else if(pt == LT || pt == GT) {
         return PRE_LESSGREATER;
-    } else if(strcmp(pt, PLUS) == 0 || strcmp(pt, MINUS) == 0) {
+    } else if(pt == PLUS || pt == MINUS) {
         return PRE_SUM;
-    } else if(strcmp(pt, SLASH) == 0 || strcmp(pt, ASTERISK) == 0) {
+    } else if(pt == SLASH || pt == ASTERISK) {
         return PRE_PRODUCT;
+    } else if(pt == LPAREN) {
+        return PRE_CALL;
     }
 
     return PRE_LOWEST;
@@ -708,6 +772,7 @@ void * parse_grouped_expression(Parser * par) {
     s = parse_expression(par, PRE_LOWEST, NULL, 0);
 
     if(!expect_peek(par, RPAREN)) {
+        free(s);
         return NULL;
     }
 
@@ -821,6 +886,7 @@ Identifier ** parse_program_parameters(Parser * parser, int * c) {
     int pc = 0;
 
     if(peek_token_is(parser, RPAREN)) {
+        * c = pc;
         parser_next_token(parser);
         return parameters;
     }
@@ -849,10 +915,11 @@ Identifier ** parse_program_parameters(Parser * parser, int * c) {
     }
 
     if(!expect_peek(parser, RPAREN)) {
+        * c = pc;
         return NULL;
     }
 
-    *c = pc;
+    * c = pc;
 
     return parameters;
 }
@@ -875,6 +942,45 @@ void * parse_function_literal(Parser * parser) {
     fl->body = parse_block_statement(parser);
 
     return fl;
+}
+
+char * print_call_expression(CallExpression * ce) {
+    int i;
+
+    ExpressionStatement * es;
+
+    char * fnc = get_print_expression(ce->function_type, ce->function);
+    char * fin = malloc(sizeof(char) * strlen(fnc));
+    char * args = malloc(sizeof(char));
+    char * exp;
+
+    fin[0] = '\0';
+    args[0] = '\0';
+
+    int c = 1;
+
+    for(i = 0; i < ce->ac; i++) {
+        es = ce->arguments[i];
+        exp = get_print_expression(es->expression_type, es->expression);
+        c += strlen(exp) + 2;
+        args = realloc(args, c);
+        strcat(args, exp);
+
+        if(i != ce->ac - 1) {
+            strcat(args, ", ");
+        }
+    }
+
+    fin = realloc(fin, strlen(args) + strlen(fnc) + 3);
+
+    strcat(fin, fnc);
+    strcat(fin, "(");
+    strcat(fin, args);
+    strcat(fin, ")");
+
+    free(args);
+
+    return fin;
 }
 
 char * print_function_literal(FunctionLiteral * fl) {
@@ -991,6 +1097,8 @@ char * get_print_expression(char * type, void * expr) {
         s = print_if_expression((IfExpression *) expr);
     } else if(strcmp(type, FUNCTION) == 0) {
         s = print_function_literal((FunctionLiteral *) expr);
+    } else if(strcmp(type, CALL) == 0) {
+        s = print_call_expression((CallExpression *) expr);
     }
 
     return s;
@@ -1472,6 +1580,7 @@ void test_print_program() {
         if (x < y) { x } else { !!!!5 }; \
         if (x < y) { a } else { if (x < y) { x } else { !!!!5 }; }; \
         -5; \
+        fn(x, y, z) { z }; \
         !!!4; \
         a + b / 4; \
         -(1 + 2); \
@@ -1481,9 +1590,8 @@ void test_print_program() {
         false; \
         !true; \
         !!asd; \
+        let a = asd(12 + 3, asd, 3);\
         return 500;";
-
-    input = "fn(x, y, z) { z }";
 
     Lexer * lexer = new_lexer(input);
     Parser * parser = new_parser(lexer);
@@ -1492,6 +1600,8 @@ void test_print_program() {
     for(i = 0; i < parser->ec; i++) {
         printf("%s\n", parser->errors[i]);
     }
+
+    printf("%i\n", program->sc);
 
     printf("%s", print_program(program));
 }
