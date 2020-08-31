@@ -60,9 +60,24 @@ char * get_print_statement_type(Statement stmt);
 char * print_program(Program * program);
 void test_print_program();
 
+void free_integer_literal(IntegerLiteral * il);
+void free_identifier(Identifier * id);
+void free_prefix_expression(PrefixExpression * pex);
+void free_infix_expression(InfixExpression * iex);
+void free_block_statement(BlockStatement * bst);
+void free_if_expression(IfExpression * ifx);
+void free_function_literal(FunctionLiteral * fl);
+void free_call_expression(CallExpression * call);
+void free_expression_statement(char * type, void * value);
+void free_let_statement(LetStatement * let);
+void free_return_statement(ReturnStatement * ret);
+void free_statement(Statement stmt);
+void free_program(Lexer * lexer, Parser * parser, Program * program);
+
 void test_parse_all();
 char * test_get_statement_type(char * type, void * expr);
-bool test_expected_type(char * g, char * ex, int i, int * fail);
+bool test_string_cmp(char * b, char * g, char * ex, int i, int * fail);
+bool test_int_cmp(char * b, int g, int ex, int i, int * fail);
 char * print_parse_test_result(char * b, int fail, int tc);
 char * test_next_token();
 char * test_let_statements();

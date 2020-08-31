@@ -17,6 +17,7 @@
 #include "lexer.c"
 #include "parser.c"
 #include "print.c"
+#include "free.c"
 #include "test_parsing.c"
 
 int main(int argc, char * argv[])

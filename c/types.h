@@ -30,6 +30,7 @@ typedef struct BlockStatement_ {
 
 typedef struct IfExpression {
     Token token;
+    Token else_token;
     void * condition;
     char * condition_type;
     BlockStatement * consequence;

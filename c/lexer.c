@@ -84,7 +84,15 @@ char * read_identifier(Lexer * lexer) {
         read_char(lexer);
     }
 
-    return get_substr(position, lexer->pos, lexer->input);
+    char * sub = get_substr(position, lexer->pos, lexer->input);
+
+    /*if(strcmp(sub, "if") == 0) {
+        return "if";
+    } else if(strcmp(sub, "else") == 0) {
+        return "else";
+    }*/
+
+    return sub;
 }
 
 char * read_number(Lexer * lexer) {

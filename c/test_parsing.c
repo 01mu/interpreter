@@ -7,6 +7,7 @@
 
 void test_parse_all() {
     int i;
+    int c = 11;
 
     char * s[11] = {
         test_next_token(),
@@ -23,7 +24,7 @@ void test_parse_all() {
 
     printf("\n");
 
-    for(int i = 0; i < 11; i++) {
+    for(int i = 0; i < c; i++) {
         if(i > 0) {
             free(s[i-1]);
         }
@@ -31,7 +32,7 @@ void test_parse_all() {
         printf("%s", s[i]);
     }
 
-    free(s[10]);
+    free(s[c - 1]);
 }
 
 char * test_get_statement_type(char * type, void * expr) {
@@ -83,15 +84,16 @@ char * print_parse_test_result(char * b, int f, int tc) {
 
 char * test_next_token() {
     int i;
-    int tc = 16;
+    int tc = 20;
     int fail = 0;
 
     const char * input =
         "let x = 5; \
         let y = 10; \
-        let foobar = 838383;";
+        return asd; \
+        let foobar = 838383;;";
 
-    char * tests[16][2] = {
+    char * tests[20][2] = {
         {LET, "let"},
         {IDENT, "x"},
         {ASSIGN, "="},
@@ -102,10 +104,14 @@ char * test_next_token() {
         {ASSIGN, "="},
         {INT, "10"},
         {SEMICOLON, ";"},
+        {RETURN, "return"},
+        {IDENT, "asd"},
+        {SEMICOLON, ";"},
         {LET, "let"},
         {IDENT, "foobar"},
         {ASSIGN, "="},
         {INT, "838383"},
+        {SEMICOLON, ";"},
         {SEMICOLON, ";"},
         {EOF_, ""}};
 
@@ -159,7 +165,7 @@ char * test_let_statements() {
         let = (LetStatement *) stmt.st;
 
         if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
-            stmt.type, LET, i, &fail)) {
+            LET, stmt.type, i, &fail)) {
             continue;
         }
 
@@ -208,7 +214,7 @@ char * test_return_statements() {
         ret = (ReturnStatement *) stmt.st;
 
         if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
-            stmt.type, RETURN, i, &fail)) {
+            RETURN, stmt.type, i, &fail)) {
             continue;
         }
 
@@ -259,7 +265,7 @@ char * test_identifier_expression() {
         id = (Identifier *) es->expression;
 
         if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
-            es->expression_type, IDENT, i, &fail)) {
+            IDENT, es->expression_type, i, &fail)) {
             continue;
         }
 
@@ -310,7 +316,7 @@ char * test_integer_literal_expression() {
         il = (IntegerLiteral *) es->expression;
 
         if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
-            es->expression_type, INT, i, &fail)) {
+            INT, es->expression_type, i, &fail)) {
             continue;
         }
 
@@ -362,7 +368,7 @@ char * test_parsing_prefix_expressions() {
         pex = (PrefixExpression *) es->expression;
 
         if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
-            es->expression_type, PREFIX, i, &fail)) {
+            PREFIX, es->expression_type, i, &fail)) {
             continue;
         }
 
@@ -421,7 +427,7 @@ char * test_parsing_infix_expressions() {
         left_il = (IntegerLiteral *) iex->left;
 
         if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
-            es->expression_type, INFIX, i, &fail)) {
+            INFIX, es->expression_type, i, &fail)) {
             continue;
         }
 
@@ -479,7 +485,7 @@ char * test_parsing_function_literal_expressions() {
         bs = (BlockStatement *) fl->body;
 
         if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
-            es->expression_type, FUNCTION, i, &fail)) {
+            FUNCTION, es->expression_type, i, &fail)) {
             continue;
         }
 
@@ -534,7 +540,7 @@ char * test_parsing_call_expressions() {
         cex = (CallExpression *) es->expression;
 
         if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
-            es->expression_type, CALL, i, &fail)) {
+            CALL, es->expression_type, i, &fail)) {
             continue;
         }
 
@@ -668,7 +674,7 @@ char * test_parsing_if_expressions() {
         alt = (BlockStatement *) ifx->alternative;
 
         if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
-            es->expression_type, IF, i, &fail)) {
+            IF, es->expression_type, i, &fail)) {
             continue;
         }
 

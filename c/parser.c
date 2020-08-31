@@ -88,7 +88,8 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
         exp_type = FUNCTION;
         expr = parse_function_literal(par);
     } else {
-        //printf("ASD");
+        exp_type = "";
+        expr = NULL;
     }
 
     while(!peek_token_is(par, SEMICOLON) &&
@@ -310,6 +311,7 @@ void parse_statement(Parser * par, Statement * stmts, int sc, int sz) {
 void * parse_if_expression(Parser * par) {
     IfExpression * iex = malloc(sizeof(IfExpression));
     iex->token = par->current_token;
+    iex->else_token.literal = NULL;
 
     if(!expect_peek(par, LPAREN)) {
         return NULL;
@@ -331,6 +333,7 @@ void * parse_if_expression(Parser * par) {
 
     if(peek_token_is(par, ELSE)) {
         parser_next_token(par);
+        iex->else_token = par->current_token;
 
         if(!expect_peek(par, LBRACE)) {
             return NULL;

@@ -312,7 +312,7 @@ void test_print_program() {
         -(1 + 2) \
         let x = 1 * 2 * 3; \
         let a = a * 2 + 3; \
-        let v = n \
+        let v = n; \
         3 > 5 == false \
         false; \
         fn(a) { let a = 4; } \
@@ -325,9 +325,7 @@ void test_print_program() {
     Parser * parser = new_parser(lexer);
     Program * program = parse_program(parser);
 
-    for(i = 0; i < parser->ec; i++) {
-        printf("%s\n", parser->errors[i]);
-    }
+    //printf("%s", print_program(program));
 
-    printf("%s", print_program(program));
+    free_program(lexer, parser, program);
 }
