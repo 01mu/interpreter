@@ -45,6 +45,8 @@ int main(int argc, char * argv[])
         test_let_statements();
     } else if(strcmp(argv[1], "print") == 0) {
         test_print_program();
+    } else if(strcmp(argv[1], "test") == 0) {
+        test_parse_all();
     } else if(strcmp(argv[1], "repl") == 0) {
         while(1) {
             char str[120];

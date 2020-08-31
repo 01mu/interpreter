@@ -58,12 +58,20 @@ char * print_prefix_expression(PrefixExpression * pe);
 char * print_infix_expression(InfixExpression * ie);
 char * get_print_statement_type(Statement stmt);
 char * print_program(Program * program);
-
-void test_next_token();
-void test_let_statements();
-void test_return_statements();
-void test_identifier_expression();
-void test_integer_literal_expression();
-void test_parsing_prefix_expressions();
-void test_parsing_infix_expressions();
 void test_print_program();
+
+void test_parse_all();
+char * test_get_statement_type(char * type, void * expr);
+bool test_expected_type(char * g, char * ex, int i, int * fail);
+char * print_parse_test_result(char * b, int fail, int tc);
+char * test_next_token();
+char * test_let_statements();
+char * test_return_statements();
+char * test_identifier_expression();
+char * test_integer_literal_expression();
+char * test_parsing_prefix_expressions();
+char * test_parsing_infix_expressions();
+char * test_parsing_function_literal_expressions();
+char * test_parsing_call_expressions();
+char * test_parsing_grouped_expressions();
+char * test_parsing_if_expressions();

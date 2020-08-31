@@ -87,6 +87,8 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
     } else if(type == FUNCTION) {
         exp_type = FUNCTION;
         expr = parse_function_literal(par);
+    } else {
+        //printf("ASD");
     }
 
     while(!peek_token_is(par, SEMICOLON) &&
@@ -108,7 +110,7 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
     }
 
     if(ex != NULL) {
-        type_len = strlen(exp_type) + 1;
+        type_len = strlen(exp_type) + 2;
 
         if(et == PE_EXPRESSION) {
             ((ExpressionStatement *) ex)->expression_type = malloc(type_len);
