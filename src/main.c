@@ -12,15 +12,14 @@
 #include "string.h"
 #include <stdbool.h>
 
-#include "tokens.h"
-#include "types.h"
-#include "functions.h"
-
-#include "lexer.c"
-#include "parser.c"
-#include "print.c"
-#include "free.c"
-#include "test_parsing.c"
+#include "header/tokens.h"
+#include "header/types.h"
+#include "header/functions.h"
+#include "test/parsing.c"
+#include "core/lexer.c"
+#include "core/parser.c"
+#include "core/print.c"
+#include "core/free.c"
 
 int main(int argc, char * argv[])
 {

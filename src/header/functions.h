@@ -48,6 +48,7 @@ Program * parse_program(Parser * parser);
 Identifier ** parse_program_parameters(Parser * parser, int * c);
 void * parse_function_literal(Parser * parser);
 
+char * print_call_expression(CallExpression * ce);
 char * print_function_literal(FunctionLiteral * fl);
 char * print_block_statement(BlockStatement * bst);
 char * print_if_expression(IfExpression * iex);
