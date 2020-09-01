@@ -28,6 +28,7 @@ void peek_error(Parser * parser, char * type);
 bool expect_peek(Parser * parser, char * type);
 bool check_parser_errors(Parser * parser);
 
+void parse_statement(Parser * par, Statement * stmts, int sc, int sz);
 void * parse_call_expression(Parser * par, char * type, void * function);
 ExpressionStatement ** parse_call_arguments(Parser * par, int * ac);
 void * parse_expression(Parser * par, int precedence, void * ex, int et);
