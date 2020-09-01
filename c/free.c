@@ -3,35 +3,9 @@
  * interpreter
  * github.com/01mu/interpreter
  *
+ * free.c
+ *
  */
-
-void free_integer_literal(IntegerLiteral * il) {
-    free(il->token.literal);
-    free(il);
-}
-
-void free_identifier(Identifier * id) {
-    free(id->token.literal);
-    free(id);
-}
-
-void free_boolean(Boolean * b) {
-    free(b->token.literal);
-    free(b);
-}
-
-void free_prefix_expression(PrefixExpression * pex) {
-    free_expression_statement(pex->expression_type, pex->right);
-    free(pex->expression_type);
-    free(pex);
-}
-
-void free_infix_expression(InfixExpression * iex) {
-    free_expression_statement(iex->left_expression_type, iex->left);
-    free_expression_statement(iex->right_expression_type, iex->right);
-    free(iex->right_expression_type);
-    free(iex);
-}
 
 void free_block_statement(BlockStatement * bst) {
     int i;
@@ -42,6 +16,36 @@ void free_block_statement(BlockStatement * bst) {
 
     free(bst->statements);
     free(bst);
+}
+
+void free_call_expression(CallExpression * call) {
+    int i;
+
+    free_expression_statement(call->function_type, call->function);
+
+    for(i = 0; i < call->ac; i++) {
+        free_expression_statement(call->arguments[i]->expression_type,
+            call->arguments[i]->expression);
+        free(call->arguments[i]->expression_type);
+        free(call->arguments[i]);
+    }
+
+    free(call->arguments);
+    free(call);
+}
+
+void free_function_literal(FunctionLiteral * fl) {
+    int i;
+
+    free_block_statement(fl->body);
+    free(fl->token.literal);
+
+    for(i = 0; i < fl->pc; i++) {
+        free_identifier(fl->parameters[i]);
+    }
+
+    free(fl->parameters);
+    free(fl);
 }
 
 void free_if_expression(IfExpression * ifx) {
@@ -59,34 +63,32 @@ void free_if_expression(IfExpression * ifx) {
     free(ifx);
 }
 
-void free_function_literal(FunctionLiteral * fl) {
-    int i;
-
-    free_block_statement(fl->body);
-    free(fl->token.literal);
-
-    for(i = 0; i < fl->pc; i++) {
-        free_identifier(fl->parameters[i]);
-    }
-
-    free(fl->parameters);
-    free(fl);
+void free_boolean(Boolean * b) {
+    free(b->token.literal);
+    free(b);
 }
 
-void free_call_expression(CallExpression * call) {
-    int i;
+void free_infix_expression(InfixExpression * iex) {
+    free_expression_statement(iex->left_expression_type, iex->left);
+    free_expression_statement(iex->right_expression_type, iex->right);
+    free(iex->right_expression_type);
+    free(iex);
+}
 
-    free_expression_statement(call->function_type, call->function);
+void free_prefix_expression(PrefixExpression * pex) {
+    free_expression_statement(pex->expression_type, pex->right);
+    free(pex->expression_type);
+    free(pex);
+}
 
-    for(i = 0; i < call->ac; i++) {
-        free_expression_statement(call->arguments[i]->expression_type,
-            call->arguments[i]->expression);
-        free(call->arguments[i]->expression_type);
-        free(call->arguments[i]);
-    }
+void free_identifier(Identifier * id) {
+    free(id->token.literal);
+    free(id);
+}
 
-    free(call->arguments);
-    free(call);
+void free_integer_literal(IntegerLiteral * il) {
+    free(il->token.literal);
+    free(il);
 }
 
 void free_expression_statement(char * type, void * value) {
@@ -109,6 +111,15 @@ void free_expression_statement(char * type, void * value) {
     }
 }
 
+void free_return_statement(ReturnStatement * ret) {
+    ExpressionStatement * es = (ExpressionStatement *) ret->value;
+
+    free(ret->token.literal);
+    free_expression_statement(ret->type, es->expression);
+    free(ret->type);
+    free(es);
+}
+
 void free_let_statement(LetStatement * let) {
     ExpressionStatement * es = (ExpressionStatement *) let->value;
 
@@ -116,15 +127,6 @@ void free_let_statement(LetStatement * let) {
     free(let->name.value);
     free_expression_statement(let->type, es->expression);
     free(let->type);
-    free(es);
-}
-
-void free_return_statement(ReturnStatement * ret) {
-    ExpressionStatement * es = (ExpressionStatement *) ret->value;
-
-    free(ret->token.literal);
-    free_expression_statement(ret->type, es->expression);
-    free(ret->type);
     free(es);
 }
 
@@ -151,10 +153,6 @@ void free_statement(Statement stmt) {
 
 void free_program(Lexer * lexer, Parser * parser, Program * program) {
     int i;
-
-    Statement stmt;
-
-    char * type;
 
     for(i = 0; i < program->sc; i++) {
         free_statement(program->statements[i]);

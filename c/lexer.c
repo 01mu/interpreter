@@ -3,6 +3,8 @@
  * interpreter
  * github.com/01mu/interpreter
  *
+ * lexer.c
+ *
  */
 
 Token new_token(char * type) {

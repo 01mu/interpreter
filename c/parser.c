@@ -3,6 +3,8 @@
  * interpreter
  * github.com/01mu/interpreter
  *
+ * parser.c
+ *
  */
 
 void * parse_call_expression(Parser * par, char * type, void * function) {
@@ -88,7 +90,7 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
         exp_type = FUNCTION;
         expr = parse_function_literal(par);
     } else {
-        exp_type = "";
+        exp_type = ILLEGAL;
         expr = NULL;
     }
 
@@ -107,6 +109,9 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
         } else if(type == LPAREN) {
             expr = parse_call_expression(par, exp_type, expr);
             exp_type = CALL;
+        } else {
+            exp_type = ILLEGAL;
+            expr = NULL;
         }
     }
 

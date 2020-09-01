@@ -3,6 +3,8 @@
  * interpreter
  * github.com/01mu/interpreter
  *
+ * functions.h
+ *
  */
 
 Token new_token(char * type);

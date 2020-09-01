@@ -3,11 +3,12 @@
  * interpreter
  * github.com/01mu/interpreter
  *
+ * test_parsing.c
+ *
  */
 
 void test_parse_all() {
-    int i;
-    int c = 11;
+    int i, c = 11;
 
     char * s[11] = {
         test_next_token(),
@@ -66,8 +67,7 @@ bool test_int_cmp(char * b, int g, int ex, int i, int * fail) {
 }
 
 char * print_parse_test_result(char * b, int f, int tc) {
-    char * z;
-    char * color = ANSI_COLOR_RED;
+    char * z, * color = ANSI_COLOR_RED;
 
     z = malloc(sizeof(char) * (45 + strlen(b)));
 
@@ -83,9 +83,7 @@ char * print_parse_test_result(char * b, int f, int tc) {
 }
 
 char * test_next_token() {
-    int i;
-    int tc = 20;
-    int fail = 0;
+    int i, tc = 20, fail = 0;
 
     const char * input =
         "let x = 5; \
@@ -135,25 +133,20 @@ char * test_next_token() {
 }
 
 char * test_let_statements() {
-    int i;
-    int tc = 5;
-    int fail = 0;
-
+    int i, tc = 5, fail = 0;
+    Lexer * lexer;
+    Parser * parser;
+    Program * program;
+    Statement stmt;
+    LetStatement * let;
     struct {
-        char * input;
-        char * type;
+        char * input, * type;
     } t[5] = {
         {"let x = 2;", INT},
         {"let sd = !2;", PREFIX},
         {"let h = a;", IDENT},
         {"let z = if (x) { } else { };", IF},
         {"let a = asd(d);", CALL}};
-
-    Lexer * lexer;
-    Parser * parser;
-    Program * program;
-    Statement stmt;
-    LetStatement * let;
 
     printf("Testing LET statements\n");
 
@@ -184,25 +177,20 @@ char * test_let_statements() {
 }
 
 char * test_return_statements() {
-    int i;
-    int tc = 5;
-    int fail = 0;
-
+    int i, tc = 5, fail = 0;
+    Lexer * lexer;
+    Parser * parser;
+    Program * program;
+    Statement stmt;
+    ReturnStatement * ret;
     struct {
-        char * input;
-        char * type;
+        char * input, * type;
     } t[5] = {
         {"return x;", IDENT},
         {"return 5 + 5;", INFIX},
         {"return 5;", INT},
         {"return if (x) { } else { };", IF},
         {"return !2;", PREFIX}};
-
-    Lexer * lexer;
-    Parser * parser;
-    Program * program;
-    Statement stmt;
-    ReturnStatement * ret;
 
     printf("Testing RETURN statements\n");
 
@@ -233,26 +221,21 @@ char * test_return_statements() {
 }
 
 char * test_identifier_expression() {
-    int i;
-    int tc = 5;
-    int fail = 0;
-
-    struct {
-        char * input;
-        char * expected;
-    } t[5] = {
-        {"zz_zz;", "zz_zz"},
-        {"a ;", "a"},
-        {"bbb ;", "bbb"},
-        {"meme;;", "meme"},
-        {"foobar;", "foobar"}};
-
+    int i, tc = 5, fail = 0;
     Lexer * lexer;
     Parser * parser;
     Program * program;
     Statement stmt;
     ExpressionStatement * es;
     Identifier * id;
+    struct {
+        char * input, * expected;
+    } t[5] = {
+        {"zz_zz;", "zz_zz"},
+        {"a ;", "a"},
+        {"bbb ;", "bbb"},
+        {"meme;;", "meme"},
+        {"foobar;", "foobar"}};
 
     printf("Testing IDENTIFIER expressions\n");
 
@@ -284,10 +267,13 @@ char * test_identifier_expression() {
 }
 
 char * test_integer_literal_expression() {
-    int i;
-    int tc = 5;
-    int fail = 0;
-
+    int i, tc = 5, fail = 0;
+    Lexer * lexer;
+    Parser * parser;
+    Program * program;
+    Statement stmt;
+    ExpressionStatement * es;
+    IntegerLiteral * il;
     struct {
         char * input;
         int value;
@@ -297,13 +283,6 @@ char * test_integer_literal_expression() {
         {"2;", 2},
         {"0;", 0},
         {"100000;", 100000}};
-
-    Lexer * lexer;
-    Parser * parser;
-    Program * program;
-    Statement stmt;
-    ExpressionStatement * es;
-    IntegerLiteral * il;
 
     printf("Testing INTEGER expressions\n");
 
@@ -335,27 +314,21 @@ char * test_integer_literal_expression() {
 }
 
 char * test_parsing_prefix_expressions() {
-    int i;
-    int tc = 5;
-    int fail = 0;
-
-    struct {
-        char * input;
-        char * operator;
-        char * expression_type;
-    } tests[5] = {
-        {"!5", "!", INT},
-        {"-15", "-", INT},
-        {"!fn(x) { } ", "!", FUNCTION},
-        {"-var", "-", IDENT},
-        {"!if(a) { } else { }", "!", IF}};
-
+    int i, tc = 5, fail = 0;
     Lexer * lexer;
     Parser * parser;
     Program * program;
     Statement stmt;
     ExpressionStatement * es;
     PrefixExpression * pex;
+    struct {
+        char * input, * operator, * expression_type;
+    } tests[5] = {
+        {"!5", "!", INT},
+        {"-15", "-", INT},
+        {"!fn(x) { } ", "!", FUNCTION},
+        {"-var", "-", IDENT},
+        {"!if(a) { } else { }", "!", IF}};
 
     printf("Testing PREFIX expressions\n");
 
@@ -389,22 +362,7 @@ char * test_parsing_prefix_expressions() {
 }
 
 char * test_parsing_infix_expressions() {
-    int i;
-    int tc = 5;
-    int fail = 0;
-
-    struct {
-        char * input;
-        int left_val;
-        char * operator;
-        int right_val;
-    } t[5] = {
-        {"100 + 1;", 100, "+", 1},
-        {"0 - 1;", 0, "-", 1},
-        {"2 * 23;", 2, "*", 23},
-        {"7 / 51;", 7, "/", 51},
-        {"2 != 3;", 2, "!=", 3}};
-
+    int i, tc = 5, fail = 0;
     Lexer * lexer;
     Parser * parser;
     Program * program;
@@ -413,6 +371,15 @@ char * test_parsing_infix_expressions() {
     InfixExpression * iex;
     IntegerLiteral * right_il;
     IntegerLiteral * left_il;
+    struct {
+        char * input, * operator;
+        int left_val, right_val;
+    } t[5] = {
+        {"100 + 1;", "+", 100, 1},
+        {"0 - 1;", "-", 0, 1},
+        {"2 * 23;", "*", 2, 23},
+        {"7 / 51;", "/", 7, 51},
+        {"2 != 3;", "!=", 2, 3}};
 
     printf("Testing INFIX expressions\n");
 
@@ -453,7 +420,13 @@ char * test_parsing_function_literal_expressions() {
     int i;
     int tc = 5;
     int fail = 0;
-
+    Lexer * lexer;
+    Parser * parser;
+    Program * program;
+    Statement stmt;
+    ExpressionStatement * es;
+    FunctionLiteral * fl;
+    BlockStatement * bs;
     struct {
         char * input;
         int param_count;
@@ -464,14 +437,6 @@ char * test_parsing_function_literal_expressions() {
         {"fn(z) { !5 }", 1, 1},
         {"fn(a) { }", 1, 0},
         {"fn() { }", 0, 0}};
-
-    Lexer * lexer;
-    Parser * parser;
-    Program * program;
-    Statement stmt;
-    ExpressionStatement * es;
-    FunctionLiteral * fl;
-    BlockStatement * bs;
 
     printf("Testing FUNCTION LITERAL expressions\n");
 
@@ -506,28 +471,22 @@ char * test_parsing_function_literal_expressions() {
 }
 
 char * test_parsing_call_expressions() {
-    int i;
-    int tc = 5;
-    int fail = 0;
-
-    struct {
-        char * input;
-        char * function_type;
-        int ac;
-        char * arg_type;
-    } t[5] = {
-        {"t(if(a > u) { a } else { return u; }, 2, 5)", IDENT, 3, IF},
-        {"t(!asd)", IDENT, 1, PREFIX},
-        {"func(false, 2, false)", IDENT, 3, FALSE},
-        {"fn(1, 2, 3) { } ( 3 )", FUNCTION, 1, INT},
-        {"fn(z) { z } (var)", FUNCTION, 1, IDENT}};
-
+    int i, tc = 5, fail = 0;
     Lexer * lexer;
     Parser * parser;
     Program * program;
     Statement stmt;
     ExpressionStatement * es;
     CallExpression * cex;
+    struct {
+        char * input, * function_type, * arg_type;
+        int ac;
+    } t[5] = {
+        {"t(if(a > u) { a } else { return u; }, 2, 5)", IDENT, IF, 3},
+        {"t(!asd)", IDENT, PREFIX, 1},
+        {"func(false, 2, false)", IDENT, FALSE, 3},
+        {"fn(1, 2, 3) { } ( 3 )", FUNCTION, INT, 1},
+        {"fn(z) { z } (var)", FUNCTION, IDENT, 1}};
 
     printf("Testing CALL expressions\n");
 
@@ -545,6 +504,7 @@ char * test_parsing_call_expressions() {
         }
 
         printf("[%i] %s\n", i, print_call_expression(cex));
+
         if(check_parser_errors(parser)) {
             fail++;
             continue;
@@ -565,22 +525,7 @@ char * test_parsing_call_expressions() {
 }
 
 char * test_parsing_grouped_expressions() {
-    int i;
-    int tc = 5;
-    int fail = 0;
-
-    struct {
-        char * input;
-        char * group_type;
-        char * lt;
-        char * rt;
-    } t[5] = {
-        {"1 + (2 + 3) + var", INFIX, INFIX, IDENT},
-        {"(5 + 5) * 2", INFIX, INFIX, INT},
-        {"2 / (5 + 5)", INFIX, INT, INFIX},
-        {"-(5 + 5)", PREFIX, MINUS, INFIX},
-        {"!(true == false)", PREFIX, BANG, INFIX}};
-
+    int i, tc = 5, fail = 0;
     Lexer * lexer;
     Parser * parser;
     Program * program;
@@ -588,6 +533,14 @@ char * test_parsing_grouped_expressions() {
     ExpressionStatement * es;
     PrefixExpression * pex;
     InfixExpression * iex;
+    struct {
+        char * input, * group_type, * lt, * rt;
+    } t[5] = {
+        {"1 + (2 + 3) + var", INFIX, INFIX, IDENT},
+        {"(5 + 5) * 2", INFIX, INFIX, INT},
+        {"2 / (5 + 5)", INFIX, INT, INFIX},
+        {"-(5 + 5)", PREFIX, MINUS, INFIX},
+        {"!(true == false)", PREFIX, BANG, INFIX}};
 
     printf("Testing GROUPED expressions\n");
 
@@ -628,15 +581,18 @@ char * test_parsing_grouped_expressions() {
 }
 
 char * test_parsing_if_expressions() {
-    int i;
-    int tc = 5;
-    int fail = 0;
-
+    int i, tc = 5, fail = 0;
+    char * cons_type, * alt_type;
+    Lexer * lexer;
+    Parser * parser;
+    Program * program;
+    Statement stmt;
+    ExpressionStatement * es;
+    IfExpression * ifx;
+    BlockStatement * cons;
+    BlockStatement * alt;
     struct {
-        char * input;
-        char * condition_type;;
-        char * cons_type;
-        char * alt_type;
+        char * input, * condition_type, * cons_type, * alt_type;
     } t[5] = {
         {"if (x) { let a = 3; } else { return 1; }",
             IDENT, INT, INT},
@@ -648,18 +604,6 @@ char * test_parsing_if_expressions() {
             IDENT, IDENT, IF},
         {"if (a > 3) { !2 } else { false }",
             INFIX, PREFIX, FALSE}};
-
-    Lexer * lexer;
-    Parser * parser;
-    Program * program;
-    Statement stmt;
-    ExpressionStatement * es;
-    IfExpression * ifx;
-    BlockStatement * cons;
-    BlockStatement * alt;
-
-    char * cons_type;
-    char * alt_type;
 
     printf("Testing IF expressions\n");
 
