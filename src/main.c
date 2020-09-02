@@ -15,16 +15,20 @@
 #include "header/tokens.h"
 #include "header/types.h"
 #include "header/functions.h"
+#include "lib/sortedlist.c"
+#include "lib/hashmap.c"
 #include "test/parsing.c"
+#include "core/free.c"
 #include "core/lexer.c"
 #include "core/parser.c"
 #include "core/print.c"
-#include "core/free.c"
 
 int main(int argc, char * argv[])
 {
     if(strcmp(argv[1], "prefix") == 0) {
         test_parsing_prefix_expressions();
+    } else if(strcmp(argv[1], "hash") == 0) {
+        hash_map_test();
     } else if(strcmp(argv[1], "fliteral") == 0) {
         test_parsing_function_literal_expressions();
     } else if(strcmp(argv[1], "call") == 0) {

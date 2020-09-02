@@ -24,13 +24,13 @@ typedef struct Statement_ {
     void * st;
 } Statement;
 
-typedef struct BlockStatement_ {
+typedef struct {
     Token token;
     Statement * statements;
     int sc;
 } BlockStatement;
 
-typedef struct IfExpression {
+typedef struct {
     Token token;
     Token else_token;
     void * condition;
@@ -39,7 +39,7 @@ typedef struct IfExpression {
     BlockStatement * alternative;
 } IfExpression;
 
-typedef struct InfixExpression_ {
+typedef struct {
     Token token;
     char * operator;
     char * left_expression_type;
@@ -48,7 +48,7 @@ typedef struct InfixExpression_ {
     void * right;
 } InfixExpression;
 
-typedef struct PrefixExpression_ {
+typedef struct {
     Token token;
     char * operator;
     char * expression_type;
@@ -65,25 +65,25 @@ typedef struct IntegerLiteral_ {
     int value;
 } IntegerLiteral;
 
-typedef struct Identifier_ {
+typedef struct {
     Token token;
     char * value;
 } Identifier;
 
-typedef struct FunctionLiteral_ {
+typedef struct {
     Token token;
     Identifier ** parameters;
     BlockStatement * body;
     int pc;
 } FunctionLiteral;
 
-typedef struct ExpressionStatement_ {
+typedef struct {
     Token token;
     char * expression_type;
     void * expression;
 } ExpressionStatement;
 
-typedef struct CallExpression_ {
+typedef struct {
     Token token;
     char * function_type;
     void * function;
@@ -91,25 +91,25 @@ typedef struct CallExpression_ {
     int ac;
 } CallExpression;
 
-typedef struct LetStatement_ {
+typedef struct {
     Token token;
     Identifier name;
     char * type;
     void * value;
 } LetStatement;
 
-typedef struct ReturnStatement_ {
+typedef struct {
     Token token;
     char * type;
     void * value;
 } ReturnStatement;
 
-typedef struct Program_ {
+typedef struct {
     Statement * statements;
     int sc;
 } Program;
 
-typedef struct Parser_ {
+typedef struct {
     Lexer * lexer;
     Token current_token;
     Token peek_token;

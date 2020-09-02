@@ -28,8 +28,7 @@ void read_char(Lexer * lexer) {
 }
 
 int str_to_int(char * s) {
-    int r = 0;
-    int p = 1;
+    int r = 0, p = 1;
 
     while(* s == '-' || * s == '+') {
         if(* s++ == '-') {
@@ -82,19 +81,11 @@ bool is_digit(char ch) {
 char * read_identifier(Lexer * lexer) {
     int position = lexer->pos;
 
-    while(is_letter(lexer->ch)) {
+    while(is_letter(lexer->ch) || is_digit(lexer->ch)) {
         read_char(lexer);
     }
 
-    char * sub = get_substr(position, lexer->pos, lexer->input);
-
-    /*if(strcmp(sub, "if") == 0) {
-        return "if";
-    } else if(strcmp(sub, "else") == 0) {
-        return "else";
-    }*/
-
-    return sub;
+    return get_substr(position, lexer->pos, lexer->input);
 }
 
 char * read_number(Lexer * lexer) {

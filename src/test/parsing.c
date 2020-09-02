@@ -3,7 +3,7 @@
  * interpreter
  * github.com/01mu/interpreter
  *
- * test_parsing.c
+ * parsing.c
  *
  */
 
@@ -417,9 +417,7 @@ char * test_parsing_infix_expressions() {
 }
 
 char * test_parsing_function_literal_expressions() {
-    int i;
-    int tc = 5;
-    int fail = 0;
+    int i, tc = 5, fail = 0;
     Lexer * lexer;
     Parser * parser;
     Program * program;
@@ -429,8 +427,7 @@ char * test_parsing_function_literal_expressions() {
     BlockStatement * bs;
     struct {
         char * input;
-        int param_count;
-        int statement_count;
+        int param_count, statement_count;
     } t[5] = {
         {"fn(a) { let a = 4; }", 1, 1},
         {"fn(a, b) { x a }", 2, 2},

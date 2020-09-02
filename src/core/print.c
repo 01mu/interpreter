@@ -40,7 +40,6 @@ char * print_call_expression(CallExpression * ce) {
     fin[0] = '\0';
     args[0] = '\0';
 
-
     for(i = 0; i < ce->ac; i++) {
         es = ce->arguments[i];
         exp = get_print_expression(es->expression_type, es->expression);
@@ -258,6 +257,30 @@ char * print_program(Program * program) {
     return final;
 }
 
+char * read_file(char * file) {
+   char * buffer = NULL;
+   int string_size, read_size;
+   FILE * handler = fopen(file, "r");
+
+   if(handler) {
+       fseek(handler, 0, SEEK_END);
+       string_size = ftell(handler);
+       rewind(handler);
+       buffer = (char *) malloc(sizeof(char) * (string_size + 1));
+       read_size = fread(buffer, sizeof(char), string_size, handler);
+       buffer[string_size] = '\0';
+
+       if(string_size != read_size) {
+           free(buffer);
+           buffer = NULL;
+       }
+
+       fclose(handler);
+    }
+
+    return buffer;
+}
+
 void test_print_program() {
     int i;
     char * print;
@@ -268,6 +291,8 @@ void test_print_program() {
         fn(x, y, z) { z }(asd) \
         asd(a, b)(a, b) \
         !!!4 \
+        asdad12 \
+        12121asd \
         a + b / 4 \
         -(1 + 2) \
         let x = 1 * 2 * 3; \
@@ -280,8 +305,9 @@ void test_print_program() {
         !!asd \
         let a = asd(12 + 3, asd, 3); \
         return 500;";
+    char * file = read_file("input");
 
-    Lexer * lexer = new_lexer(input);
+    Lexer * lexer = new_lexer(file);
     Parser * parser = new_parser(lexer);
     Program * program = parse_program(parser);
 
@@ -289,5 +315,6 @@ void test_print_program() {
     print = print_program(program);
     printf("%s", print);
     free(print);
+    free(file);
     free_program(lexer, parser, program);
 }
