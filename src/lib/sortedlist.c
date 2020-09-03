@@ -20,7 +20,7 @@ SortedList * sorted_list_new(char * data_type, void * data, char * key);
 void sorted_list_insert(SortedList ** r, char * dt, void * d, char * key);
 bool sorted_list_remove(SortedList ** r, char * key);
 SortedList * sorted_list_find(SortedList * r, char * key);
-char * sorted_list_print(SortedList * sl);
+String * sorted_list_print(SortedList * sl);
 void sorted_list_free(SortedList * sl);
 
 SortedList * sorted_list_new(char * data_type, void * data, char * key) {
@@ -101,23 +101,25 @@ SortedList * sorted_list_find(SortedList * r, char * key) {
     return NULL;
 }
 
-char * sorted_list_print(SortedList * sl) {
-    SortedList * current = sl, * temp;
-    char * key = current->key, * final = malloc(sizeof(char));
-    size_t sl_sz = 0;
+String * sorted_list_print(SortedList * sl) {
+    SortedList * current = sl;
+    String * str = string_new(1);
 
-    final[0] = '\0';
+    while(current != NULL && current->key != NULL) {
+        string_cat(str, current->key, false);
+        string_cat(str, " -> ", false);
 
-    while(key != NULL && current != NULL) {
-        key = current->key;
-        sl_sz += strlen(key) + 2;
-        final = realloc(final, sizeof(char) * sl_sz);
-        strcat(final, key);
-        strcat(final, " ");
+        if(current->data_type == NULL) {
+            string_cat(str, " ", false);
+        } else {
+            string_cat(str, current->data_type, false);
+        }
+
+        string_cat(str, ", ", false);
         current = current->next;
     }
 
-    return final;
+    return str;
 }
 
 void sorted_list_free(SortedList * sl) {

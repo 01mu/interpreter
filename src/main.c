@@ -15,6 +15,7 @@
 #include "header/tokens.h"
 #include "header/types.h"
 #include "header/functions.h"
+#include "lib/string.c"
 #include "lib/sortedlist.c"
 #include "lib/hashmap.c"
 #include "test/parsing.c"

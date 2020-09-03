@@ -17,7 +17,7 @@ void hash_map_insert(HashMap * hm, char * key, char * data_type, void * data);
 void hash_map_remove(HashMap * hm, char * key);
 SortedList * hash_map_find(HashMap * hm, char * key);
 int hash_map_hash(HashMap * hm, char * key);
-char * hash_map_print(HashMap * hm);
+String * hash_map_print(HashMap * hm);
 void hash_map_free(HashMap * hm);
 void hash_map_test();
 
@@ -84,28 +84,19 @@ int hash_map_hash(HashMap * hm, char * key) {
     return hash_val;
 }
 
-char * hash_map_print(HashMap * hm) {
+String * hash_map_print(HashMap * hm) {
     int i;
-    char * sl = NULL, * final = malloc(sizeof(char));
-    size_t hm_sz = 0;
-
-    final[0] = '\0';
+    String * str = string_new(1);
 
     for(i = 0; i < hm->size; i++) {
         if(hm->array[i] != NULL) {
-            sl = sorted_list_print(hm->array[i]);
-            hm_sz += strlen(sl);
-            final = realloc(final, sizeof(char) * hm_sz);
-            strcat(final, sl);
-            free(sl);
+            string_cat(str, "[ ", false);
+            string_append(str, sorted_list_print(hm->array[i]));
+            string_cat(str, " ]\n", false);
         }
-
-        hm_sz += 2;
-        final = realloc(final, sizeof(char) * hm_sz);
-        strcat(final, "\n");
     }
 
-    return final;
+    return str;
 }
 
 void hash_map_free(HashMap * hm) {
@@ -123,17 +114,16 @@ void hash_map_free(HashMap * hm) {
 
 void hash_map_test() {
     HashMap * hm = hash_map_new(50);
-    char * hmp;
+    String * hmp;
 
     hash_map_insert(hm, "f", NULL, NULL);
     hash_map_insert(hm, "f", NULL, NULL);
     hash_map_insert(hm, "a", NULL, NULL);
     hash_map_insert(hm, "h", NULL, NULL);
-    hash_map_insert(hm, "z", NULL, NULL);
+    hash_map_insert(hm, "z", "test", NULL);
 
     hmp = hash_map_print(hm);
-
-    printf("%s", hmp);
+    printf("%s", hmp->string);
     hash_map_free(hm);
-    free(hmp);
+    string_free(hmp);
 }
