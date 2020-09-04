@@ -18,11 +18,13 @@
 #include "lib/string.c"
 #include "lib/sortedlist.c"
 #include "lib/hashmap.c"
-#include "test/parsing.c"
 #include "core/free.c"
 #include "core/lexer.c"
 #include "core/parser.c"
+#include "core/eval.c"
 #include "core/print.c"
+#include "test/parsing.c"
+#include "test/eval.c"
 
 int main(int argc, char * argv[])
 {
@@ -52,7 +54,9 @@ int main(int argc, char * argv[])
         test_let_statements();
     } else if(strcmp(argv[1], "print") == 0) {
         test_print_program();
-    } else if(strcmp(argv[1], "test") == 0) {
+    } else if(strcmp(argv[1], "test-eval") == 0) {
+        test_integer_object();
+    } else if(strcmp(argv[1], "test-parse") == 0) {
         test_parse_all();
     } else if(strcmp(argv[1], "repl") == 0) {
         while(1) {

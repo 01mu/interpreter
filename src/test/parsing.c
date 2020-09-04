@@ -3,7 +3,7 @@
  * interpreter
  * github.com/01mu/interpreter
  *
- * parsing.c
+ * test/parsing.c
  *
  */
 
@@ -66,7 +66,7 @@ bool test_int_cmp(char * b, int g, int ex, int i, int * fail) {
     return true;
 }
 
-char * print_parse_test_result(char * b, int f, int tc) {
+char * print_test_result(char * b, int f, int tc) {
     char * z, * color = ANSI_COLOR_RED;
 
     z = malloc(sizeof(char) * (45 + strlen(b)));
@@ -129,7 +129,7 @@ char * test_next_token() {
         token = lexer_next_token(lexer);
     }
 
-    return print_parse_test_result("NEXT TOKEN", tc - fail, tc);
+    return print_test_result("NEXT TOKEN", tc - fail, tc);
 }
 
 char * test_let_statements() {
@@ -173,7 +173,7 @@ char * test_let_statements() {
             t[i].type, let->type, i, &fail);
     }
 
-    return print_parse_test_result("LET", tc - fail, tc);
+    return print_test_result("LET", tc - fail, tc);
 }
 
 char * test_return_statements() {
@@ -217,7 +217,7 @@ char * test_return_statements() {
             t[i].type, ret->type, i, &fail);
     }
 
-    return print_parse_test_result("RETURN", tc - fail, tc);
+    return print_test_result("RETURN", tc - fail, tc);
 }
 
 char * test_identifier_expression() {
@@ -263,7 +263,7 @@ char * test_identifier_expression() {
             t[i].expected, id->value, i, &fail);
     }
 
-    return print_parse_test_result("IDENTIFIER", tc - fail, tc);
+    return print_test_result("IDENTIFIER", tc - fail, tc);
 }
 
 char * test_integer_literal_expression() {
@@ -310,7 +310,7 @@ char * test_integer_literal_expression() {
             t[i].value, il->value, i, &fail);
     }
 
-    return print_parse_test_result("INTEGER", tc - fail, tc);
+    return print_test_result("INTEGER", tc - fail, tc);
 }
 
 char * test_parsing_prefix_expressions() {
@@ -358,7 +358,7 @@ char * test_parsing_prefix_expressions() {
             tests[i].expression_type, pex->expression_type, i, &fail);
     }
 
-    return print_parse_test_result("PREFIX", tc - fail, tc);
+    return print_test_result("PREFIX", tc - fail, tc);
 }
 
 char * test_parsing_infix_expressions() {
@@ -413,7 +413,7 @@ char * test_parsing_infix_expressions() {
            t[i].right_val, right_il->value, i, &fail);
     }
 
-    return print_parse_test_result("INFIX", tc - fail, tc);
+    return print_test_result("INFIX", tc - fail, tc);
 }
 
 char * test_parsing_function_literal_expressions() {
@@ -464,7 +464,7 @@ char * test_parsing_function_literal_expressions() {
             t[i].statement_count, bs->sc, i, &fail);
     }
 
-    return print_parse_test_result("FUNCTION LITERAL", tc - fail, tc);
+    return print_test_result("FUNCTION LITERAL", tc - fail, tc);
 }
 
 char * test_parsing_call_expressions() {
@@ -518,7 +518,7 @@ char * test_parsing_call_expressions() {
             t[i].arg_type, es->expression_type, i, &fail);
     }
 
-    return print_parse_test_result("CALL", tc - fail, tc);
+    return print_test_result("CALL", tc - fail, tc);
 }
 
 char * test_parsing_grouped_expressions() {
@@ -574,7 +574,7 @@ char * test_parsing_grouped_expressions() {
         }
     }
 
-    return print_parse_test_result("GROUPED", tc - fail, tc);
+    return print_test_result("GROUPED", tc - fail, tc);
 }
 
 char * test_parsing_if_expressions() {
@@ -639,5 +639,5 @@ char * test_parsing_if_expressions() {
             t[i].alt_type, alt_type, i, &fail);
     }
 
-    return print_parse_test_result("IF", tc - fail, tc);
+    return print_test_result("IF", tc - fail, tc);
 }

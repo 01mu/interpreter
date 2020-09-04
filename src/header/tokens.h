@@ -3,7 +3,7 @@
  * interpreter
  * github.com/01mu/interpreter
  *
- * tokens.h
+ * header/tokens.h
  *
  */
 

@@ -3,7 +3,7 @@
  * interpreter
  * github.com/01mu/interpreter
  *
- * print.c
+ * core/print.c
  *
  */
 
@@ -163,13 +163,13 @@ char * print_integer_literal(IntegerLiteral * il) {
 char * get_print_expression(char * type, void * expr) {
     if(strcmp(type, INT) == 0) {
         return print_integer_literal((IntegerLiteral *) expr);
-    } else if (strcmp(type, IDENT) == 0) {
+    } else if(strcmp(type, IDENT) == 0) {
         return print_identifier_value((Identifier *) expr);
-    } else if (strcmp(type, PREFIX) == 0) {
+    } else if(strcmp(type, PREFIX) == 0) {
         return print_prefix_expression((PrefixExpression *) expr);
-    } else if (strcmp(type, INFIX) == 0) {
+    } else if(strcmp(type, INFIX) == 0) {
         return print_infix_expression((InfixExpression *) expr);
-    } else if (strcmp(type, TRUE) == 0 || strcmp(type, FALSE) == 0) {
+    } else if(strcmp(type, TRUE) == 0 || strcmp(type, FALSE) == 0) {
         return print_boolean((Boolean *) expr);
     } else if(strcmp(type, IF) == 0) {
         return print_if_expression((IfExpression *) expr);
@@ -292,7 +292,7 @@ void test_print_program() {
         asd(a, b)(a, b) \
         !!!4 \
         asdad12 \
-        12121asd \
+        -4 \
         a + b / 4 \
         -(1 + 2) \
         let x = 1 * 2 * 3; \
@@ -305,14 +305,16 @@ void test_print_program() {
         !!asd \
         let a = asd(12 + 3, asd, 3); \
         return 500;";
+
     char * file = read_file("input");
 
-    Lexer * lexer = new_lexer(file);
+    Lexer * lexer = new_lexer(input);
     Parser * parser = new_parser(lexer);
     Program * program = parse_program(parser);
 
     printf("%i statements\n", program->sc);
     print = print_program(program);
+    //eval_statement(program->statements[0]);
     printf("%s", print);
     free(print);
     free(file);

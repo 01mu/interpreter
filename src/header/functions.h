@@ -3,7 +3,7 @@
  * interpreter
  * github.com/01mu/interpreter
  *
- * functions.h
+ * header/functions.h
  *
  */
 
@@ -83,7 +83,7 @@ void test_parse_all();
 char * test_get_statement_type(char * type, void * expr);
 bool test_string_cmp(char * b, char * g, char * ex, int i, int * fail);
 bool test_int_cmp(char * b, int g, int ex, int i, int * fail);
-char * print_parse_test_result(char * b, int fail, int tc);
+char * print_test_result(char * b, int fail, int tc);
 char * test_next_token();
 char * test_let_statements();
 char * test_return_statements();

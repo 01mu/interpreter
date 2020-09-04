@@ -3,7 +3,7 @@
  * interpreter
  * github.com/01mu/interpreter
  *
- * free.c
+ * core/free.c
  *
  */
 

@@ -116,6 +116,7 @@ String * sorted_list_print(SortedList * sl) {
         }
 
         string_cat(str, ", ", false);
+
         current = current->next;
     }
 
