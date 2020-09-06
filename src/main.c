@@ -28,6 +28,20 @@
 
 int main(int argc, char * argv[])
 {
+    if(!false_bool) {
+        false_bool = malloc(sizeof(Object));
+        false_bool->type = FALSE;
+        false_bool->value = malloc(sizeof(BooleanObject));
+        ((BooleanObject *) false_bool->value)->value = false;
+    }
+
+    if(!true_bool) {
+        true_bool = malloc(sizeof(Object));
+        true_bool->type = TRUE;
+        true_bool->value = malloc(sizeof(BooleanObject));
+        ((BooleanObject *) true_bool->value)->value = true;
+    }
+
     if(strcmp(argv[1], "prefix") == 0) {
         test_parsing_prefix_expressions();
     } else if(strcmp(argv[1], "hash") == 0) {
@@ -55,7 +69,7 @@ int main(int argc, char * argv[])
     } else if(strcmp(argv[1], "print") == 0) {
         test_print_program();
     } else if(strcmp(argv[1], "test-eval") == 0) {
-        test_integer_object();
+        test_eval_all();
     } else if(strcmp(argv[1], "test-parse") == 0) {
         test_parse_all();
     } else if(strcmp(argv[1], "repl") == 0) {

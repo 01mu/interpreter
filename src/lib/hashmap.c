@@ -3,7 +3,7 @@
  * interpreter
  * github.com/01mu/interpreter
  *
- * hashmap.c
+ * lib/hashmap.c
  *
  */
 

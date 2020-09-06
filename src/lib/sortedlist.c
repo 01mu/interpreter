@@ -3,7 +3,7 @@
  * interpreter
  * github.com/01mu/interpreter
  *
- * sortedlist.c
+ * lib/sortedlist.c
  *
  */
 

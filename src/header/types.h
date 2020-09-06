@@ -55,12 +55,12 @@ typedef struct {
     void * right;
 } PrefixExpression;
 
-typedef struct Boolean_ {
+typedef struct {
     Token token;
     bool value;
 } Boolean;
 
-typedef struct IntegerLiteral_ {
+typedef struct {
     Token token;
     int value;
 } IntegerLiteral;
