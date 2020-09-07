@@ -7,33 +7,57 @@
  *
  */
 
-void test_parse_all() {
-    int i, c = 11;
+void test_parse_all(char * option) {
+    int i, c;
 
-    char * s[11] = {
-        test_next_token(),
-        test_let_statements(),
-        test_return_statements(),
-        test_identifier_expression(),
-        test_integer_literal_expression(),
-        test_parsing_prefix_expressions(),
-        test_parsing_infix_expressions(),
-        test_parsing_function_literal_expressions(),
-        test_parsing_call_expressions(),
-        test_parsing_grouped_expressions(),
-        test_parsing_if_expressions()};
+    if(strcmp(option, "prefix") == 0) {
+        printf("%s", test_parsing_prefix_expressions());
+    } else if(strcmp(option, "fliteral") == 0) {
+        printf("%s", test_parsing_function_literal_expressions());
+    } else if(strcmp(option, "call") == 0) {
+        printf("%s", test_parsing_call_expressions());
+    } else if(strcmp(option, "grouped") == 0) {
+        printf("%s", test_parsing_grouped_expressions());
+    } else if(strcmp(option, "if") == 0) {
+        printf("%s", test_parsing_if_expressions());
+    } else if(strcmp(option, "infix") == 0) {
+        printf("%s", test_parsing_infix_expressions());
+    } else if(strcmp(option, "integer") == 0) {
+        printf("%s", test_integer_literal_expression());
+    } else if(strcmp(option, "identifier") == 0) {
+        printf("%s", test_identifier_expression());
+    } else if(strcmp(option, "return") == 0) {
+        printf("%s", test_return_statements());
+    } else if(strcmp(option, "next") == 0) {
+        printf("%s", test_next_token());
+    } else if(strcmp(option, "let") == 0) {
+        printf("%s", test_let_statements());
+    } else {
+        c = 11;
 
-    printf("\n");
+        char * s[11] = {
+            test_next_token(),
+            test_let_statements(),
+            test_return_statements(),
+            test_identifier_expression(),
+            test_integer_literal_expression(),
+            test_parsing_prefix_expressions(),
+            test_parsing_infix_expressions(),
+            test_parsing_function_literal_expressions(),
+            test_parsing_call_expressions(),
+            test_parsing_grouped_expressions(),
+            test_parsing_if_expressions()};
 
-    for(int i = 0; i < c; i++) {
-        if(i > 0) {
-            free(s[i-1]);
+        printf("\n");
+
+        for(i = 0; i < c; i++) {
+            if(i > 0) {
+                free(s[i-1]);
+            }
+
+            printf("%s", s[i]);
         }
-
-        printf("%s", s[i]);
     }
-
-    free(s[c - 1]);
 }
 
 char * test_get_statement_type(char * type, void * expr) {

@@ -79,7 +79,7 @@ void free_return_statement(ReturnStatement * ret);
 void free_statement(Statement stmt);
 void free_program(Lexer * lexer, Parser * parser, Program * program);
 
-void test_parse_all();
+void test_parse_all(char * option);
 char * test_get_statement_type(char * type, void * expr);
 bool test_string_cmp(char * b, char * g, char * ex, int i, int * fail);
 bool test_int_cmp(char * b, int g, int ex, int i, int * fail);
