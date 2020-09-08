@@ -51,10 +51,6 @@ void test_parse_all(char * option) {
         printf("\n");
 
         for(i = 0; i < c; i++) {
-            if(i > 0) {
-                free(s[i-1]);
-            }
-
             printf("%s", s[i]);
         }
     }

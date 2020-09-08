@@ -10,6 +10,7 @@
 Object * get_eval_object(char * input);
 void test_eval_all(char * option);
 char * test_prefix_expression_object();
+char * test_error_object();
 char * test_return_object();
 char * test_integer_object();
 char * test_boolean_object();
@@ -23,10 +24,13 @@ void test_eval_all(char * option) {
         printf("%s", test_boolean_object());
     } else if(strcmp(option, "return") == 0) {
         printf("%s", test_return_object());
+    } else if(strcmp(option, "error") == 0) {
+        printf("%s", test_error_object());
     } else {
-        c = 2;
+        c = 4;
 
-        char * s[3] = {
+        char * s[4] = {
+            test_error_object(),
             test_return_object(),
             test_integer_object(),
             test_boolean_object()};
@@ -34,10 +38,6 @@ void test_eval_all(char * option) {
         printf("\n");
 
         for(i = 0; i < c; i++) {
-            if(i > 0) {
-                free(s[i-1]);
-            }
-
             printf("%s", s[i]);
         }
     }
@@ -47,9 +47,37 @@ Object * get_eval_object(char * input) {
     Lexer * lexer = new_lexer(input);
     Parser * parser = new_parser(lexer);
     Program * program = parse_program(parser);
-
     return eval_statement(program->statements[0]);
 }
+
+char * test_error_object() {
+    int i, tc = 3, fail = 0;
+    Statement stmt;
+    Object * obj;
+    ErrorObject * eobj;
+    struct {
+        char * input;
+    } t[3] = {
+        {"true + true;"},
+        {"true + 5;"},
+        {"-false;"}};
+
+    printf("Testing ERROR object\n");
+
+    for(i = 0; i < tc; i++) {
+        obj = get_eval_object(t[i].input);
+        eobj = obj->value;
+
+        printf("[%i] %s: %s", i, t[i].input, inspect_error_object(eobj));
+
+        if(!test_string_cmp("[Error: %i] Expected object type %s got %s\n",
+            ERROR, obj->type, i, &fail)) {
+        }
+    }
+
+    return print_test_result("ERROR", tc - fail, tc);
+}
+
 
 char * test_return_object() {
     int i, tc = 4, fail = 0;
@@ -59,21 +87,23 @@ char * test_return_object() {
         char * input, * type;
     } t[4] = {
         {"return 33;", INT},
-        {"return asd;", IDENT},
-        {"if(true) { return 5; } else { return var; } ", INT},
-        {"return !5;", PREFIX}};
+        {"return asd;", ""},
+        {"if(1) { if(1 > 2) {} else { return 5;} } else { return var; }", INT},
+        {"return !true;", FALSE}};
 
-    printf("Testing BOOLEAN object\n");
+    printf("Testing RETURN object\n");
 
     for(i = 0; i < tc; i++) {
         obj = get_eval_object(t[i].input);
         ret = (Object *) obj->value;
 
+        printf("[%i] %s: %s\n", i, t[i].input, t[i].type);
+
         test_string_cmp("[Error: %i] Expected object type %s got %s\n",
             t[i].type, ret->type, i, &fail);
     }
 
-    return print_test_result("BOOLEAN", tc - fail, tc);
+    return print_test_result("RETURN", tc - fail, tc);
 }
 
 char * test_boolean_object() {
