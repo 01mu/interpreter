@@ -47,7 +47,8 @@ Object * get_eval_object(char * input) {
     Lexer * lexer = new_lexer(input);
     Parser * parser = new_parser(lexer);
     Program * program = parse_program(parser);
-    return eval_statement(program->statements[0]);
+    Env * env = new_env();
+    return eval_statement(program->statements[0], env);
 }
 
 char * test_error_object() {
@@ -115,11 +116,11 @@ char * test_boolean_object() {
         char * input, * type;
         bool value;
     } t[5] = {
-        {"!(true == true)", FALSE, false},
-        {"false", FALSE, false},
-        {"!true", FALSE, false},
-        {"!!true", TRUE, true},
-        {"!!!false", TRUE, true}};
+        {"!(true == true);", FALSE, false},
+        {"false;", FALSE, false},
+        {"!true;", FALSE, false},
+        {"!!true;", TRUE, true},
+        {"!!!false;", TRUE, true}};
 
     printf("Testing BOOLEAN object\n");
 
@@ -151,12 +152,12 @@ char * test_integer_object() {
         char * input;
         int value;
     } t[6] = {
-        {"3 * (3 * 3) + 10", 37},
-        {"!1", false},
-        {"!!0", true},
-        {"-10", -10},
-        {"-5", -5},
-        {"5", 5}};
+        {"3 * (3 * 3) + 10;", 37},
+        {"!1;", false},
+        {"!!0;", true},
+        {"-10;", -10},
+        {"-5;", -5},
+        {"5;", 5}};
 
     printf("Testing INTEGER object\n");
 
@@ -165,7 +166,8 @@ char * test_integer_object() {
 
         if(obj == false_bool || obj == true_bool) {
             bobj = obj->value;
-            printf("[%i] %i\n", i, inspect_boolean_object(bobj));
+            printf("[%i] %s: %i\n", i, t[i].input,
+                inspect_boolean_object(bobj));
             test_int_cmp("[Error: %i] Expected bool object value %i got %i\n",
                 t[i].value, bobj->value, i, &fail);
             continue;
@@ -178,7 +180,7 @@ char * test_integer_object() {
             continue;
         }
 
-        printf("[%i] %i\n", i, inspect_integer_object(iobj));
+        printf("[%i] %s: %i\n", i, t[i].input, inspect_integer_object(iobj));
 
         test_int_cmp("[Error: %i] Expected integer object value %i got %i\n",
             t[i].value, iobj->value, i, &fail);

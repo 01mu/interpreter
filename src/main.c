@@ -23,9 +23,10 @@
 #include "core/parser.c"
 #include "core/eval.c"
 #include "core/print.c"
-#include "core/repl.c"
+#include "core/env.c"
 #include "test/parsing.c"
 #include "test/eval.c"
+#include "core/repl.c"
 
 int main(int argc, char * argv[])
 {

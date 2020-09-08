@@ -7,15 +7,6 @@
  *
  */
 
-struct SortedList {
-    struct SortedList * next;
-    char * data_type;
-    void * data;
-    char * key;
-};
-
-typedef struct SortedList SortedList;
-
 SortedList * sorted_list_new(char * data_type, void * data, char * key);
 void sorted_list_insert(SortedList ** r, char * dt, void * d, char * key);
 bool sorted_list_remove(SortedList ** r, char * key);

@@ -19,10 +19,11 @@ void repl() {
         Lexer * lexer = new_lexer(str);
         Parser * parser = new_parser(lexer);
         Program * program = parse_program(parser);
+        Env * env = new_env();
         Object * object;
 
         if(strlen(str) > 1) {
-            object = eval_statement(program->statements[0]);
+            object = eval_statement(program->statements[0], env);
             print_object(object);
         }
     }

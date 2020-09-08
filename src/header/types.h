@@ -7,6 +7,20 @@
  *
  */
 
+struct SortedList {
+    struct SortedList * next;
+    char * data_type;
+    void * data;
+    char * key;
+};
+
+typedef struct SortedList SortedList;
+
+typedef struct {
+    int size;
+    SortedList ** array;
+} HashMap;
+
 typedef struct Token_ {
     char * type;
     char * literal;
@@ -116,3 +130,7 @@ typedef struct {
     char ** errors;
     int ec;
 } Parser;
+
+typedef struct {
+    HashMap * store;
+} Env;

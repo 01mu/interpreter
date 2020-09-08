@@ -7,13 +7,8 @@
  *
  */
 
-typedef struct {
-    int size;
-    SortedList ** array;
-} HashMap;
-
 HashMap * hash_map_new(int size);
-void hash_map_insert(HashMap * hm, char * key, char * data_type, void * data);
+void * hash_map_insert(HashMap * hm, char * key, char * dt, void * data);
 void hash_map_remove(HashMap * hm, char * key);
 SortedList * hash_map_find(HashMap * hm, char * key);
 int hash_map_hash(HashMap * hm, char * key);
@@ -36,22 +31,24 @@ HashMap * hash_map_new(int size) {
     return map;
 }
 
-void hash_map_insert(HashMap * hm, char * key, char * data_type, void * data) {
+void * hash_map_insert(HashMap * hm, char * key, char * dt, void * data) {
     int idx = hash_map_hash(hm, key);
 
     if(hm->array[idx] == NULL) {
-        hm->array[idx] = sorted_list_new(data_type, data, key);
+        hm->array[idx] = sorted_list_new(dt, data, key);
     }
 
     SortedList * find = hash_map_find(hm, key), * insert;
 
     if(find == NULL) {
         insert = hm->array[idx];
-        sorted_list_insert(&insert, data_type, data, key);
+        sorted_list_insert(&insert, dt, data, key);
     } else {
-        find->data_type = data_type;
+        find->data_type = dt;
         find->data = data;
     }
+
+    return data;
 }
 
 void hash_map_remove(HashMap * hm, char * key) {

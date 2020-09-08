@@ -35,12 +35,20 @@ typedef struct {
     void * value;
 } Object;
 
-Object * eval_expression(char * ext, void * est);
-Object * eval_statement(Statement statement);
-Object * eval_statements(Statement * statements, int sc);
+Object * eval_expression(char * ext, void * est, Env * env);
+Object * eval_statement(Statement statement, Env * env);
+Object * eval_statements(Statement * statements, int sc, Env * env);
 
 Object * false_bool = NULL, * true_bool = NULL;
 Object * null_obj = NULL;
+
+bool is_error(Object * obj) {
+    if(obj != NULL) {
+        return strcmp(obj->type, ERROR)== 0;
+    }
+
+    return false;
+}
 
 Object * new_error(char * msg) {
     Object * obj = malloc(sizeof(Object));
@@ -91,6 +99,18 @@ void print_object(Object * obj) {
     }
 }
 
+bool is_truthy(Object * obj) {
+    if(obj == null_obj) {
+        return false;
+    } else if(obj == true_bool) {
+        return true;
+    } else if(obj == false_bool) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 Object * eval_integer(IntegerLiteral * il) {
     Object * obj = malloc(sizeof(Object));
     IntegerObject * iobj = malloc(sizeof(IntegerObject));
@@ -103,7 +123,7 @@ Object * eval_integer(IntegerLiteral * il) {
     return obj;
 }
 
-Object * eval_bool(bool b) {
+Object * eval_bool(bool b, Env * env) {
     if(b) {
         return true_bool;
     }
@@ -111,7 +131,7 @@ Object * eval_bool(bool b) {
     return false_bool;
 }
 
-Object * eval_bang_operator_expression(Object * right) {
+Object * eval_bang_operator_expression(Object * right, Env * env) {
     if(right == true_bool) {
         return false_bool;
     } else if(right == false_bool) {
@@ -123,7 +143,7 @@ Object * eval_bang_operator_expression(Object * right) {
     }
 }
 
-Object * eval_minus_prefix_operator_expression(Object * right) {
+Object * eval_minus_prefix_operator_expression(Object * right, Env * env) {
     IntegerObject * r = NULL;
 
     if(strcmp(right->type, INT) != 0) {
@@ -138,11 +158,11 @@ Object * eval_minus_prefix_operator_expression(Object * right) {
     return right;
 }
 
-Object * eval_prefix_expression(char * operator, Object * right) {
+Object * eval_prefix_expression(char * operator, Object * right, Env * env) {
     if(strcmp(operator, "!") == 0 ) {
-        return eval_bang_operator_expression(right);
+        return eval_bang_operator_expression(right, env);
     } else if(strcmp(operator, "-") == 0) {
-         return eval_minus_prefix_operator_expression(right);
+         return eval_minus_prefix_operator_expression(right, env);
     } else {
         char * msg = malloc(strlen(operator) + strlen(right->type) + 20);
         sprintf(msg, "Unknown operator: %s%s\n", operator, right->type);
@@ -150,7 +170,9 @@ Object * eval_prefix_expression(char * operator, Object * right) {
     }
 }
 
-Object * eval_integer_infix_expression(char * op, Object * l, Object * r) {
+Object * eval_integer_infix_expression(char * op, Object * l, Object * r,
+    Env * env) {
+
     Object * obj = NULL;
     IntegerObject * int_obj = NULL;
     BooleanObject * bool_obj = NULL;
@@ -169,13 +191,13 @@ Object * eval_integer_infix_expression(char * op, Object * l, Object * r) {
     } else if(strcmp(op, "/") == 0) {
         arith = left / right;
     } else if(strcmp(op, "<") == 0) {
-        obj = eval_bool(left < right);
+        obj = eval_bool(left < right, env);
     } else if(strcmp(op, ">") == 0) {
-        obj = eval_bool(left > right);
+        obj = eval_bool(left > right, env);
     } else if(strcmp(op, "==") == 0) {
-        obj = eval_bool(left == right);
+        obj = eval_bool(left == right, env);
     } else if(strcmp(op, "!=") == 0) {
-        obj = eval_bool(left != right);
+        obj = eval_bool(left != right, env);
     } else {
         char * msg = malloc(strlen(op) + strlen(r->type) + strlen(l->type) + 20);
         sprintf(msg, "Unknown operator: %s%s%s\n", l->type, op, r->type);
@@ -195,13 +217,15 @@ Object * eval_integer_infix_expression(char * op, Object * l, Object * r) {
     return obj;
 }
 
-Object * eval_infix_expression(char * op, Object * left, Object * right) {
+Object * eval_infix_expression(char * op, Object * left, Object * right,
+    Env * env) {
+
     if(strcmp(left->type, INT) == 0 && strcmp(right->type, INT) == 0) {
-        return eval_integer_infix_expression(op, left, right);
+        return eval_integer_infix_expression(op, left, right, env);
     } else if(strcmp(op, "==") == 0) {
-        return eval_bool(left == right);
+        return eval_bool(left == right, env);
     } else if(strcmp(op, "!=") == 0) {
-        return eval_bool(left != right);
+        return eval_bool(left != right, env);
     } else if(strcmp(left->type, right->type) != 0) {
         char * msg = malloc(strlen(left->type) +
             strlen(right->type) + strlen(op) + 19);
@@ -217,34 +241,27 @@ Object * eval_infix_expression(char * op, Object * left, Object * right) {
     }
 }
 
-bool is_truthy(Object * obj) {
-    if(obj == null_obj) {
-        return false;
-    } else if(obj == true_bool) {
-        return true;
-    } else if(obj == false_bool) {
-        return false;
-    } else {
-        return true;
-    }
-}
-
-Object * eval_if_expression(IfExpression * iex) {
-    Object * condition = eval_expression(iex->condition_type, iex->condition);
+Object * eval_if_expression(IfExpression * iex, Env * env) {
+    Object * condition = eval_expression(iex->condition_type,iex->condition,
+        env);
     BlockStatement * bs = NULL;
+
+    if(is_error(condition)) {
+        return condition;
+    }
 
     if(is_truthy(condition)) {
         bs = (BlockStatement *) iex->consequence;
-        return eval_statements(bs->statements, bs->sc);
+        return eval_statements(bs->statements, bs->sc, env);
     } else if(iex->alternative != NULL) {
         bs = (BlockStatement *) iex->alternative;
-        return eval_statements(bs->statements, bs->sc);
+        return eval_statements(bs->statements, bs->sc, env);
     } else {
         return null_obj;
     }
 }
 
-Object * eval_expression(char * ext, void * est) {
+Object * eval_expression(char * ext, void * est, Env * env) {
     Object * res = NULL, * left = NULL, * right = NULL;
     PrefixExpression * pex, * in;
     InfixExpression * iex;
@@ -255,17 +272,32 @@ Object * eval_expression(char * ext, void * est) {
 
     } else if(strcmp(ext, PREFIX) == 0) {
         pex = (PrefixExpression *) est;
-        right = eval_expression(pex->expression_type, pex->right);
-        res = eval_prefix_expression(pex->operator, right);
+        right = eval_expression(pex->expression_type, pex->right, env);
+
+        if(is_error(right)) {
+            return right;
+        }
+
+        res = eval_prefix_expression(pex->operator, right, env);
     } else if(strcmp(ext, INFIX) == 0) {
         iex = (InfixExpression *) est;
-        left = eval_expression(iex->left_expression_type, iex->left);
-        right = eval_expression(iex->right_expression_type, iex->right);
-        res = eval_infix_expression(iex->operator, left, right);
+        left = eval_expression(iex->left_expression_type, iex->left, env);
+
+        if(is_error(left)) {
+            return left;
+        }
+
+        right = eval_expression(iex->right_expression_type, iex->right, env);
+
+        if(is_error(right)) {
+            return right;
+        }
+
+        res = eval_infix_expression(iex->operator, left, right, env);
     } else if(strcmp(ext, TRUE) == 0 || strcmp(ext, FALSE) == 0) {
-        res = eval_bool(((Boolean *) est)->value);
+        res = eval_bool(((Boolean *) est)->value, env);
     } else if(strcmp(ext, IF) == 0) {
-        res = eval_if_expression((IfExpression *) est);
+        res = eval_if_expression((IfExpression *) est, env);
     } else if(strcmp(ext, FUNCTION) == 0) {
 
     } else if(strcmp(ext, CALL) == 0) {
@@ -275,7 +307,7 @@ Object * eval_expression(char * ext, void * est) {
     return res;
 }
 
-Object * eval_statement(Statement statement) {
+Object * eval_statement(Statement statement, Env * env) {
     Object * obj = NULL;
     ReturnStatement * ret = NULL;
     ReturnValue * ret_val = NULL;
@@ -288,26 +320,31 @@ Object * eval_statement(Statement statement) {
         ret_val = malloc(sizeof(ReturnValue));
         obj->type = RETURN;
         obj->value = ret_val;
-        ret_val->value = eval_expression(est->expression_type, est->expression);
+        ret_val->value = eval_expression(est->expression_type, est->expression,
+            env);
         ret_val->type = "";
 
         if(ret_val->value != NULL) {
             ret_val->type = ((Object *) ret_val->value  )->type;
         }
 
+        if(is_error(ret_val->value)) {
+            return ret_val->value;
+        }
+
         return obj;
     } else if(strcmp(statement.type, "EXPRESSION") == 0) {
         est = (ExpressionStatement *) statement.st;
-        return eval_expression(est->expression_type, est->expression);
+        return eval_expression(est->expression_type, est->expression, env);
     }
 }
 
-Object * eval_statements(Statement * statements, int sc) {
+Object * eval_statements(Statement * statements, int sc, Env * env) {
     int i;
     Object * obj = NULL;
 
     for(i = 0; i < sc; i++) {
-        obj = eval_statement(statements[i]);
+        obj = eval_statement(statements[i], env);
 
         if(strcmp(obj->type, RETURN) == 0 || strcmp(obj->type, ERROR) == 0) {
             return obj;
