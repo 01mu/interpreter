@@ -9,6 +9,7 @@
 
 Object * get_eval_object(char * input);
 void test_eval_all(char * option);
+char * test_function_application();
 char * test_prefix_expression_object();
 char * test_error_object();
 char * test_return_object();
@@ -20,6 +21,8 @@ void test_eval_all(char * option) {
 
     if(strcmp(option, "integer") == 0) {
         printf("%s", test_integer_object());
+    } else if(strcmp(option, "function") == 0) {
+        printf("%s", test_function_application());
     } else if(strcmp(option, "boolean") == 0) {
         printf("%s", test_boolean_object());
     } else if(strcmp(option, "return") == 0) {
@@ -48,7 +51,33 @@ Object * get_eval_object(char * input) {
     Parser * parser = new_parser(lexer);
     Program * program = parse_program(parser);
     Env * env = new_env();
-    return eval_statement(program->statements[0], env);
+    return eval_statements(program->statements, program->sc, env);
+}
+
+char * test_function_application() {
+    int i, tc = 3, fail = 0;
+    Statement stmt;
+    Object * obj;
+    Function * func;
+    struct {
+        char * input;
+    } t[3] = {
+        {"fn(x) { 3 + x - 2; }"},
+        {"let ident = 2; fn(x) { x; }(ident);"},
+        {"let add = fn(x) { x; }; add(2);"}};
+
+    printf("Testing FUNCTION object\n");
+
+    for(i = 0; i < tc; i++) {
+        obj = get_eval_object(t[i].input);
+        /*func = obj->value;
+
+        if(!test_string_cmp("[Error: %i] Expected object type %s got %s\n",
+            FUNCTION, obj->type, i, &fail)) {
+        }*/
+    }
+
+    return print_test_result("FUNCTION", tc - fail, tc);
 }
 
 char * test_error_object() {
@@ -79,24 +108,24 @@ char * test_error_object() {
     return print_test_result("ERROR", tc - fail, tc);
 }
 
-
 char * test_return_object() {
     int i, tc = 4, fail = 0;
     Statement stmt;
-    Object * obj, * ret;
+    Object * obj;
+    ReturnValue * ret;
     struct {
         char * input, * type;
     } t[4] = {
+        {"let asd = 1; return asd;", INT},
         {"return 33;", INT},
-        {"return asd;", ""},
         {"if(1) { if(1 > 2) {} else { return 5;} } else { return var; }", INT},
         {"return !true;", FALSE}};
 
     printf("Testing RETURN object\n");
 
-    for(i = 0; i < tc; i++) {
+    for(i = 0; i < 4; i++) {
         obj = get_eval_object(t[i].input);
-        ret = (Object *) obj->value;
+        ret = (ReturnValue *) obj->value;
 
         printf("[%i] %s: %s\n", i, t[i].input, t[i].type);
 

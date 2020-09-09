@@ -10,6 +10,8 @@
 void repl();
 
 void repl() {
+    Env * env = new_env();
+
     while(1) {
         char str[120];
 
@@ -19,7 +21,7 @@ void repl() {
         Lexer * lexer = new_lexer(str);
         Parser * parser = new_parser(lexer);
         Program * program = parse_program(parser);
-        Env * env = new_env();
+
         Object * object;
 
         if(strlen(str) > 1) {

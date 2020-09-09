@@ -131,6 +131,45 @@ typedef struct {
     int ec;
 } Parser;
 
-typedef struct {
+struct Env {
     HashMap * store;
-} Env;
+    struct Env * outer;
+};
+
+typedef struct Env Env;
+
+typedef struct {
+    char * message;
+} ErrorObject;
+
+typedef struct {
+    char * type;
+    void * value;
+} ReturnValue;
+
+typedef struct {
+
+} NullObject;
+
+typedef struct {
+    int value;
+} IntegerObject;
+
+typedef struct {
+    bool value;
+} BooleanObject;
+
+typedef struct {
+    char * type;
+    void * value;
+} Object;
+
+Object * false_bool = NULL, * true_bool = NULL;
+Object * null_obj = NULL;
+
+typedef struct {
+    Identifier ** parameters;
+    int pc;
+    BlockStatement * body;
+    Env * env;
+} Function;

@@ -8,7 +8,7 @@
  */
 
 SortedList * sorted_list_new(char * data_type, void * data, char * key);
-void sorted_list_insert(SortedList ** r, char * dt, void * d, char * key);
+SortedList * sorted_list_ins(SortedList ** r, char * dt, void * d, char * key);
 bool sorted_list_remove(SortedList ** r, char * key);
 SortedList * sorted_list_find(SortedList * r, char * key);
 String * sorted_list_print(SortedList * sl);
@@ -25,9 +25,13 @@ SortedList * sorted_list_new(char * data_type, void * data, char * key) {
     return sl;
 }
 
-void sorted_list_insert(SortedList ** r, char * dt, void * d, char * key) {
+SortedList * sorted_list_ins(SortedList ** r, char * dt, void * d, char * key) {
     SortedList * new_sl = sorted_list_new(dt, d, key);
     SortedList * prev = NULL, * current = * r;
+
+    if(r == NULL || key == NULL) {
+        return NULL;
+    }
 
     while(current != NULL && strcmp(new_sl->key, current->key) > 0) {
         prev = current;
@@ -45,6 +49,8 @@ void sorted_list_insert(SortedList ** r, char * dt, void * d, char * key) {
     }
 
     new_sl->next = current;
+
+    return new_sl;
 }
 
 bool sorted_list_remove(SortedList ** r, char * key) {
@@ -95,15 +101,20 @@ SortedList * sorted_list_find(SortedList * r, char * key) {
 String * sorted_list_print(SortedList * sl) {
     SortedList * current = sl;
     String * str = string_new(1);
+    char * a = NULL;
 
     while(current != NULL && current->key != NULL) {
         string_cat(str, current->key, false);
-        string_cat(str, " -> ", false);
+        string_cat(str, ": ", false);
 
         if(current->data_type == NULL) {
             string_cat(str, " ", false);
         } else {
             string_cat(str, current->data_type, false);
+            string_cat(str, " ", false);
+            a = malloc(sizeof(char) * 20);
+            sprintf(a, "%p", current->data);
+            string_cat(str, a, true);
         }
 
         string_cat(str, ", ", false);

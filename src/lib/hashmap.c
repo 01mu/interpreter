@@ -32,7 +32,13 @@ HashMap * hash_map_new(int size) {
 }
 
 void * hash_map_insert(HashMap * hm, char * key, char * dt, void * data) {
-    int idx = hash_map_hash(hm, key);
+    int idx;
+
+    if(hm == NULL || key == NULL) {
+        return NULL;
+    }
+
+    idx = hash_map_hash(hm, key);
 
     if(hm->array[idx] == NULL) {
         hm->array[idx] = sorted_list_new(dt, data, key);
@@ -42,7 +48,7 @@ void * hash_map_insert(HashMap * hm, char * key, char * dt, void * data) {
 
     if(find == NULL) {
         insert = hm->array[idx];
-        sorted_list_insert(&insert, dt, data, key);
+        sorted_list_ins(&insert, dt, data, key);
     } else {
         find->data_type = dt;
         find->data = data;
@@ -112,12 +118,13 @@ void hash_map_free(HashMap * hm) {
 void hash_map_test() {
     HashMap * hm = hash_map_new(50);
     String * hmp;
+    void * a = malloc(1);
 
     hash_map_insert(hm, "f", NULL, NULL);
     hash_map_insert(hm, "f", NULL, NULL);
     hash_map_insert(hm, "a", NULL, NULL);
     hash_map_insert(hm, "h", NULL, NULL);
-    hash_map_insert(hm, "z", "test", NULL);
+    hash_map_insert(hm, "z", "test", a);
 
     hmp = hash_map_print(hm);
     printf("%s", hmp->string);
