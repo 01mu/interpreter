@@ -30,9 +30,10 @@ void test_eval_all(char * option) {
     } else if(strcmp(option, "error") == 0) {
         printf("%s", test_error_object());
     } else {
-        c = 4;
+        c = 5;
 
-        char * s[4] = {
+        char * s[5] = {
+            test_function_application(),
             test_error_object(),
             test_return_object(),
             test_integer_object(),
@@ -58,23 +59,25 @@ char * test_function_application() {
     int i, tc = 3, fail = 0;
     Statement stmt;
     Object * obj;
-    Function * func;
+    Object * final;
     struct {
-        char * input;
+        char * input, * expected;
     } t[3] = {
-        {"fn(x) { 3 + x - 2; }"},
-        {"let ident = 2; fn(x) { x; }(ident);"},
-        {"let add = fn(x) { x; }; add(2);"}};
+        {"fn(x) { 3 + x - 2; }", FUNCTION},
+        {"let ident = 2; fn(x) { x; }(ident);", INT},
+        {"let add = fn(x) { x; }; add(2);", INT}};
 
     printf("Testing FUNCTION object\n");
 
     for(i = 0; i < tc; i++) {
         obj = get_eval_object(t[i].input);
-        /*func = obj->value;
+        final = obj->value;
+
+        printf("[%i] %s\n", i, t[i].input);
 
         if(!test_string_cmp("[Error: %i] Expected object type %s got %s\n",
-            FUNCTION, obj->type, i, &fail)) {
-        }*/
+            t[i].expected, obj->type, i, &fail)) {
+        }
     }
 
     return print_test_result("FUNCTION", tc - fail, tc);

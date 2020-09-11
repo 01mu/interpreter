@@ -9,37 +9,41 @@
 
 void test_parse_all(char * option) {
     int i, c;
+    char * result = NULL;
 
     if(strcmp(option, "prefix") == 0) {
-        printf("%s", test_parsing_prefix_expressions());
+        result = test_parsing_prefix_expressions();
+    } else if(strcmp(option, "boolean") == 0) {
+        result = test_parsing_boolean_expression();
     } else if(strcmp(option, "fliteral") == 0) {
-        printf("%s", test_parsing_function_literal_expressions());
+        result = test_parsing_function_literal_expressions();
     } else if(strcmp(option, "call") == 0) {
-        printf("%s", test_parsing_call_expressions());
+        result = test_parsing_call_expressions();
     } else if(strcmp(option, "grouped") == 0) {
-        printf("%s", test_parsing_grouped_expressions());
+        result = test_parsing_grouped_expressions();
     } else if(strcmp(option, "if") == 0) {
-        printf("%s", test_parsing_if_expressions());
+        result = test_parsing_if_expressions();
     } else if(strcmp(option, "infix") == 0) {
-        printf("%s", test_parsing_infix_expressions());
+        result = test_parsing_infix_expressions();
     } else if(strcmp(option, "integer") == 0) {
-        printf("%s", test_integer_literal_expression());
+        result = test_integer_literal_expression();
     } else if(strcmp(option, "identifier") == 0) {
-        printf("%s", test_identifier_expression());
+        result = test_identifier_expression();
     } else if(strcmp(option, "return") == 0) {
-        printf("%s", test_return_statements());
+        result = test_return_statements();
     } else if(strcmp(option, "next") == 0) {
-        printf("%s", test_next_token());
+        result = test_next_token();
     } else if(strcmp(option, "let") == 0) {
-        printf("%s", test_let_statements());
+        result = test_let_statements();
     } else {
-        c = 11;
+        c = 12;
 
-        char * s[11] = {
+        char * s[12] = {
             test_next_token(),
             test_let_statements(),
             test_return_statements(),
             test_identifier_expression(),
+            test_parsing_boolean_expression(),
             test_integer_literal_expression(),
             test_parsing_prefix_expressions(),
             test_parsing_infix_expressions(),
@@ -53,7 +57,26 @@ void test_parse_all(char * option) {
         for(i = 0; i < c; i++) {
             printf("%s", s[i]);
         }
+
+        return;
     }
+
+    printf("%s", result);
+}
+
+bool get_parse_test_expression(ExpressionStatement ** es, char * input) {
+    Lexer * lexer = new_lexer(input);
+    Parser * parser = new_parser(lexer);
+    Program * program = parse_program(parser);
+    Statement stmt = program->statements[0];
+
+    * es = (ExpressionStatement *) stmt.st;
+
+    if(check_parser_errors(parser)) {
+        return false;
+    }
+
+    return true;
 }
 
 char * test_get_statement_type(char * type, void * expr) {
@@ -242,10 +265,6 @@ char * test_return_statements() {
 
 char * test_identifier_expression() {
     int i, tc = 5, fail = 0;
-    Lexer * lexer;
-    Parser * parser;
-    Program * program;
-    Statement stmt;
     ExpressionStatement * es;
     Identifier * id;
     struct {
@@ -260,11 +279,11 @@ char * test_identifier_expression() {
     printf("Testing IDENTIFIER expressions\n");
 
     for(i = 0; i < tc; i++) {
-        lexer = new_lexer(t[i].input);
-        parser = new_parser(lexer);
-        program = parse_program(parser);
-        stmt = program->statements[0];
-        es = (ExpressionStatement *) stmt.st;
+        if(!get_parse_test_expression(&es, t[i].input)) {
+            fail++;
+            continue;
+        }
+
         id = (Identifier *) es->expression;
 
         if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
@@ -274,11 +293,6 @@ char * test_identifier_expression() {
 
         printf("[%i] %s\n", i, print_identifier_value(id));
 
-        if(check_parser_errors(parser)) {
-            fail++;
-            continue;
-        }
-
         test_string_cmp("[Error: %i] Expected identifier value %s got %s\n",
             t[i].expected, id->value, i, &fail);
     }
@@ -286,12 +300,44 @@ char * test_identifier_expression() {
     return print_test_result("IDENTIFIER", tc - fail, tc);
 }
 
+
+char * test_parsing_boolean_expression() {
+    int i, tc = 2, fail = 0;
+    ExpressionStatement * es;
+    Boolean * bo;
+    struct {
+        char * input, * type;
+        bool value;
+    } t[2] = {
+        {"false;", FALSE, false},
+        {"true;", TRUE, true}};
+
+    printf("Testing BOOLEAN expressions\n");
+
+    for(i = 0; i < tc; i++) {
+        if(!get_parse_test_expression(&es, t[i].input)) {
+            fail++;
+            continue;
+        }
+
+        bo = (Boolean *) es->expression;
+
+        if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
+            t[i].type, es->expression_type, i, &fail)) {
+            continue;
+        }
+
+        printf("[%i] %s\n", i, print_boolean(bo));
+
+        test_int_cmp("[Error: %i] Expected boolean value %i got %i\n",
+            t[i].value, bo->value, i, &fail);
+    }
+
+    return print_test_result("BOOLEAN", tc - fail, tc);
+}
+
 char * test_integer_literal_expression() {
     int i, tc = 5, fail = 0;
-    Lexer * lexer;
-    Parser * parser;
-    Program * program;
-    Statement stmt;
     ExpressionStatement * es;
     IntegerLiteral * il;
     struct {
@@ -307,11 +353,11 @@ char * test_integer_literal_expression() {
     printf("Testing INTEGER expressions\n");
 
     for(i = 0; i < tc; i++) {
-        lexer = new_lexer(t[i].input);
-        parser = new_parser(lexer);
-        program = parse_program(parser);
-        stmt = program->statements[0];
-        es = (ExpressionStatement *) stmt.st;
+        if(!get_parse_test_expression(&es, t[i].input)) {
+            fail++;
+            continue;
+        }
+
         il = (IntegerLiteral *) es->expression;
 
         if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
@@ -320,11 +366,6 @@ char * test_integer_literal_expression() {
         }
 
         printf("[%i] %s\n", i, print_integer_literal(il));
-
-        if(check_parser_errors(parser)) {
-            fail++;
-            continue;
-        }
 
         test_int_cmp("[Error: %i] Expected integer value %i got %i\n",
             t[i].value, il->value, i, &fail);
@@ -335,15 +376,11 @@ char * test_integer_literal_expression() {
 
 char * test_parsing_prefix_expressions() {
     int i, tc = 5, fail = 0;
-    Lexer * lexer;
-    Parser * parser;
-    Program * program;
-    Statement stmt;
     ExpressionStatement * es;
     PrefixExpression * pex;
     struct {
         char * input, * operator, * expression_type;
-    } tests[5] = {
+    } t[5] = {
         {"!5", "!", INT},
         {"-15", "-", INT},
         {"!fn(x) { } ", "!", FUNCTION},
@@ -353,11 +390,11 @@ char * test_parsing_prefix_expressions() {
     printf("Testing PREFIX expressions\n");
 
     for(i = 0; i < tc; i++) {
-        lexer = new_lexer(tests[i].input);
-        parser = new_parser(lexer);
-        program = parse_program(parser);
-        stmt = program->statements[0];
-        es = (ExpressionStatement *) stmt.st;
+        if(!get_parse_test_expression(&es, t[i].input)) {
+            fail++;
+            continue;
+        }
+
         pex = (PrefixExpression *) es->expression;
 
         if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
@@ -367,15 +404,10 @@ char * test_parsing_prefix_expressions() {
 
         printf("[%i] %s\n", i, print_prefix_expression(pex));
 
-        if(check_parser_errors(parser)) {
-            fail++;
-            continue;
-        }
-
         test_string_cmp("[Error: %i] Expected operator %s got %s\n",
-            tests[i].operator, pex->operator, i, &fail);
+            t[i].operator, pex->operator, i, &fail);
         test_string_cmp("[Error: %i] Expected right value %s got %s\n",
-            tests[i].expression_type, pex->expression_type, i, &fail);
+            t[i].expression_type, pex->expression_type, i, &fail);
     }
 
     return print_test_result("PREFIX", tc - fail, tc);
@@ -383,10 +415,6 @@ char * test_parsing_prefix_expressions() {
 
 char * test_parsing_infix_expressions() {
     int i, tc = 5, fail = 0;
-    Lexer * lexer;
-    Parser * parser;
-    Program * program;
-    Statement stmt;
     ExpressionStatement * es;
     InfixExpression * iex;
     IntegerLiteral * right_il;
@@ -404,11 +432,11 @@ char * test_parsing_infix_expressions() {
     printf("Testing INFIX expressions\n");
 
     for(i = 0; i < tc; i++) {
-        lexer = new_lexer(t[i].input);
-        parser = new_parser(lexer);
-        program = parse_program(parser);
-        stmt = program->statements[0];
-        es = (ExpressionStatement *) stmt.st;
+        if(!get_parse_test_expression(&es, t[i].input)) {
+            fail++;
+            continue;
+        }
+
         iex = (InfixExpression *) es->expression;
         right_il = (IntegerLiteral *) iex->right;
         left_il = (IntegerLiteral *) iex->left;
@@ -419,11 +447,6 @@ char * test_parsing_infix_expressions() {
         }
 
         printf("[%i] %s\n", i, print_infix_expression(iex));
-
-        if(check_parser_errors(parser)) {
-            fail++;
-            continue;
-        }
 
         test_string_cmp("[Error: %i] Expected operator %s got %s\n",
             t[i].operator, iex->operator, i, &fail);
@@ -438,10 +461,6 @@ char * test_parsing_infix_expressions() {
 
 char * test_parsing_function_literal_expressions() {
     int i, tc = 5, fail = 0;
-    Lexer * lexer;
-    Parser * parser;
-    Program * program;
-    Statement stmt;
     ExpressionStatement * es;
     FunctionLiteral * fl;
     BlockStatement * bs;
@@ -458,11 +477,11 @@ char * test_parsing_function_literal_expressions() {
     printf("Testing FUNCTION LITERAL expressions\n");
 
     for(i = 0; i < tc; i++) {
-        lexer = new_lexer(t[i].input);
-        parser = new_parser(lexer);
-        program = parse_program(parser);
-        stmt = program->statements[0];
-        es = (ExpressionStatement *) stmt.st;
+        if(!get_parse_test_expression(&es, t[i].input)) {
+            fail++;
+            continue;
+        }
+
         fl = (FunctionLiteral *) es->expression;
         bs = (BlockStatement *) fl->body;
 
@@ -472,11 +491,6 @@ char * test_parsing_function_literal_expressions() {
         }
 
         printf("[%i] %s\n", i, print_function_literal(fl));
-
-        if(check_parser_errors(parser)) {
-            fail++;
-            continue;
-        }
 
         test_int_cmp("[Error: %i] Expected parameter count %i got %i\n",
             t[i].param_count, fl->pc, i, &fail);
@@ -489,10 +503,6 @@ char * test_parsing_function_literal_expressions() {
 
 char * test_parsing_call_expressions() {
     int i, tc = 5, fail = 0;
-    Lexer * lexer;
-    Parser * parser;
-    Program * program;
-    Statement stmt;
     ExpressionStatement * es;
     CallExpression * cex;
     struct {
@@ -508,11 +518,11 @@ char * test_parsing_call_expressions() {
     printf("Testing CALL expressions\n");
 
     for(i = 0; i < tc; i++) {
-        lexer = new_lexer(t[i].input);
-        parser = new_parser(lexer);
-        program = parse_program(parser);
-        stmt = program->statements[0];
-        es = (ExpressionStatement *) stmt.st;
+        if(!get_parse_test_expression(&es, t[i].input)) {
+            fail++;
+            continue;
+        }
+
         cex = (CallExpression *) es->expression;
 
         if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
@@ -521,11 +531,6 @@ char * test_parsing_call_expressions() {
         }
 
         printf("[%i] %s\n", i, print_call_expression(cex));
-
-        if(check_parser_errors(parser)) {
-            fail++;
-            continue;
-        }
 
         test_string_cmp("[Error: %i] Expected function type %s got %s\n",
             t[i].function_type, cex->function_type, i, &fail);
@@ -543,10 +548,6 @@ char * test_parsing_call_expressions() {
 
 char * test_parsing_grouped_expressions() {
     int i, tc = 5, fail = 0;
-    Lexer * lexer;
-    Parser * parser;
-    Program * program;
-    Statement stmt;
     ExpressionStatement * es;
     PrefixExpression * pex;
     InfixExpression * iex;
@@ -562,11 +563,10 @@ char * test_parsing_grouped_expressions() {
     printf("Testing GROUPED expressions\n");
 
     for(i = 0; i < tc; i++) {
-        lexer = new_lexer(t[i].input);
-        parser = new_parser(lexer);
-        program = parse_program(parser);
-        stmt = program->statements[0];
-        es = (ExpressionStatement *) stmt.st;
+        if(!get_parse_test_expression(&es, t[i].input)) {
+            fail++;
+            continue;
+        }
 
         if(strcmp(es->expression_type, INFIX) == 0) {
             iex = (InfixExpression *) es->expression;
@@ -587,11 +587,6 @@ char * test_parsing_grouped_expressions() {
             test_string_cmp("[Error: %i] Expected right type %s got %s\n",
                 t[i].rt, pex->expression_type, i, &fail);
         }
-
-        if(check_parser_errors(parser)) {
-            fail++;
-            continue;
-        }
     }
 
     return print_test_result("GROUPED", tc - fail, tc);
@@ -600,10 +595,6 @@ char * test_parsing_grouped_expressions() {
 char * test_parsing_if_expressions() {
     int i, tc = 5, fail = 0;
     char * cons_type, * alt_type;
-    Lexer * lexer;
-    Parser * parser;
-    Program * program;
-    Statement stmt;
     ExpressionStatement * es;
     IfExpression * ifx;
     BlockStatement * cons;
@@ -625,11 +616,11 @@ char * test_parsing_if_expressions() {
     printf("Testing IF expressions\n");
 
     for(i = 0; i < tc; i++) {
-        lexer = new_lexer(t[i].input);
-        parser = new_parser(lexer);
-        program = parse_program(parser);
-        stmt = program->statements[0];
-        es = (ExpressionStatement *) stmt.st;
+        if(!get_parse_test_expression(&es, t[i].input)) {
+            fail++;
+            continue;
+        }
+
         ifx = (IfExpression *) es->expression;
         cons = (BlockStatement *) ifx->consequence;
         alt = (BlockStatement *) ifx->alternative;
@@ -645,11 +636,6 @@ char * test_parsing_if_expressions() {
             alt->statements[0].st);
 
         printf("[%i] %s\n", i, print_if_expression(ifx));
-
-        if(check_parser_errors(parser)) {
-            fail++;
-            continue;
-        }
 
         test_string_cmp("[Error: %i] Expected condition type %s got %s\n",
             t[i].condition_type, ifx->condition_type, i, &fail);

@@ -26,7 +26,6 @@ void repl() {
 
         if(strlen(str) > 1) {
             object = eval_statement(program->statements[0], env);
-            print_object(object);
         }
     }
 }

@@ -89,13 +89,16 @@ int hash_map_hash(HashMap * hm, char * key) {
 
 String * hash_map_print(HashMap * hm) {
     int i;
-    String * str = string_new(1);
+    String * str = string_new();
+    char * a = NULL;
 
     for(i = 0; i < hm->size; i++) {
         if(hm->array[i] != NULL) {
-            string_cat(str, "[ ", false);
+            a = malloc(sizeof(char) * 10);
+            sprintf(a, "[%i] ", i);
+            string_cat(str, a, true);
             string_append(str, sorted_list_print(hm->array[i]));
-            string_cat(str, " ]\n", false);
+            string_cat(str, "\n", false);
         }
     }
 

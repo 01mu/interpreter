@@ -433,9 +433,11 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
     for(i = 0; i < sc; i++) {
         obj = eval_statement(statements[i], env);
 
-        /*if(strcmp(obj->type, RETURN) == 0 || strcmp(obj->type, ERROR) == 0) {
+        print_object(obj);
+
+        if(strcmp(obj->type, RETURN) == 0 || strcmp(obj->type, ERROR) == 0) {
             return obj;
-        }*/
+        }
     }
 
     return obj;

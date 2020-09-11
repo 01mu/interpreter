@@ -14,26 +14,24 @@ struct SortedList {
     char * key;
 };
 
-typedef struct SortedList SortedList;
-
 typedef struct {
     int size;
-    SortedList ** array;
+    struct SortedList ** array;
 } HashMap;
 
-typedef struct Token_ {
+typedef struct {
     char * type;
     char * literal;
 } Token;
 
-typedef struct Lexer_ {
+typedef struct {
     char ch;
     const char * input;
     int pos;
     int read_pos;
 } Lexer;
 
-typedef struct Statement_ {
+typedef struct {
     char * type;
     void * st;
 } Statement;
@@ -136,8 +134,6 @@ struct Env {
     struct Env * outer;
 };
 
-typedef struct Env Env;
-
 typedef struct {
     char * message;
 } ErrorObject;
@@ -164,12 +160,15 @@ typedef struct {
     void * value;
 } Object;
 
-Object * false_bool = NULL, * true_bool = NULL;
-Object * null_obj = NULL;
-
 typedef struct {
     Identifier ** parameters;
     int pc;
     BlockStatement * body;
-    Env * env;
+    struct Env * env;
 } Function;
+
+Object * false_bool = NULL, * true_bool = NULL;
+Object * null_obj = NULL;
+
+typedef struct Env Env;
+typedef struct SortedList SortedList;

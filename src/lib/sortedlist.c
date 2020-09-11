@@ -100,7 +100,7 @@ SortedList * sorted_list_find(SortedList * r, char * key) {
 
 String * sorted_list_print(SortedList * sl) {
     SortedList * current = sl;
-    String * str = string_new(1);
+    String * str = string_new();
     char * a = NULL;
 
     while(current != NULL && current->key != NULL) {
@@ -108,17 +108,15 @@ String * sorted_list_print(SortedList * sl) {
         string_cat(str, ": ", false);
 
         if(current->data_type == NULL) {
-            string_cat(str, " ", false);
+            string_cat(str, "-", false);
         } else {
             string_cat(str, current->data_type, false);
-            string_cat(str, " ", false);
-            a = malloc(sizeof(char) * 20);
-            sprintf(a, "%p", current->data);
-            string_cat(str, a, true);
         }
 
+        a = malloc(sizeof(char) * 20);
+        sprintf(a, " %p", current->data);
+        string_cat(str, a, true);
         string_cat(str, ", ", false);
-
         current = current->next;
     }
 

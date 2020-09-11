@@ -80,6 +80,7 @@ void free_statement(Statement stmt);
 void free_program(Lexer * lexer, Parser * parser, Program * program);
 
 void test_parse_all(char * option);
+bool get_parse_test_expression(ExpressionStatement ** es, char * input);
 char * test_get_statement_type(char * type, void * expr);
 bool test_string_cmp(char * b, char * g, char * ex, int i, int * fail);
 bool test_int_cmp(char * b, int g, int ex, int i, int * fail);
@@ -88,6 +89,7 @@ char * test_next_token();
 char * test_let_statements();
 char * test_return_statements();
 char * test_identifier_expression();
+char * test_parsing_boolean_expression();
 char * test_integer_literal_expression();
 char * test_parsing_prefix_expressions();
 char * test_parsing_infix_expressions();

@@ -32,7 +32,7 @@ Object * env_get(Env * env, char * name) {
 }
 
 Object * env_set(Env * env, char * name, Object * data) {
-    return (Object *) hash_map_insert(env->store, name, "object", data);
+    return (Object *) hash_map_insert(env->store, name, NULL, data);
 }
 
 void env_test() {
