@@ -21,8 +21,14 @@ Env * env_new_enclosed(Env * outer) {
 }
 
 Object * env_get(Env * env, char * name) {
-    SortedList * data = ((SortedList *) hash_map_find(env->store, name))->data;
-    Object * obj  = (Object *) data;
+    SortedList * sl = (SortedList *) hash_map_find(env->store, name);
+    Object * obj;
+
+    if(sl == NULL) {
+        return NULL;
+    }
+
+    obj = (Object *) sl->data;
 
     if(obj == NULL && env->outer != NULL) {
         obj = env_get(env->outer, name);
@@ -44,4 +50,25 @@ void env_test() {
     Env * env = new_env();
 
     eval_statements(program->statements, program->sc, env);
+}
+
+void env_free(Env * env) {
+    Object * obj = NULL;
+    HashMap * store = env->store;
+    SortedList * current = NULL;
+
+    for(int i = 0; i < store->size; i++) {
+        if(store->array[i] != NULL) {
+            current = store->array[i];
+
+            while(current != NULL) {
+                obj = (Object *) current->data;
+                free_eval_expression(obj->type, obj, env);
+                current = current->next;
+            }
+        }
+    }
+
+    hash_map_free(env->store);
+    free(env);
 }

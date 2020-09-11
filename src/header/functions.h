@@ -103,6 +103,7 @@ Object * env_get(Env * env, char * name);
 Object * env_set(Env * env, char * name, Object * data);
 void env_test();
 
+void free_eval_expression(char * ext, Object * obj, Env * env);
 bool is_error(Object * obj);
 Object * new_error(char * msg);
 void init_bool(Object ** b, char * type, bool lit);
@@ -129,6 +130,6 @@ Object * apply_function(Object * obj, Object ** args);
 Object * eval_call_expression(CallExpression * ce, Env * env);
 Object * eval_expression(char * ext, void * est, Env * env);
 Object * eval_return_statement(ExpressionStatement * est, Env * env);
-void * eval_let_statement(ExpressionStatement * est, Env * env, char * name);
+Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name);
 Object * eval_statement(Statement statement, Env * env);
 Object * eval_statements(Statement * statements, int sc, Env * env);

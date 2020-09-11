@@ -129,6 +129,8 @@ void hash_map_test() {
     hash_map_insert(hm, "h", NULL, NULL);
     hash_map_insert(hm, "z", "test", a);
 
+    hash_map_remove(hm, "f");
+
     hmp = hash_map_print(hm);
     printf("%s", hmp->string);
     hash_map_free(hm);

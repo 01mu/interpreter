@@ -389,9 +389,11 @@ void parse_let_statement(Parser * par, Statement * smt) {
     smt->st = malloc(sizeof(LetStatement));
     let = (LetStatement *) smt->st;
     let->token = par->current_token;
+    let->type = NULL;
+    let->value = NULL;
+    let->name.value = NULL;
 
     if(!expect_peek(par, IDENT)) {
-        free(let);
         return;
     }
 
@@ -399,7 +401,6 @@ void parse_let_statement(Parser * par, Statement * smt) {
     let->name.value = par->current_token.literal;
 
     if(!expect_peek(par, ASSIGN)) {
-        free(let);
         return;
     }
 
@@ -411,11 +412,9 @@ void parse_let_statement(Parser * par, Statement * smt) {
 
     let->type = ex->expression_type;
 
-    expect_peek(par, SEMICOLON);
-
-    /*while(!cur_token_is(par, SEMICOLON)) {
-        parser_next_token(par);
-    }*/
+    if(!expect_peek(par, SEMICOLON)) {
+        return;
+    }
 }
 
 void parse_statement(Parser * par, Statement * stmts, int sc, int sz) {

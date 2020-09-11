@@ -251,8 +251,8 @@ void peek_error(Parser * parser, char * type) {
 
     sprintf(str, "ERROR: Expected %s got %s", type, parser->peek_token.type);
 
-    parser->errors[parser->ec] = str;
-    parser->errors[++parser->ec] = malloc(sizeof(char *));
+    parser->errors = realloc(parser->errors, sizeof(char *) * (parser->ec + 1));
+    parser->errors[parser->ec++] = str;
 }
 
 bool expect_peek(Parser * parser, char * type) {

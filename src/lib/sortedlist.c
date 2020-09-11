@@ -128,6 +128,7 @@ void sorted_list_free(SortedList * sl) {
 
     while(current != NULL) {
         temp = current->next;
+        free(current->key);
         free(current->data);
         free(current);
         current = temp;
