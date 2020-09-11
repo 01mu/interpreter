@@ -10,6 +10,9 @@
 void repl();
 
 void repl() {
+    Lexer * lexer = NULL;
+    Parser * parser = NULL;
+    Program * program = NULL;
     Env * env = new_env();
 
     while(1) {
@@ -18,14 +21,16 @@ void repl() {
         printf(">>> ");
         fgets(str, 120, stdin);
 
-        Lexer * lexer = new_lexer(str);
-        Parser * parser = new_parser(lexer);
-        Program * program = parse_program(parser);
+        lexer = new_lexer(str);
+        parser = new_parser(lexer);
+        program = parse_program(parser);
 
-        Object * object;
+        if(check_parser_errors(parser)) {
+            continue;
+        }
 
-        if(strlen(str) > 1) {
-            object = eval_statement(program->statements[0], env);
+        if(program->sc > 0) {
+            eval_statements(program->statements, program->sc, env);
         }
     }
 }

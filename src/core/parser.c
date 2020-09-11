@@ -411,9 +411,11 @@ void parse_let_statement(Parser * par, Statement * smt) {
 
     let->type = ex->expression_type;
 
-    while(!cur_token_is(par, SEMICOLON)) {
+    expect_peek(par, SEMICOLON);
+
+    /*while(!cur_token_is(par, SEMICOLON)) {
         parser_next_token(par);
-    }
+    }*/
 }
 
 void parse_statement(Parser * par, Statement * stmts, int sc, int sz) {

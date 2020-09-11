@@ -185,7 +185,7 @@ char * test_let_statements() {
     struct {
         char * input, * type;
     } t[5] = {
-        {"let x = 2;", INT},
+        {"let x = 2 ident", INT},
         {"let sd = !2;", PREFIX},
         {"let h = a;", IDENT},
         {"let z = if (x) { } else { };", IF},
@@ -602,16 +602,11 @@ char * test_parsing_if_expressions() {
     struct {
         char * input, * condition_type, * cons_type, * alt_type;
     } t[5] = {
-        {"if (x) { let a = 3; } else { return 1; }",
-            IDENT, INT, INT},
-        {"if (x == 1) { let a = b; } else { 5 }",
-            INFIX, IDENT, INT},
-        {"if (x) { let a = b; } else { 5 }",
-            IDENT, IDENT, INT},
-        {"if (x) { let a = b; } else { if (z) { } else { } }",
-            IDENT, IDENT, IF},
-        {"if (a > 3) { !2 } else { false }",
-            INFIX, PREFIX, FALSE}};
+        {"if (x) { let a = 3; } else { return 1; }", IDENT, INT, INT},
+        {"if (x == 1) { let a = b; } else { 5 }", INFIX, IDENT, INT},
+        {"if (x) { let a = b; } else { 5 }", IDENT, IDENT, INT},
+        {"if (x) { let a = b; } else { if (z) {} else {} }", IDENT, IDENT, IF},
+        {"if (a > 3) { !2 } else { false }", INFIX, PREFIX, FALSE}};
 
     printf("Testing IF expressions\n");
 

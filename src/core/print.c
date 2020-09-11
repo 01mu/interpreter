@@ -314,7 +314,6 @@ void test_print_program() {
 
     printf("%i statements\n", program->sc);
     print = print_program(program);
-    //eval_statement(program->statements[0]);
     printf("%s", print);
     free(print);
     free(file);
