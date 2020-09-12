@@ -170,5 +170,7 @@ typedef struct {
 Object * false_bool = NULL, * true_bool = NULL;
 Object * null_obj = NULL;
 
+bool true_eval = false, false_eval = false;
+
 typedef struct Env Env;
 typedef struct SortedList SortedList;

@@ -34,10 +34,8 @@
 
 int main(int argc, char * argv[])
 {
-    init_bool(&true_bool, TRUE, 1);
-    init_bool(&false_bool, FALSE, 0);
-
-    size_t a;
+    init_bool(&true_bool, true);
+    init_bool(&false_bool, false);
 
     if(strcmp(argv[1], "test-hash") == 0) {
         hash_map_test();

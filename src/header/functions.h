@@ -103,10 +103,10 @@ Object * env_get(Env * env, char * name);
 Object * env_set(Env * env, char * name, Object * data);
 void env_test();
 
-void free_eval_expression(char * ext, Object * obj, Env * env);
+bool free_eval_expression(char * ext, Object * obj, Env * env);
 bool is_error(Object * obj);
 Object * new_error(char * msg);
-void init_bool(Object ** b, char * type, bool lit);
+void init_bool(Object ** b, bool lit);
 void free_bool(Object * b);
 char * inspect_error_object(ErrorObject * eobj);
 char * inspect_null_object(NullObject * nobj);

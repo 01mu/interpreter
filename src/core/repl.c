@@ -15,16 +15,18 @@ void repl() {
     Program * program = NULL;
     Env * env = new_env();
 
-    printf("Type '\\h' for help and '\\q' to quit\n");
+    char str[120];
+
+    printf("Type '\\h' for help and '\\q' to quit.\n");
+
+    //char * test = "let a = 4;";
 
     while(1) {
-        char str[120];
-
         printf(">>> ");
         fgets(str, 120, stdin);
 
         if(strcmp(str, "\\q\n") == 0) {
-            printf("Bye\n");
+            printf("Bye!\n");
             break;
         }
 
@@ -39,8 +41,9 @@ void repl() {
 
         if(program->sc > 0) {
             eval_statements(program->statements, program->sc, env);
-            free_program(lexer, parser, program);
         }
+
+        free_program(lexer, parser, program);
     }
 
     env_free(env);
