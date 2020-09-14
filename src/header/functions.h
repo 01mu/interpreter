@@ -104,7 +104,7 @@ Object * env_get(Env * env, char * name);
 Object * env_set(Env * env, char * name, Object * data);
 void env_test();
 
-bool free_eval_expression(char * ext, Object * obj, Env * env);
+bool free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj);
 bool is_error(Object * obj);
 Object * new_error(char * msg);
 void init_bool(Object ** b, bool lit);
@@ -135,15 +135,17 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name);
 Object * eval_statement(Statement statement, Env * env);
 Object * eval_statements(Statement * statements, int sc, Env * env);
 
-typedef struct {
-    char * string;
-    int len;
-} String;
-
 String * string_new();
 void string_cat(String * string, char * ap, bool h);
 void string_append(String * string, String * ap);
 void string_free(String * string);
+
+SortedList * sorted_list_new(char * data_type, void * data, char * key);
+SortedList * sorted_list_ins(SortedList ** r, char * dt, void * d, char * key);
+bool sorted_list_remove(SortedList ** r, char * key);
+SortedList * sorted_list_find(SortedList * r, char * key);
+String * sorted_list_print(SortedList * sl);
+void sorted_list_free(SortedList * sl, HashMap * track);
 
 HashMap * hash_map_new(int size);
 void * hash_map_insert(HashMap * hm, char * key, char * dt, void * data);

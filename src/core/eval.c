@@ -8,14 +8,24 @@
  */
 
 bool eval_is_bool(char * t) {
-    return (strcmp(t, TRUE) == 0) || (strcmp(t, FALSE) == 0);
+    return (strcmp(t, TRUE) == 0) || (strcmp(t, FALSE) == 0) ||
+        strcmp(t, BOOLEAN);
 }
 
-bool free_eval_expression(char * ext, Object * obj, Env * env) {
+bool check_for_free(char * t) {
+    if(strcmp(t, IDENT) == 0 || eval_is_bool(t)) {
+        return true;
+    }
+
+    return false;
+}
+
+bool free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
     if(strcmp(ext, INT) == 0) {
         if(obj->value != NULL) {
             free(obj->value);
             obj->value = NULL;
+            if(free_obj) free(obj);
             return true;
         }
     } else if(strcmp(ext, IDENT) == 0) {
@@ -24,11 +34,14 @@ bool free_eval_expression(char * ext, Object * obj, Env * env) {
         if(strcmp(obj->type, INT) == 0) {
            free(obj->value);
         }
+        if(free_obj) free(obj);
         return true;
     } else if(strcmp(ext, INFIX) == 0) {
         if(strcmp(obj->type, INT) == 0) {
            free(obj->value);
         }
+
+        if(free_obj) free(obj);
         return true;
     } else if(strcmp(ext, BOOLEAN) == 0) {
 
@@ -41,21 +54,24 @@ bool free_eval_expression(char * ext, Object * obj, Env * env) {
     }
 }
 
-Object * update_eval_value(Object ** obj, Object * new, Env * env) {
+Object * update_eval_value(Object ** obj, Object * new, Env * env, char * est) {
     char * old_t = (*obj)->type, * new_t = new->type;
     IntegerObject * iob_old, * iob_new;
     bool same_type = strcmp(old_t, new_t) == 0;
 
     if(same_type && strcmp(new_t, INT) == 0) {
+
         iob_old = (IntegerObject *) (*obj)->value;
         iob_new = (IntegerObject *) new->value;
         iob_old->value = iob_new->value;
-        free_eval_expression(new_t, new, env);
-        free(new);
+
+        if(!check_for_free(est)) {
+            free_eval_expression(new_t, new, env, true);
+        }
+
         return (*obj);
     } else if(strcmp(old_t, BOOLEAN) != 0 && strcmp(new_t, BOOLEAN) == 0) {
-        free_eval_expression(old_t, *obj, env);
-        free(*obj);
+        free_eval_expression(old_t, *obj, env, true);
         (*obj) = new;
         return (*obj);
     } else if(strcmp(old_t, BOOLEAN) == 0) {
@@ -198,7 +214,7 @@ Object * eval_prefix_expression(PrefixExpression * pex, Env * env) {
         if(strcmp(pex->expression_type, IDENT) != 0 &&
             !eval_is_bool(pex->expression_type)) {
 
-            if(free_eval_expression(pex->expression_type, right, env)) {
+            if(free_eval_expression(pex->expression_type, right, env, true)) {
                 free(right);
             }
         }
@@ -260,7 +276,6 @@ Object * eval_integer_infix_exp(char * op, Object * l, Object * r, Env * env) {
 
 Object * eval_infix_expression(InfixExpression * iex, Env * env) {
     Object * l, * r, * ret;
-    bool left_is_ident = false, right_is_ident = false;
     char * m = NULL;
     char * op = iex->operator, * lext = iex->left_expression_type,
         * rext = iex->right_expression_type;
@@ -277,42 +292,28 @@ Object * eval_infix_expression(InfixExpression * iex, Env * env) {
         return r;
     }
 
-    if(strcmp(lext, IDENT) == 0 || eval_is_bool(lext)) {
-        left_is_ident = true;
-    }
-
-    if(strcmp(rext, IDENT) == 0 || eval_is_bool(rext)) {
-        right_is_ident = true;
-    }
-
     if(strcmp(l->type, INT) == 0 && strcmp(r->type, INT) == 0) {
         ret = eval_integer_infix_exp(op, l, r, env);
 
-        if(!left_is_ident) {
-            if(free_eval_expression(lext, l, env)) {
-                free(l);
-            }
+        printf("%s\n", lext);
+
+        if(check_for_free(lext)) {
+            free_eval_expression(lext, l, env, true);
         }
 
-        if(!right_is_ident) {
-            if(free_eval_expression(rext, r, env)) {
-                free(r);
-            }
+        if(check_for_free(rext)) {
+            free_eval_expression(rext, r, env, true);
         }
     } else if(strcmp(l->type, r->type) != 0) {
         m = malloc(strlen(l->type) + strlen(r->type) + strlen(op) + 19);
         sprintf(m, "Type mismatch: %s %s %s", l->type, op, r->type);
 
-        if(!left_is_ident) {
-            if(free_eval_expression(lext, l, env)) {
-                free(l);
-            }
+        if(check_for_free(lext)) {
+            free_eval_expression(lext, l, env, true);
         }
 
-        if(!right_is_ident) {
-            if(free_eval_expression(rext, r, env)) {
-                free(r);
-            }
+        if(check_for_free(rext)) {
+            free_eval_expression(rext, r, env, true);
         }
 
         ret = new_error(m);
@@ -509,24 +510,28 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
     Object * obj = eval_expression(est->expression_type, est->expression, env);
     Object * get  = env_get(env, name);
     Object ** t = NULL;
-    char * th = NULL;
+    char * ident_name = NULL;
 
     if(is_error(obj)) {
         return obj;
     }
 
     if(get != NULL) {
+        printf("%p\n", get);
+
         t = (Object **) (&(hash_map_find(env->store, name)->data));
-        return update_eval_value(t, obj, env);
+
+        if(obj == get) {
+            return obj;
+        }
+
+        return update_eval_value(t, obj, env, est->expression_type);
     }
 
-    th = malloc(strlen(name) + 1);
-    th[0] = '\0';
-    strcpy(th, name);
-
-    printf("%s\n", est->expression_type);
-
-    env_set(env, th, obj);
+    ident_name = malloc(strlen(name) + 1);
+    ident_name[0] = '\0';
+    strcpy(ident_name, name);
+    env_set(env, ident_name, obj);
 }
 
 Object * eval_statement(Statement statement, Env * env) {
@@ -572,14 +577,8 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
         if(strcmp(stt, EXPRESSION) == 0) {
             est = (ExpressionStatement *) statements[i].st;
 
-            if(strcmp(est->expression_type, IDENT) == 0 ||
-                strcmp(obj->type, BOOLEAN) == 0 ||
-                eval_is_bool(est->expression_type)) {
-                continue;
-            }
-
-            if(free_eval_expression(est->expression_type, obj, env)) {
-                free(obj);
+            if(check_for_free(est->expression_type)) {
+                free_eval_expression(est->expression_type, obj, env, true);
             }
         }
     }

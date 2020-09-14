@@ -110,17 +110,18 @@ void hash_map_free(HashMap * hm, HashMap * track) {
 }
 
 void hash_map_test() {
+    int i;
     HashMap * hm = hash_map_new(50);
     String * hmp;
-    void * a = malloc(1);
 
-    hash_map_insert(hm, "f", NULL, NULL);
-    hash_map_insert(hm, "f", NULL, NULL);
-    hash_map_insert(hm, "a", NULL, NULL);
-    hash_map_insert(hm, "h", NULL, NULL);
-    hash_map_insert(hm, "z", "test", a);
+    char * a = malloc(10);
+    a[0] = '\0';
+    strcpy(a, "zzzz");
 
-    hash_map_remove(hm, "f");
+    hash_map_insert(hm, a, NULL, NULL);
+   // hash_map_insert(hm, b, NULL, NULL);
+
+    //hash_map_remove(hm, "f");
 
     hmp = hash_map_print(hm);
     printf("%s", hmp->string);

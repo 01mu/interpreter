@@ -7,6 +7,11 @@
  *
  */
 
+typedef struct {
+    char * string;
+    int len;
+} String;
+
 struct SortedList {
     struct SortedList * next;
     char * data_type;

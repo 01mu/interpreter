@@ -69,7 +69,7 @@ void env_free(Env * env) {
                 if(strcmp(obj->type, BOOLEAN) == 0) {
                     current->data = malloc(1);
                 } else {
-                    free_eval_expression(obj->type, obj, env);
+                    free_eval_expression(obj->type, obj, env, false);
                 }
 
                 current = current->next;
