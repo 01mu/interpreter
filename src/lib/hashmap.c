@@ -7,15 +7,6 @@
  *
  */
 
-HashMap * hash_map_new(int size);
-void * hash_map_insert(HashMap * hm, char * key, char * dt, void * data);
-void hash_map_remove(HashMap * hm, char * key);
-SortedList * hash_map_find(HashMap * hm, char * key);
-int hash_map_hash(HashMap * hm, char * key);
-String * hash_map_print(HashMap * hm);
-void hash_map_free(HashMap * hm);
-void hash_map_test();
-
 HashMap * hash_map_new(int size) {
     int i;
     HashMap * map = malloc(sizeof(HashMap));
@@ -105,12 +96,12 @@ String * hash_map_print(HashMap * hm) {
     return str;
 }
 
-void hash_map_free(HashMap * hm) {
+void hash_map_free(HashMap * hm, HashMap * track) {
     int i;
 
     for(i = 0; i < hm->size; i++) {
         if(hm->array[i] != NULL) {
-            sorted_list_free(hm->array[i]);
+            sorted_list_free(hm->array[i], track);
         }
     }
 
@@ -133,6 +124,6 @@ void hash_map_test() {
 
     hmp = hash_map_print(hm);
     printf("%s", hmp->string);
-    hash_map_free(hm);
+    hash_map_free(hm, NULL);
     string_free(hmp);
 }

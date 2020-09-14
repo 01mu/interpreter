@@ -53,11 +53,13 @@ void env_test() {
 }
 
 void env_free(Env * env) {
+    int i;
+
     Object * obj = NULL;
-    HashMap * store = env->store;
+    HashMap * store = env->store, * track = hash_map_new(50);
     SortedList * current = NULL;
 
-    for(int i = 0; i < store->size; i++) {
+    for(i = 0; i < store->size; i++) {
         if(store->array[i] != NULL) {
             current = store->array[i];
 
@@ -65,7 +67,7 @@ void env_free(Env * env) {
                 obj = (Object *) current->data;
 
                 if(strcmp(obj->type, BOOLEAN) == 0) {
-                    current->data = malloc(sizeof(Object));
+                    current->data = malloc(1);
                 } else {
                     free_eval_expression(obj->type, obj, env);
                 }
@@ -75,6 +77,8 @@ void env_free(Env * env) {
         }
     }
 
-    hash_map_free(env->store);
+    hash_map_free(env->store, track);
+    hash_map_free(track, NULL);
+
     free(env);
 }

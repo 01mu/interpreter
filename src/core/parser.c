@@ -224,6 +224,8 @@ void * parse_infix_expression(Parser * par, void * left, char * left_type) {
     InfixExpression * ie = malloc(sizeof(InfixExpression));
     int precedence = parser_get_precedence(par, PREC_CURRENT);
 
+    //printf("%s\n", par->current_token.literal);
+
     ie->token = par->current_token;
     ie->operator = par->current_token.literal;
     ie->left_expression_type = left_type;
@@ -302,6 +304,7 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
     } else {
         exp_type = ILLEGAL;
         expr = NULL;
+        error_invalid_syntax(par, par->peek_token);
     }
 
     while(!peek_token_is(par, SEMICOLON) &&
@@ -310,9 +313,8 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
         type = par->peek_token.type;
         parser_next_token(par);
 
-        if(type == PLUS || type == MINUS || type == SLASH ||
-            type == ASTERISK || type == EQ || type == NOT_EQ ||
-            type == LT || type == GT) {
+        if(type == PLUS || type == MINUS || type == SLASH || type == ASTERISK ||
+            type == EQ || type == NOT_EQ || type == LT || type == GT) {
 
             expr = parse_infix_expression(par, expr, exp_type);
             exp_type = INFIX;
@@ -452,10 +454,11 @@ Program * parse_program(Parser * parser) {
 int parser_get_precedence(Parser * par, int type) {
     char * pt;
 
-    if(type == PREC_PEEK)
+    if(type == PREC_PEEK) {
         pt = par->peek_token.type;
-    else if(type == PREC_CURRENT)
+    } else if(type == PREC_CURRENT) {
         pt = par->current_token.type;
+    }
 
     if(pt == EQ || pt == NOT_EQ) {
         return PRE_EQUALS;

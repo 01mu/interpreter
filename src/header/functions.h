@@ -24,6 +24,7 @@ void parser_next_token(Parser * parser);
 Parser * new_parser(Lexer * lexer);
 bool cur_token_is(Parser * parser, char * type);
 bool peek_token_is(Parser * parser, char * type);
+void error_invalid_syntax(Parser * parser, Token t);
 void peek_error(Parser * parser, char * type);
 bool expect_peek(Parser * parser, char * type);
 bool check_parser_errors(Parser * parser);
@@ -133,3 +134,22 @@ Object * eval_return_statement(ExpressionStatement * est, Env * env);
 Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name);
 Object * eval_statement(Statement statement, Env * env);
 Object * eval_statements(Statement * statements, int sc, Env * env);
+
+typedef struct {
+    char * string;
+    int len;
+} String;
+
+String * string_new();
+void string_cat(String * string, char * ap, bool h);
+void string_append(String * string, String * ap);
+void string_free(String * string);
+
+HashMap * hash_map_new(int size);
+void * hash_map_insert(HashMap * hm, char * key, char * dt, void * data);
+void hash_map_remove(HashMap * hm, char * key);
+SortedList * hash_map_find(HashMap * hm, char * key);
+int hash_map_hash(HashMap * hm, char * key);
+String * hash_map_print(HashMap * hm);
+void hash_map_free(HashMap * hm, HashMap * track);
+void hash_map_test();

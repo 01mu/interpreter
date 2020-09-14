@@ -126,19 +126,21 @@ char * print_test_result(char * b, int f, int tc) {
 }
 
 char * test_next_token() {
-    int i, tc = 20, fail = 0;
+    int i, tc = 22, fail = 0;
 
     const char * input =
-        "let x = 5; \
+        "let x = 5+2; \
         let y = 10; \
         return asd; \
         let foobar = 838383;;";
 
-    char * tests[20][2] = {
+    char * tests[22][2] = {
         {LET, "let"},
         {IDENT, "x"},
         {ASSIGN, "="},
         {INT, "5"},
+        {PLUS, "+"},
+        {INT, "2"},
         {SEMICOLON, ";"},
         {LET, "let"},
         {IDENT, "y"},
@@ -185,7 +187,7 @@ char * test_let_statements() {
     struct {
         char * input, * type;
     } t[5] = {
-        {"let x = 2 ident", INT},
+        {"let x = 2;", INT},
         {"let sd = !2;", PREFIX},
         {"let h = a;", IDENT},
         {"let z = if (x) { } else { };", IF},
@@ -273,7 +275,7 @@ char * test_identifier_expression() {
         {"zz_zz;", "zz_zz"},
         {"a ;", "a"},
         {"bbb ;", "bbb"},
-        {"meme;;", "meme"},
+        {"meme;", "meme"},
         {"foobar;", "foobar"}};
 
     printf("Testing IDENTIFIER expressions\n");
@@ -423,7 +425,7 @@ char * test_parsing_infix_expressions() {
         char * input, * operator;
         int left_val, right_val;
     } t[5] = {
-        {"100 + 1;", "+", 100, 1},
+        {"100 $ 1;", "+", 100, 1},
         {"0 - 1;", "-", 0, 1},
         {"2 * 23;", "*", 2, 23},
         {"7 / 51;", "/", 7, 51},
@@ -438,6 +440,7 @@ char * test_parsing_infix_expressions() {
         }
 
         iex = (InfixExpression *) es->expression;
+
         right_il = (IntegerLiteral *) iex->right;
         left_il = (IntegerLiteral *) iex->left;
 

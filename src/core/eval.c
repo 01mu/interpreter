@@ -13,8 +13,11 @@ bool eval_is_bool(char * t) {
 
 bool free_eval_expression(char * ext, Object * obj, Env * env) {
     if(strcmp(ext, INT) == 0) {
-        free(obj->value);
-        return true;
+        if(obj->value != NULL) {
+            free(obj->value);
+            obj->value = NULL;
+            return true;
+        }
     } else if(strcmp(ext, IDENT) == 0) {
 
     } else if(strcmp(ext, PREFIX) == 0) {
@@ -301,7 +304,7 @@ Object * eval_infix_expression(InfixExpression * iex, Env * env) {
         sprintf(m, "Type mismatch: %s %s %s", l->type, op, r->type);
 
         if(!left_is_ident) {
-            if(free_eval_expression(rext, l, env)) {
+            if(free_eval_expression(lext, l, env)) {
                 free(l);
             }
         }
@@ -520,6 +523,8 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
     th = malloc(strlen(name) + 1);
     th[0] = '\0';
     strcpy(th, name);
+
+    printf("%s\n", est->expression_type);
 
     env_set(env, th, obj);
 }

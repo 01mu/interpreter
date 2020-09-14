@@ -7,16 +7,6 @@
  *
  */
 
-typedef struct {
-    char * string;
-    int len;
-} String;
-
-String * string_new();
-void string_cat(String * string, char * ap, bool h);
-void string_append(String * string, String * ap);
-void string_free(String * string);
-
 String * string_new() {
     String * string = malloc(sizeof(String));
 

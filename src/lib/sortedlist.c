@@ -12,7 +12,7 @@ SortedList * sorted_list_ins(SortedList ** r, char * dt, void * d, char * key);
 bool sorted_list_remove(SortedList ** r, char * key);
 SortedList * sorted_list_find(SortedList * r, char * key);
 String * sorted_list_print(SortedList * sl);
-void sorted_list_free(SortedList * sl);
+void sorted_list_free(SortedList * sl, HashMap * track);
 
 SortedList * sorted_list_new(char * data_type, void * data, char * key) {
     SortedList * sl = malloc(sizeof(SortedList));
@@ -123,13 +123,34 @@ String * sorted_list_print(SortedList * sl) {
     return str;
 }
 
-void sorted_list_free(SortedList * sl) {
+char * ptr_to_str(Object * obj) {
+    char * s = malloc(30);
+    s[0] = '\0';
+    sprintf(s, "%p", obj);
+    return s;
+}
+
+void sorted_list_free(SortedList * sl, HashMap * track) {
     SortedList * current = sl, * temp;
+    char * a = NULL;
 
     while(current != NULL) {
         temp = current->next;
         free(current->key);
-        free(current->data);
+
+        if(track != NULL) {
+            a = ptr_to_str((Object *) current->data);
+
+            if(hash_map_find(track, a) == NULL) {
+                hash_map_insert(track, a, NULL, NULL);
+                free(current->data);
+            } else {
+                free(a);
+            }
+        } else {
+            free(current->data);
+        }
+
         free(current);
         current = temp;
     }

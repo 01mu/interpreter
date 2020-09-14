@@ -208,7 +208,8 @@ Token lexer_next_token(Lexer * lexer) {
             token.type = INT;
             return token;
         } else {
-            token = new_token(ILLEGAL);
+            token.type = ILLEGAL;
+            token.literal = ILLEGAL;
         }
     };
 
@@ -241,6 +242,18 @@ bool cur_token_is(Parser * parser, char * type) {
 
 bool peek_token_is(Parser * parser, char * type) {
     return strcmp(parser->peek_token.type, type) == 0;
+}
+
+void error_invalid_syntax(Parser * parser, Token t) {
+    int lit_len = strlen(t.literal);
+    int type_len = strlen(t.type);
+    char * str = malloc(55 + lit_len + type_len);
+
+    sprintf(str, "ERROR: Invalid syntax before literal '%s' of type %s",
+        t.literal, t.type);
+
+    parser->errors = realloc(parser->errors, sizeof(char *) * (parser->ec + 1));
+    parser->errors[parser->ec++] = str;
 }
 
 void peek_error(Parser * parser, char * type) {
