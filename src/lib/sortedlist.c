@@ -127,7 +127,6 @@ void sorted_list_free(SortedList * sl, HashMap * track) {
         if(track != NULL) {
             addr = malloc(30);
             sprintf(addr, "%p", current->data);
-            printf("%s\n", addr);
 
             if(hash_map_find(track, addr) == NULL) {
                 hash_map_insert(track, addr, NULL, NULL);

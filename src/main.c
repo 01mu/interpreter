@@ -47,6 +47,8 @@ int main(int argc, char * argv[])
         test_eval_all(argv[2]);
     } else if(strcmp(argv[1], "test-parse") == 0) {
         test_parse_all(argv[2]);
+    } else if(strcmp(argv[1], "test-repl") == 0) {
+        repl_test();
     } else if(strcmp(argv[1], "repl") == 0) {
         repl();
     } else {
