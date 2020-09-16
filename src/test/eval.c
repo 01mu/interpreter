@@ -56,16 +56,18 @@ Object * get_eval_object(char * input) {
 }
 
 char * test_function_application() {
-    int i, tc = 3, fail = 0;
+    int i, fail = 0;
     Statement stmt;
     Object * obj;
     Object * final;
     struct {
         char * input, * expected;
-    } t[3] = {
+    } t[] = {
         {"fn(x) { 3 + x - 2; }", FUNCTION},
         {"let ident = 2; fn(x) { x; }(ident);", INT},
-        {"let add = fn(x) { x; }; add(2);", INT}};
+        {"let add = fn(x) { x; }; add(2);", INT},
+    };
+    int tc = sizeof(t) / sizeof(t[1]);
 
     printf("Testing FUNCTION object\n");
 

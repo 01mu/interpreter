@@ -21,6 +21,10 @@
 #include "lib/sortedlist.c"
 #include "lib/hashmap.c"
 
+
+Env * out = NULL;
+
+
 #include "core/env.c"
 #include "core/free.c"
 #include "core/lexer.c"
@@ -39,7 +43,7 @@ int main(int argc, char * argv[])
 
     if(strcmp(argv[1], "test-hash") == 0) {
         hash_map_test();
-    } else if(strcmp(argv[1], "env") == 0) {
+    } else if(strcmp(argv[1], "test-env") == 0) {
         env_test();
     } else if(strcmp(argv[1], "test-print") == 0) {
         test_print_program();

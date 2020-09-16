@@ -104,7 +104,8 @@ Object * env_get(Env * env, char * name);
 Object * env_set(Env * env, char * name, Object * data);
 void env_test();
 
-bool free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj);
+bool is_bool_or_ident(char * t);
+void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj);
 bool is_error(Object * obj);
 Object * new_error(char * msg);
 void init_bool(Object ** b, bool lit);

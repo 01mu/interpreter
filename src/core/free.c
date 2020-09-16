@@ -121,24 +121,14 @@ void free_return_statement(ReturnStatement * ret) {
 }
 
 void free_let_statement(LetStatement * let) {
-    ExpressionStatement * es;
+    ExpressionStatement * es = (ExpressionStatement *) let->value;
 
-    if(let->token.literal != NULL) {
-        //printf("Free token literal: %p\n", let->token.literal);
-        free(let->token.literal);
-    }
+    free(let->token.literal);
+    free(let->name.value);
+    free_expression_statement(let->type, es->expression);
+    free(let->type);
+    free(es);
 
-    if(let->name.value != NULL) {
-        //printf("Free identifier value: %p\n", let->name.value);
-        free(let->name.value);
-    }
-
-    if(let->type != NULL) {
-        es = (ExpressionStatement *) let->value;
-        free_expression_statement(let->type, es->expression);
-        free(let->type);
-        free(es);
-    }
 }
 
 void free_statement(Statement stmt) {

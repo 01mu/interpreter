@@ -7,80 +7,58 @@
  *
  */
 
-bool eval_is_bool(char * t) {
-    return (strcmp(t, TRUE) == 0) || (strcmp(t, FALSE) == 0) ||
+bool is_bool_or_ident(char * t) {
+    bool eval_is_bool = (strcmp(t, TRUE) == 0) || (strcmp(t, FALSE) == 0) ||
         (strcmp(t, BOOLEAN) == 0);
-}
 
-bool check_for_free(char * t) {
-    if(strcmp(t, IDENT) == 0 || eval_is_bool(t)) {
+    if(strcmp(t, IDENT) == 0 || eval_is_bool) {
         return true;
     }
 
     return false;
 }
 
-bool free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
-    if(strcmp(ext, INT) == 0) {
-        if(obj->value != NULL) {
-            free(obj->value);
-            obj->value = NULL;
-            if(free_obj) free(obj);
-            return true;
-        }
-    } else if(strcmp(ext, IDENT) == 0) {
-
-    } else if(strcmp(ext, PREFIX) == 0) {
-        if(strcmp(obj->type, INT) == 0) {
-           free(obj->value);
-            if(free_obj) {
-                free(obj);
-            }
-        }
-        return true;
+void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
+    if(strcmp(ext, INT) == 0 && obj->value != NULL) {
+        free(obj->value);
+        obj->value = NULL;
+    } else if(strcmp(ext, PREFIX) == 0 && strcmp(obj->type, INT) == 0) {
+        free(obj->value);
     } else if(strcmp(ext, INFIX) == 0) {
-        if(strcmp(obj->type, INT) == 0) {
-           free(obj->value);
-            if(free_obj) {
-                free(obj);
-            }
-            return true;
-        }
-    } else if(strcmp(ext, BOOLEAN) == 0) {
-
-    } else if(strcmp(ext, IF) == 0) {
-
+        free(obj->value);
+    } else if(strcmp(ext, CALL) == 0 && strcmp(obj->type, INT) == 0) {
+        free(obj->value);
     } else if(strcmp(ext, FUNCTION) == 0) {
-
-    } else if(strcmp(ext, CALL) == 0) {
-
+        free(obj->value);
+    } else {
+        return;
     }
 
-    return false;
+    if(free_obj) {
+        free(obj);
+    }
 }
 
 Object * update_eval_value(Object ** obj, Object * new, Env * env, char * est) {
     char * old_t = (*obj)->type, * new_t = new->type;
-    IntegerObject * iob_new;
+    Object * ret = NULL;
+    IntegerObject * iob_old = NULL, * iob_new = NULL;
     bool same_type = strcmp(old_t, new_t) == 0;
 
     if(same_type && strcmp(new_t, INT) == 0) {
+        iob_old = (IntegerObject *) (*obj)->value;
         iob_new = (IntegerObject *) new->value;
-        ((IntegerObject *) (*obj)->value)->value = iob_new->value;
-
-        if(strcmp(est, INT) == 0) {
-            free_eval_expression(new_t, new, env, true);
-        }
-
-        return * obj;
+        iob_old->value = iob_new->value;
+        free_eval_expression(new_t, new, env, true);
+        ret = * obj;
     } else if(strcmp(old_t, BOOLEAN) != 0 && strcmp(new_t, BOOLEAN) == 0) {
         free_eval_expression(old_t, * obj, env, true);
-        * obj = new;
-        return * obj;
+        ret = new;
     } else if(strcmp(old_t, BOOLEAN) == 0) {
-        * obj = new;
-        return * obj;
+        ret = new;
     }
+
+    return ret;
 }
 
 bool is_error(Object * obj) {
@@ -214,7 +192,7 @@ Object * eval_prefix_expression(PrefixExpression * pex, Env * env) {
     if(strcmp(operator, "!") == 0 ) {
         ret = eval_bang_operator_expression(right, env);
 
-        if(!check_for_free(pex->expression_type)) {
+        if(!is_bool_or_ident(pex->expression_type)) {
             free_eval_expression(pex->expression_type, right, env, true);
         }
     } else if(strcmp(operator, "-") == 0) {
@@ -294,22 +272,22 @@ Object * eval_infix_expression(InfixExpression * iex, Env * env) {
     if(strcmp(l->type, INT) == 0 && strcmp(r->type, INT) == 0) {
         ret = eval_integer_infix_exp(op, l, r, env);
 
-        if(!check_for_free(lext)) {
+        if(!is_bool_or_ident(lext)) {
             free_eval_expression(lext, l, env, true);
         }
 
-        if(!check_for_free(rext)) {
+        if(!is_bool_or_ident(rext)) {
             free_eval_expression(rext, r, env, true);
         }
     } else if(strcmp(l->type, r->type) != 0) {
         m = malloc(strlen(l->type) + strlen(r->type) + strlen(op) + 19);
         sprintf(m, "Type mismatch: %s %s %s", l->type, op, r->type);
 
-        if(!check_for_free(lext)) {
+        if(!is_bool_or_ident(lext)) {
             free_eval_expression(lext, l, env, true);
         }
 
-        if(!check_for_free(rext)) {
+        if(!is_bool_or_ident(rext)) {
             free_eval_expression(rext, r, env, true);
         }
 
@@ -379,16 +357,32 @@ Object * eval_function_literal(FunctionLiteral * fl, Env * env) {
     return obj;
 }
 
+
+Object * copy_integer_object(Object * fr) {
+    Object * obj = malloc(sizeof(Object));
+    IntegerObject * iobj = malloc(sizeof(IntegerObject));
+    iobj->value = ((IntegerObject *) fr->value)->value;
+    obj->type = INT;
+    obj->value = iobj;
+
+    return obj;
+}
+
 Object ** eval_expressions(ExpressionStatement ** args, int c, Env * env) {
+    int i;
     Object ** objects = malloc(sizeof(Object *)), ** err = NULL;
     Object * eval = NULL;
     ExpressionStatement * est = NULL;
-    int i;
 
     for(i = 0; i < c; i++) {
         objects = realloc(objects, sizeof(Object *) * (i + 1));
         est = (ExpressionStatement *) args[i];
         eval = eval_expression(est->expression_type, est->expression, env);
+
+        if(strcmp(est->expression_type, IDENT) == 0) {
+            eval = copy_integer_object(eval);
+        }
+
         objects[i] = eval;
 
         if(is_error(eval)) {
@@ -402,13 +396,17 @@ Object ** eval_expressions(ExpressionStatement ** args, int c, Env * env) {
 }
 
 Env * extend_function_env(Function * func, Object ** args) {
+    int i;
     Env * env = env_new_enclosed(func->env);
     Identifier * ident = NULL;
-    int i;
+    char * new = NULL;
 
     for(i = 0; i < func->pc; i++) {
         ident = (Identifier *) func->parameters[i];
-        env_set(env, ident->value, args[i]);
+        new = malloc(strlen(ident->value) + 1);
+        new[0] = '\0';
+        strcpy(new, ident->value);
+        env_set(env, new, args[i]);
     }
 
     return env;
@@ -429,7 +427,7 @@ Object * apply_function(Object * obj, Object ** args) {
     char * m = NULL;
     Object * evaluated = NULL;
     Function * func = (Function *) obj->value;
-    Env * extended_env = extend_function_env(func, args);
+    out = extend_function_env(func, args);
     BlockStatement * bs = func->body;
 
     if(strcmp(FUNCTION, obj->type) != 0) {
@@ -438,14 +436,19 @@ Object * apply_function(Object * obj, Object ** args) {
         return new_error(m);
     }
 
-    evaluated = eval_statements(bs->statements, bs->sc, extended_env);
+    evaluated = eval_statements(bs->statements, bs->sc, out);
+
+    env_display(out);
 
     return unwrap_return_value(evaluated);
 }
 
 Object * eval_call_expression(CallExpression * ce, Env * env) {
+    int i;
+
     Object * obj = eval_expression(ce->function_type, ce->function, env);
-    Object ** args;
+    Object * apply = NULL;
+    Object ** args = NULL;
 
     if(is_error(obj)) {
         return obj;
@@ -457,7 +460,10 @@ Object * eval_call_expression(CallExpression * ce, Env * env) {
         return args[0];
     }
 
-    return apply_function(obj, args);
+    apply = apply_function(obj, args);
+    free(args);
+
+    return apply;
 }
 
 Object * eval_expression(char * ext, void * est, Env * env) {
@@ -510,7 +516,7 @@ Object * eval_return_statement(ExpressionStatement * est, Env * env) {
 
 Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
     Object * obj = eval_expression(est->expression_type, est->expression, env);
-    Object * get  = env_get(env, name);
+    Object * get = env_get(env, name);
     Object ** t = NULL;
     char * ident_name = NULL;
 
@@ -572,7 +578,11 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
             continue;
         }
 
-        if(strcmp(obj->type, RETURN) == 0 || strcmp(obj->type, ERROR) == 0) {
+        if(strcmp(obj->type, RETURN) == 0) {
+            return obj;
+        }
+
+        if(strcmp(obj->type, ERROR) == 0) {
             err = (ErrorObject *) obj->value;
             free(err->message);
             free(err);
@@ -580,12 +590,13 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
             return obj;
         }
 
-        if(strcmp(est->expression_type, IF) == 0) {
-            continue;
-        }
+        printf("%s %s %s\n", stt, est->expression_type, obj->type);
+        printf("is call: %i\n", strcmp(est->expression_type, CALL) == 0);
 
-        if(strcmp(stt, EXPRESSION) == 0) {
-            if(!check_for_free(est->expression_type)) {
+        if(env != out) {
+            if(strcmp(stt, EXPRESSION) == 0 &&
+                !is_bool_or_ident(est->expression_type)) {
+
                 free_eval_expression(est->expression_type, obj, env, true);
             }
         }

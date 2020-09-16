@@ -122,6 +122,7 @@ void sorted_list_free(SortedList * sl, HashMap * track) {
 
     while(current != NULL) {
         temp = current->next;
+
         free(current->key);
 
         if(track != NULL) {
