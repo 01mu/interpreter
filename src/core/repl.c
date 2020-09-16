@@ -12,26 +12,36 @@ void repl_do_test(char * input);
 void repl_test();
 
 void repl_test() {
+    int t = 1;
     int i;
 
-    /*char * t[] = {
-        "let a = true; let a = false; let b = a; a; !b;",
-        "let var = 1 ---3; let z = -1; z * -2;",
-        "let a = !3; if(!!!!false == true) { a } else { 55 }",
-        "!false; !!true; false; true; !5; !!5; !!!500; -5; !5 == 5;",
-        "let a = 3; if(a + 1) { a } else {  }",
-        "let a = 3; let b = 5; let z = 3; 1 + 2;",
-        "let a = 2; let b = a; let a = b + 2; 3;",
-    };*/
+    if(t == 0) {
+        char * t[] = {
+            "let mult = fn(x) { 2; 2; x; return 3; }; let a = mult(33);",
+            "let mult = fn(x) { 2; 2; x; 3; }; mult(33);",
+            "let mult = fn(x) { 17; }; let j = mult(33);",
+            "let mult = fn(x, a) { 1; 33; x; }; let z = 2; mult(z, 10);",
+            "let mult = fn(x, a) { x * a; }; let b = mult(3, 10);",
+            "let a = true; let a = false; let b = a; a; !b;",
+            "let var = 1 ---3; let z = -1; z * -2;",
+            "let a = !3; if(!!!!false == true) { a } else { 55 }",
+            "!false; !!true; false; true; !5; !!5; !!!500; -5; !5 == 5;",
+            "let a = 3; if(a + 1) { a } else {  }",
+            "let a = 3; let b = 5; let z = 3; 1 + 2;",
+            "let a = 2; let b = a; let a = b + 2; 3;",
+        };
 
-    char * t[] = {
-        "let mult = fn(x) { x; }; let a = 1; mult(a);",
-        //"let mult = fn(x, a) { x; 1; }; let z = 2; mult(z, 10);",
-        //"let mult = fn(x, a) { x * a; }; let z = 2; mult(z, 10);",
-    };
+        for(i = 0; i < sizeof(t) / sizeof(t[1]); i++) {
+            repl_do_test(t[i]);
+        }
+    } else {
+        char * t[] = {
+            "let mult = fn(x) { 2; 2; x; 3; }(33);",
+        };
 
-    for(i = 0; i < sizeof(t) / sizeof(t[1]); i++) {
-        repl_do_test(t[i]);
+        for(i = 0; i < sizeof(t) / sizeof(t[1]); i++) {
+            repl_do_test(t[i]);
+        }
     }
 }
 

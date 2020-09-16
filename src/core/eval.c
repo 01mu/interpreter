@@ -24,6 +24,8 @@ void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
         obj->value = NULL;
     } else if(strcmp(ext, PREFIX) == 0 && strcmp(obj->type, INT) == 0) {
         free(obj->value);
+    } else if(strcmp(ext, RETURN) == 0) {
+        printf("ASD");
     } else if(strcmp(ext, INFIX) == 0) {
         free(obj->value);
     } else if(strcmp(ext, CALL) == 0 && strcmp(obj->type, INT) == 0) {
@@ -414,10 +416,13 @@ Env * extend_function_env(Function * func, Object ** args) {
 
 Object * unwrap_return_value(Object * obj) {
     ReturnValue * rv = NULL;
+    Object * ret_obj = NULL;
 
     if(strcmp(obj->type, RETURN) == 0) {
-        rv = (ReturnValue *) obj->value;
-        return rv->value;
+        ret_obj = ((ReturnValue *) obj->value)->value;
+        free(obj->value);
+        free(obj);
+        return ret_obj;
     }
 
     return obj;
@@ -438,7 +443,24 @@ Object * apply_function(Object * obj, Object ** args) {
 
     evaluated = eval_statements(bs->statements, bs->sc, out);
 
-    env_display(out);
+    printf("Evaluated type: %s\n", evaluated->type);
+
+    if(strcmp(evaluated->type, RETURN) != 0) {
+        Statement st = bs->statements[bs->sc - 1];
+        char * statement_type = st.type;
+        char * estt = NULL;
+
+        if(strcmp(statement_type, EXPRESSION) == 0) {
+            ExpressionStatement * est =  st.st;
+            estt = est->expression_type;
+        }
+
+        if(strcmp(estt, IDENT) != 0) {
+            free_eval_expression(evaluated->type, evaluated, NULL, true);
+        }
+
+        return false_bool;
+    }
 
     return unwrap_return_value(evaluated);
 }
@@ -565,18 +587,24 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
     Object * obj = NULL;
     ErrorObject * err = NULL;
     ExpressionStatement * est = NULL;
-    char * stt = NULL;
+    char * stt = NULL, * exst = NULL;
 
     for(i = 0; i < sc; i++) {
         obj = eval_statement(statements[i], env);
+
         stt = statements[i].type;
         est = (ExpressionStatement *) statements[i].st;
+        exst = est->expression_type;
+        bool is_call = strcmp(exst, CALL) == 0;
 
-        if(strcmp(est->expression_type, IF) != 0) {
+        if(strcmp(exst, IF) != 0) {
             print_object(obj);
         } else {
             continue;
         }
+
+        printf("[%p] [%i] %s %s %s\n", env, i, stt, exst, obj->type);
+        printf("is call: %i\n", is_call);
 
         if(strcmp(obj->type, RETURN) == 0) {
             return obj;
@@ -590,15 +618,19 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
             return obj;
         }
 
-        printf("%s %s %s\n", stt, est->expression_type, obj->type);
-        printf("is call: %i\n", strcmp(est->expression_type, CALL) == 0);
+        if(env == out && !is_bool_or_ident(exst)) {
+            printf("Env clear: %p %s %p\n", obj, obj->type, obj->value);
 
-        if(env != out) {
-            if(strcmp(stt, EXPRESSION) == 0 &&
-                !is_bool_or_ident(est->expression_type)) {
-
-                free_eval_expression(est->expression_type, obj, env, true);
+            if(i != sc - 1) {
+                free_eval_expression(obj->type, obj, env, true);
             }
+        }
+
+        if(strcmp(stt, EXPRESSION) == 0 && env != out && !is_call &&
+            !is_bool_or_ident(exst)) {
+
+            printf("Exp cleared\n");
+            free_eval_expression(exst, obj, env, true);
         }
     }
 
