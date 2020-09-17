@@ -41,7 +41,7 @@ void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
     }
 }
 
-Object * update_eval_value(Object ** obj, Object * new, Env * env, char * est) {
+Object * update_eval_value(Object ** obj, Object * new, Env * env, char * n) {
     char * old_t = (*obj)->type, * new_t = new->type;
     Object * ret = NULL;
     IntegerObject * iob_old = NULL, * iob_new = NULL;
@@ -58,6 +58,10 @@ Object * update_eval_value(Object ** obj, Object * new, Env * env, char * est) {
         ret = new;
     } else if(strcmp(old_t, BOOLEAN) == 0) {
         ret = new;
+    } else {
+        free_eval_expression(old_t, * obj, env, true);
+        env_set(env, n, new);
+        ret = * obj;
     }
 
     return ret;
@@ -432,8 +436,9 @@ Object * apply_function(Object * obj, Object ** args) {
     char * m = NULL;
     Object * evaluated = NULL;
     Function * func = (Function *) obj->value;
-    out = extend_function_env(func, args);
     BlockStatement * bs = func->body;
+
+    out = extend_function_env(func, args);
 
     if(strcmp(FUNCTION, obj->type) != 0) {
         m = malloc(strlen(obj->type) + 23);
@@ -442,8 +447,6 @@ Object * apply_function(Object * obj, Object ** args) {
     }
 
     evaluated = eval_statements(bs->statements, bs->sc, out);
-
-    printf("Evaluated type: %s\n", evaluated->type);
 
     if(strcmp(evaluated->type, RETURN) != 0) {
         Statement st = bs->statements[bs->sc - 1];
@@ -483,6 +486,12 @@ Object * eval_call_expression(CallExpression * ce, Env * env) {
     }
 
     apply = apply_function(obj, args);
+
+    if(strcmp(ce->function_type, IDENT) != 0) {
+        free(obj->value);
+        free(obj);
+    }
+
     free(args);
 
     return apply;
@@ -553,7 +562,7 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
             return obj;
         }
 
-        return update_eval_value(t, obj, env, est->expression_type);
+        return update_eval_value(t, obj, env, name);
     }
 
     ident_name = malloc(strlen(name) + 1);
@@ -626,7 +635,7 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
             }
         }
 
-        if(strcmp(stt, EXPRESSION) == 0 && env != out && !is_call &&
+        if(strcmp(stt, EXPRESSION) == 0 && env != out &&
             !is_bool_or_ident(exst)) {
 
             printf("Exp cleared\n");

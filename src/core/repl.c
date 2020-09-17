@@ -12,11 +12,15 @@ void repl_do_test(char * input);
 void repl_test();
 
 void repl_test() {
-    int t = 1;
+    int t = 0;
     int i;
 
     if(t == 0) {
         char * t[] = {
+            "let a = fn(x) { return 1; }; let a = 3; a; let a = fn(x) { return 1; }; a(3);",
+            "let mult = fn(x) { 2; 2; x; return 3; }; mult(33);",
+            "let a = fn(x) { return 1; }; a(1);",
+            "let mult = fn(x) { let z = 2; 2; 2; x; 3; }(33);",
             "let mult = fn(x) { 2; 2; x; return 3; }; let a = mult(33);",
             "let mult = fn(x) { 2; 2; x; 3; }; mult(33);",
             "let mult = fn(x) { 17; }; let j = mult(33);",
@@ -36,7 +40,7 @@ void repl_test() {
         }
     } else {
         char * t[] = {
-            "let mult = fn(x) { 2; 2; x; 3; }(33);",
+            "let a = 2; let a = 55; a;",
         };
 
         for(i = 0; i < sizeof(t) / sizeof(t[1]); i++) {
