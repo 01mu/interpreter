@@ -30,7 +30,10 @@ void free_call_expression(CallExpression * call) {
         free(call->arguments[i]);
     }
 
-    free(call->arguments);
+    if(call->ac > 0) {
+        free(call->arguments);
+    }
+
     free(call);
 }
 
@@ -44,7 +47,10 @@ void free_function_literal(FunctionLiteral * fl) {
         free_identifier(fl->parameters[i]);
     }
 
-    free(fl->parameters);
+    if(fl->pc > 0) {
+        free(fl->parameters);
+    }
+
     free(fl);
 }
 

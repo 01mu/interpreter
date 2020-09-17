@@ -7,6 +7,16 @@
  *
  */
 
+Object * copy_integer_object(Object * fr) {
+    Object * obj = malloc(sizeof(Object));
+    IntegerObject * iobj = malloc(sizeof(IntegerObject));
+    iobj->value = ((IntegerObject *) fr->value)->value;
+    obj->type = INT;
+    obj->value = iobj;
+
+    return obj;
+}
+
 bool is_bool_or_ident(char * t) {
     bool eval_is_bool = (strcmp(t, TRUE) == 0) || (strcmp(t, FALSE) == 0) ||
         (strcmp(t, BOOLEAN) == 0);
@@ -25,7 +35,7 @@ void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
     } else if(strcmp(ext, PREFIX) == 0 && strcmp(obj->type, INT) == 0) {
         free(obj->value);
     } else if(strcmp(ext, RETURN) == 0) {
-        printf("ASD");
+
     } else if(strcmp(ext, INFIX) == 0) {
         free(obj->value);
     } else if(strcmp(ext, CALL) == 0 && strcmp(obj->type, INT) == 0) {
@@ -53,11 +63,6 @@ Object * update_eval_value(Object ** obj, Object * new, Env * env, char * n) {
         iob_old->value = iob_new->value;
         free_eval_expression(new_t, new, env, true);
         ret = * obj;
-    } else if(strcmp(old_t, BOOLEAN) != 0 && strcmp(new_t, BOOLEAN) == 0) {
-        free_eval_expression(old_t, * obj, env, true);
-        ret = new;
-    } else if(strcmp(old_t, BOOLEAN) == 0) {
-        ret = new;
     } else {
         free_eval_expression(old_t, * obj, env, true);
         env_set(env, n, new);
@@ -330,6 +335,23 @@ Object * eval_if_expression(IfExpression * iex, Env * env) {
         ret = null_obj;
     }
 
+    if(bs->sc > 0) {
+        Statement st = bs->statements[bs->sc - 1];
+        char * statement_type = st.type;
+        char * estt = NULL;
+
+        if(strcmp(statement_type, RETURN) == 0) {
+            //return false_bool;
+        } else if(strcmp(statement_type, EXPRESSION) == 0) {
+            ExpressionStatement * est =  st.st;
+            estt = est->expression_type;
+
+            if(strcmp(estt, IDENT) == 0) {
+                ret = copy_integer_object(ret);
+            }
+        }
+    }
+
     free_eval_expression(cond->type, cond, env, true);
 
     return ret;
@@ -363,17 +385,6 @@ Object * eval_function_literal(FunctionLiteral * fl, Env * env) {
     return obj;
 }
 
-
-Object * copy_integer_object(Object * fr) {
-    Object * obj = malloc(sizeof(Object));
-    IntegerObject * iobj = malloc(sizeof(IntegerObject));
-    iobj->value = ((IntegerObject *) fr->value)->value;
-    obj->type = INT;
-    obj->value = iobj;
-
-    return obj;
-}
-
 Object ** eval_expressions(ExpressionStatement ** args, int c, Env * env) {
     int i;
     Object ** objects = malloc(sizeof(Object *)), ** err = NULL;
@@ -396,6 +407,11 @@ Object ** eval_expressions(ExpressionStatement ** args, int c, Env * env) {
             err[0] = eval;
             return err;
         }
+    }
+
+    if(c == 0) {
+        free(objects);
+        objects = NULL;
     }
 
     return objects;
@@ -453,12 +469,17 @@ Object * apply_function(Object * obj, Object ** args) {
         char * statement_type = st.type;
         char * estt = NULL;
 
+
         if(strcmp(statement_type, EXPRESSION) == 0) {
             ExpressionStatement * est =  st.st;
             estt = est->expression_type;
         }
 
-        if(strcmp(estt, IDENT) != 0) {
+        if(strcmp(estt, IF) == 0) {
+            printf("RET %s\n", evaluated->type);
+        }
+
+        if(!is_bool_or_ident(estt)) {
             free_eval_expression(evaluated->type, evaluated, NULL, true);
         }
 
@@ -469,7 +490,7 @@ Object * apply_function(Object * obj, Object ** args) {
 }
 
 Object * eval_call_expression(CallExpression * ce, Env * env) {
-    int i;
+    int i, arg_sz = 0;
 
     Object * obj = eval_expression(ce->function_type, ce->function, env);
     Object * apply = NULL;
@@ -480,8 +501,9 @@ Object * eval_call_expression(CallExpression * ce, Env * env) {
     }
 
     args = eval_expressions(ce->arguments, ce->ac, env);
+    arg_sz = sizeof(args) / sizeof(args[0]);
 
-    if((sizeof(args) / sizeof(args[0])) == 1 && is_error(args[0])) {
+    if(args != NULL && arg_sz == 1 && is_error(args[0])) {
         return args[0];
     }
 
@@ -492,7 +514,9 @@ Object * eval_call_expression(CallExpression * ce, Env * env) {
         free(obj);
     }
 
-    free(args);
+    if(args != NULL) {
+        free(args);
+    }
 
     return apply;
 }
@@ -551,6 +575,10 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
     Object ** t = NULL;
     char * ident_name = NULL;
 
+    if(strcmp(est->expression_type, IF) == 0) {
+        return false_bool;
+    }
+
     if(is_error(obj)) {
         return obj;
     }
@@ -604,7 +632,6 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
         stt = statements[i].type;
         est = (ExpressionStatement *) statements[i].st;
         exst = est->expression_type;
-        bool is_call = strcmp(exst, CALL) == 0;
 
         if(strcmp(exst, IF) != 0) {
             print_object(obj);
@@ -613,7 +640,6 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
         }
 
         printf("[%p] [%i] %s %s %s\n", env, i, stt, exst, obj->type);
-        printf("is call: %i\n", is_call);
 
         if(strcmp(obj->type, RETURN) == 0) {
             return obj;
@@ -638,7 +664,7 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
         if(strcmp(stt, EXPRESSION) == 0 && env != out &&
             !is_bool_or_ident(exst)) {
 
-            printf("Exp cleared\n");
+            printf("Exp clear\n");
             free_eval_expression(exst, obj, env, true);
         }
     }

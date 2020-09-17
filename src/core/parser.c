@@ -224,8 +224,6 @@ void * parse_infix_expression(Parser * par, void * left, char * left_type) {
     InfixExpression * ie = malloc(sizeof(InfixExpression));
     int precedence = parser_get_precedence(par, PREC_CURRENT);
 
-    //printf("%s\n", par->current_token.literal);
-
     ie->token = par->current_token;
     ie->operator = par->current_token.literal;
     ie->left_expression_type = left_type;

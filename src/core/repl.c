@@ -12,12 +12,21 @@ void repl_do_test(char * input);
 void repl_test();
 
 void repl_test() {
-    int t = 0;
+    int t = 1;
     int i;
 
     if(t == 0) {
         char * t[] = {
-            "let a = fn(x) { return 1; }; let a = 3; a; let a = fn(x) { return 1; }; a(3);",
+            "let z = fn() { if(!true) { return 1; } else { false; } }; \
+                let a = z(); a; a;",
+            "let c = fn(x) { if(2 < 1) { true; } else { x; 3; } }; \
+                let z = c(3);",
+            "let a = fn() { let z = false; z; return 3; }; a();",
+            "let a = fn(x) { if(!true) { 1; } else { 2; } }; a(2);",
+            "let a = fn(x) { let z = 2; let a = z * 2; return a + x; }; \
+                a(3) + 2;",
+            "let a = fn(x) { return 1; }; let a = 3; a; \
+                let a = fn(x) { return 1; }; a(3);",
             "let mult = fn(x) { 2; 2; x; return 3; }; mult(33);",
             "let a = fn(x) { return 1; }; a(1);",
             "let mult = fn(x) { let z = 2; 2; 2; x; 3; }(33);",
@@ -30,7 +39,7 @@ void repl_test() {
             "let var = 1 ---3; let z = -1; z * -2;",
             "let a = !3; if(!!!!false == true) { a } else { 55 }",
             "!false; !!true; false; true; !5; !!5; !!!500; -5; !5 == 5;",
-            "let a = 3; if(a + 1) { a } else {  }",
+            "let a = 3; if(a + 1) { 5; } else {  };",
             "let a = 3; let b = 5; let z = 3; 1 + 2;",
             "let a = 2; let b = a; let a = b + 2; 3;",
         };
@@ -40,7 +49,8 @@ void repl_test() {
         }
     } else {
         char * t[] = {
-            "let a = 2; let a = 55; a;",
+            "let z = fn() { if(!true) { return 1; } else { false; } }; \
+                let a = z(); a; a;",
         };
 
         for(i = 0; i < sizeof(t) / sizeof(t[1]); i++) {
@@ -57,6 +67,7 @@ void repl_do_test(char * input) {
     Object * r = NULL;
 
     if(check_parser_errors(parser)) {
+        env_free(env);
         free_program(lexer, parser, program);
         return;
     }

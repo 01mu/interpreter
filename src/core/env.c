@@ -22,9 +22,20 @@ Env * env_new_enclosed(Env * outer) {
 
 Object * env_get(Env * env, char * name) {
     SortedList * sl = (SortedList *) hash_map_find(env->store, name);
-    Object * obj;
+    Object * obj = NULL;
 
     if(sl == NULL) {
+        /*Env * oi = env->outer;
+        Object * ff = NULL;
+
+        if(oi != NULL) {
+            SortedList * s2 = (SortedList *) hash_map_find(oi->store, name);
+            if(s2 != NULL)
+            ff = (Object *) s2->data;
+        }
+
+        if(ff != NULL) return ff;*/
+
         return NULL;
     }
 
