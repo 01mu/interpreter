@@ -7,13 +7,19 @@
  *
  */
 
+void eval_write_env(char * name, Object * obj, Env * env) {
+    char * ident_name = malloc(strlen(name) + 1);
+    ident_name[0] = '\0';
+    strcpy(ident_name, name);
+    env_set(env, ident_name, obj);
+}
+
 Object * copy_integer_object(Object * fr) {
     Object * obj = malloc(sizeof(Object));
     IntegerObject * iobj = malloc(sizeof(IntegerObject));
     iobj->value = ((IntegerObject *) fr->value)->value;
     obj->type = INT;
     obj->value = iobj;
-
     return obj;
 }
 
@@ -61,6 +67,7 @@ Object * update_eval_value(Object ** obj, Object * new, Env * env, char * n) {
         iob_old->value = iob_new->value;
         free_eval_expression(new_t, new, env, true);
         ret = * obj;
+        //ret = copy_integer_object(*obj);
     } else {
         free_eval_expression(old_t, * obj, env, true);
         env_set(env, n, new);
@@ -268,6 +275,16 @@ Object * eval_integer_infix_exp(char * op, Object * l, Object * r, Env * env) {
     return obj;
 }
 
+void eval_free_infix(char * lt, Object * lo, char * rt, Object * ro) {
+    if(!is_bool_or_ident(lt)) {
+        free_eval_expression(lt, lo, NULL, true);
+    }
+
+    if(!is_bool_or_ident(rt)) {
+        free_eval_expression(rt, ro, NULL, true);
+    }
+}
+
 Object * eval_infix_expression(InfixExpression * iex, Env * env) {
     Object * l, * r, * ret;
     char * m = NULL;
@@ -277,37 +294,26 @@ Object * eval_infix_expression(InfixExpression * iex, Env * env) {
     l = eval_expression(lext, iex->left, env);
 
     if(is_error(l)) {
+        if(!is_bool_or_ident(lext)) {
+            free_eval_expression(lext, l, env, true);
+        }
         return l;
     }
 
     r = eval_expression(rext, iex->right, env);
 
     if(is_error(r)) {
+        eval_free_infix(lext, l, rext, r);
         return r;
     }
 
     if(strcmp(l->type, INT) == 0 && strcmp(r->type, INT) == 0) {
         ret = eval_integer_infix_exp(op, l, r, env);
-
-        if(!is_bool_or_ident(lext)) {
-            free_eval_expression(lext, l, env, true);
-        }
-
-        if(!is_bool_or_ident(rext)) {
-            free_eval_expression(rext, r, env, true);
-        }
+        eval_free_infix(lext, l, rext, r);
     } else if(strcmp(l->type, r->type) != 0) {
         m = malloc(strlen(l->type) + strlen(r->type) + strlen(op) + 19);
         sprintf(m, "Type mismatch: %s %s %s", l->type, op, r->type);
-
-        if(!is_bool_or_ident(lext)) {
-            free_eval_expression(lext, l, env, true);
-        }
-
-        if(!is_bool_or_ident(rext)) {
-            free_eval_expression(rext, r, env, true);
-        }
-
+        eval_free_infix(lext, l, rext, r);
         ret = new_error(m);
     } else if(strcmp(op, "==") == 0) {
         ret = eval_bool(l == r, env);
@@ -479,13 +485,14 @@ Object * apply_function(Object * obj, Object ** args) {
         if(strcmp(statement_type, EXPRESSION) == 0) {
             ExpressionStatement * est =  st.st;
             estt = est->expression_type;
-        }
 
-        if(!is_bool_or_ident(estt)) {
-            free_eval_expression(evaluated->type, evaluated, NULL, true);
-        }
 
-        return false_bool;
+            if(!is_bool_or_ident(estt)) {
+                free_eval_expression(evaluated->type, evaluated, NULL, true);
+            }
+
+            return false_bool;
+        }
     }
 
     return unwrap_return_value(evaluated);
@@ -572,13 +579,21 @@ Object * eval_return_statement(ExpressionStatement * est, Env * env) {
 }
 
 Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
-    Object * obj = eval_expression(est->expression_type, est->expression, env);
+    char * ext = est->expression_type;
+    Object * obj = eval_expression(ext, est->expression, env);
     Object * get = env_get(env, name);
     Object ** t = NULL;
     char * ident_name = NULL;
 
-    if(strcmp(est->expression_type, IF) == 0) {
+    if(strcmp(ext, IF) == 0) {
         return null_obj;
+    }
+
+    if(strcmp(ext, IDENT) == 0 && strcmp(obj->type, INT) == 0) {
+        get = env_get(env, ((Identifier *) est->expression)->value);
+        get = copy_integer_object(get);
+        eval_write_env(name, get, env);
+        return get;
     }
 
     if(is_error(obj)) {
@@ -595,10 +610,7 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
         return update_eval_value(t, obj, env, name);
     }
 
-    ident_name = malloc(strlen(name) + 1);
-    ident_name[0] = '\0';
-    strcpy(ident_name, name);
-    env_set(env, ident_name, obj);
+    eval_write_env(name, obj, env);
 }
 
 Object * eval_statement(Statement statement, Env * env) {

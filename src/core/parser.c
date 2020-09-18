@@ -270,6 +270,12 @@ void * parse_integer_literal(Parser * par) {
     return lit;
 }
 
+void function_literal_store_add(FunctionLiteral * fl) {
+    fls->store = realloc(fls->store, sizeof(FunctionLiteral *) *
+        (fls->count + 1));
+    fls->store[fls->count++] = fl;
+}
+
 void * parse_expression(Parser * par, int precedence, void * ex, int et) {
     char * type = par->current_token.type, * exp_type;
     void * expr;
@@ -299,6 +305,8 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
     } else if(type == FUNCTION) {
         exp_type = FUNCTION;
         expr = parse_function_literal(par);
+
+        function_literal_store_add(expr);
     } else {
         exp_type = ILLEGAL;
         expr = NULL;

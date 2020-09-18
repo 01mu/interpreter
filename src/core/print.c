@@ -317,5 +317,5 @@ void test_print_program() {
     printf("%s", print);
     free(print);
     free(file);
-    free_program(lexer, parser, program);
+    //free_program(lexer, parser, program);
 }

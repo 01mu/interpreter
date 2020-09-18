@@ -111,7 +111,7 @@ void free_expression_statement(char * type, void * value) {
     } else if(strcmp(type, IF) == 0) {
         free_if_expression((IfExpression *) value);
     } else if(strcmp(type, FUNCTION) == 0) {
-        free_function_literal((FunctionLiteral *) value);
+        //free_function_literal((FunctionLiteral *) value);
     } else if(strcmp(type, CALL) == 0) {
         free_call_expression((CallExpression *) value);
     }
@@ -134,7 +134,6 @@ void free_let_statement(LetStatement * let) {
     free_expression_statement(let->type, es->expression);
     free(let->type);
     free(es);
-
 }
 
 void free_statement(Statement stmt) {
@@ -153,8 +152,11 @@ void free_statement(Statement stmt) {
     } else if(stmt.type == EXPRESSION) {
         es = (ExpressionStatement *) stmt.st;
         free_expression_statement(es->expression_type, es->expression);
-        free(es->expression_type);
-        free(es);
+
+        //if(strcmp(es->expression_type, FUNCTION) != 0) {
+            free(es->expression_type);
+            free(es);
+        //}
     }
 }
 

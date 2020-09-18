@@ -20,9 +20,7 @@
 #include "lib/string.c"
 #include "lib/sortedlist.c"
 #include "lib/hashmap.c"
-
 Env * out = NULL;
-
 #include "core/env.c"
 #include "core/free.c"
 #include "core/lexer.c"

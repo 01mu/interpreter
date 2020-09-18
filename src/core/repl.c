@@ -17,6 +17,9 @@ void repl_test() {
 
     if(t == 0) {
         char * t[] = {
+            "!5 == 5",
+            "2/a;",
+            "z/2;",
             "1>2; true == true; !false == 0;",
             "let a = 2; let b = a; a; b; let a = 55; a; b;",
             "let a = 2; let b = 3; let a = b + 2;",
@@ -43,7 +46,7 @@ void repl_test() {
             "let a = true; let a = false; let b = a; a; !b;",
             "let var = 1 ---3; let z = -1; z * -2;",
             "let a = !3; if(!!!!false == true) { a } else { 55 }",
-            "!false; !!true; false; true; !5; !!5; !!!500; -5; !5 == 5;",
+            "!false; !!true; false; true; !5; !!5; !!!500; -5;",
             "let a = 3; if(a + 1) { 5; } else {  };",
             "let a = 3; let b = 5; let z = 3; 1 + 2;",
             "let a = 2; let b = a; let a = b + 2; 3;",
@@ -54,7 +57,7 @@ void repl_test() {
         }
     } else {
         char * t[] = {
-            "let a = NULL;",
+            "let a = fn() { 55; }; a();",
         };
 
         for(i = 0; i < sizeof(t) / sizeof(t[1]); i++) {
@@ -64,11 +67,14 @@ void repl_test() {
 }
 
 void repl_do_test(char * input) {
+    fls = malloc(sizeof(FunctionLiteralStore));
+    fls->count = 0;
+    fls->store = malloc(sizeof(FunctionLiteral *));
+
     Lexer * lexer = new_lexer(input);
     Parser * parser = new_parser(lexer);
     Program * program = parse_program(parser);
     Env * env = new_env();
-    Object * r = NULL;
 
     if(check_parser_errors(parser)) {
         env_free(env);
@@ -77,10 +83,8 @@ void repl_do_test(char * input) {
     }
 
     if(program->sc > 0) {
-        r = eval_statements(program->statements, program->sc, env);
+        eval_statements(program->statements, program->sc, env);
     }
-
-    env_free(env);
 
     if(out != NULL) {
         env_free(out);
@@ -88,6 +92,14 @@ void repl_do_test(char * input) {
     }
 
     free_program(lexer, parser, program);
+
+    for(int i = 0; i < fls->count; i++) {
+        free_function_literal((FunctionLiteral *) fls->store[i]);
+    }
+
+    free(fls->store);
+    free(fls);
+    env_free(env);
 }
 
 void repl() {
@@ -100,6 +112,10 @@ void repl() {
 
     printf("Type '\\h' for help and '\\q' to quit.\n");
 
+    fls = malloc(sizeof(FunctionLiteralStore));
+    fls->count = 0;
+    fls->store = malloc(sizeof(FunctionLiteral *));
+
     while(1) {
         printf(">>> ");
         fgets(str, 120, stdin);
@@ -110,6 +126,10 @@ void repl() {
         } else if(strcmp(str, "\\e\n") == 0) {
             env_display(env);
             continue;
+        } else if(strcmp(str, "\\h\n") == 0) {
+            printf("Commands:\nDisplay environment: \\e\n");
+            printf(">>> ");
+            fgets(str, 120, stdin);
         }
 
         lexer = new_lexer(str);
@@ -133,5 +153,11 @@ void repl() {
         free_program(lexer, parser, program);
     }
 
+    for(int i = 0; i < fls->count; i++) {
+        free_function_literal((FunctionLiteral *) fls->store[i]);
+    }
+
+    free(fls->store);
+    free(fls);
     env_free(env);
 }
