@@ -96,6 +96,6 @@ void env_free(Env * env) {
 
 void env_display(Env * env) {
     String * envs = hash_map_print(env->store);
-    printf("Extended:\n%s", envs->string);
+    printf("%s", envs->string);
     string_free(envs);
 }

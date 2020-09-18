@@ -109,7 +109,7 @@ void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj);
 bool is_error(Object * obj);
 Object * new_error(char * msg);
 void init_bool(Object ** b, bool lit);
-void free_bool(Object * b);
+void free_stat(Object * b);
 char * inspect_error_object(ErrorObject * eobj);
 char * inspect_null_object(NullObject * nobj);
 int inspect_integer_object(IntegerObject * iobj);

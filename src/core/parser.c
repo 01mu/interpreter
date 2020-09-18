@@ -377,8 +377,8 @@ void parse_return_statement(Parser * par, Statement * smt) {
 
     ret->type = ex->expression_type;
 
-    while(!cur_token_is(par, SEMICOLON)) {
-        parser_next_token(par);
+    if(!expect_peek(par, SEMICOLON)) {
+        return;
     }
 }
 

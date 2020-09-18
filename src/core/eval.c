@@ -18,8 +18,8 @@ Object * copy_integer_object(Object * fr) {
 }
 
 bool is_bool_or_ident(char * t) {
-    bool eval_is_bool = (strcmp(t, TRUE) == 0) || (strcmp(t, FALSE) == 0) ||
-        (strcmp(t, BOOLEAN) == 0);
+    bool eval_is_bool = strcmp(t, TRUE) == 0 || strcmp(t, FALSE) == 0 ||
+        strcmp(t, BOOLEAN) == 0;
 
     if(strcmp(t, IDENT) == 0 || eval_is_bool) {
         return true;
@@ -34,8 +34,6 @@ void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
         obj->value = NULL;
     } else if(strcmp(ext, PREFIX) == 0 && strcmp(obj->type, INT) == 0) {
         free(obj->value);
-    } else if(strcmp(ext, RETURN) == 0) {
-
     } else if(strcmp(ext, INFIX) == 0) {
         free(obj->value);
     } else if(strcmp(ext, CALL) == 0 && strcmp(obj->type, INT) == 0) {
@@ -99,7 +97,13 @@ void init_bool(Object ** b, bool lit) {
     ((BooleanObject *) (*b)->value)->value = lit;
 }
 
-void free_bool(Object * b) {
+void init_null(Object ** n) {
+    (*n) = malloc(sizeof(Object));
+    (*n)->type = "NULL";
+    (*n)->value = malloc(sizeof(NullObject));
+}
+
+void free_stat(Object * b) {
     free(b->value);
     free(b);
 }
@@ -125,6 +129,8 @@ void print_object(Object * obj) {
         printf("%i\n", inspect_integer_object((IntegerObject *) obj->value));
     } else if(strcmp(obj->type, BOOLEAN) == 0) {
         printf("%i\n", inspect_boolean_object((BooleanObject *) obj->value));
+    } else if(strcmp(obj->type, "NULL") == 0) {
+        printf("NULL\n");
     } else if(strcmp(obj->type, "ERROR") == 0) {
         printf("%s\n", ((ErrorObject *) obj->value)->message);
     }
@@ -475,10 +481,6 @@ Object * apply_function(Object * obj, Object ** args) {
             estt = est->expression_type;
         }
 
-        if(strcmp(estt, IF) == 0) {
-            printf("RET %s\n", evaluated->type);
-        }
-
         if(!is_bool_or_ident(estt)) {
             free_eval_expression(evaluated->type, evaluated, NULL, true);
         }
@@ -576,7 +578,7 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
     char * ident_name = NULL;
 
     if(strcmp(est->expression_type, IF) == 0) {
-        return false_bool;
+        return null_obj;
     }
 
     if(is_error(obj)) {
@@ -619,10 +621,39 @@ Object * eval_statement(Statement statement, Env * env) {
     }
 }
 
+bool eval_free_return(Object * obj, Env * env, char * exst) {
+    ReturnValue * rv = NULL;
+    bool is_return = strcmp(obj->type, RETURN) == 0;
+
+    if(env != out && !is_bool_or_ident(exst) && is_return) {
+        rv = (ReturnValue *) obj->value;
+        free_eval_expression(exst, rv->value, env, true);
+        free(obj->value);
+        free(obj);
+        return true;
+    }
+
+    return false;
+}
+
+bool eval_free_error(Object * obj, Env * env) {
+    ErrorObject * err = NULL;
+    bool is_error = strcmp(obj->type, ERROR) == 0;
+
+    if(is_error) {
+        err = (ErrorObject *) obj->value;
+        free(err->message);
+        free(err);
+        free(obj);
+        return true;
+    }
+
+    return false;
+}
+
 Object * eval_statements(Statement * statements, int sc, Env * env) {
     int i;
     Object * obj = NULL;
-    ErrorObject * err = NULL;
     ExpressionStatement * est = NULL;
     char * stt = NULL, * exst = NULL;
 
@@ -639,32 +670,13 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
             continue;
         }
 
-        printf("[%p] [%i] %s %s %s\n", env, i, stt, exst, obj->type);
+        //printf("[%p: %i] %s %s %s\n", env, i, stt, exst, obj->type);
 
-        if(strcmp(obj->type, RETURN) == 0) {
-            return obj;
-        }
-
-        if(strcmp(obj->type, ERROR) == 0) {
-            err = (ErrorObject *) obj->value;
-            free(err->message);
-            free(err);
-            free(obj);
-            return obj;
-        }
-
-        if(env == out && !is_bool_or_ident(exst)) {
-            printf("Env clear: %p %s %p\n", obj, obj->type, obj->value);
-
-            if(i != sc - 1) {
-                free_eval_expression(obj->type, obj, env, true);
-            }
-        }
-
-        if(strcmp(stt, EXPRESSION) == 0 && env != out &&
-            !is_bool_or_ident(exst)) {
-
-            printf("Exp clear\n");
+        if(eval_free_return(obj, env, exst) || eval_free_error(obj, env)) {
+            return NULL;
+        } else if(env == out && !is_bool_or_ident(exst) && i != sc - 1) {
+            free_eval_expression(obj->type, obj, env, true);
+        } else if(env != out && !is_bool_or_ident(obj->type)) {
             free_eval_expression(exst, obj, env, true);
         }
     }

@@ -12,11 +12,16 @@ void repl_do_test(char * input);
 void repl_test();
 
 void repl_test() {
-    int t = 1;
+    int t = 0;
     int i;
 
     if(t == 0) {
         char * t[] = {
+            "1>2; true == true; !false == 0;",
+            "let a = 2; let b = a; a; b; let a = 55; a; b;",
+            "let a = 2; let b = 3; let a = b + 2;",
+            "let a = fn() { if(true) { if(false) { } else { return 5; }; } \
+                else { }; }; let a = a(); a; a; a;",
             "let z = fn() { if(!true) { return 1; } else { false; } }; \
                 let a = z(); a; a;",
             "let c = fn(x) { if(2 < 1) { true; } else { x; 3; } }; \
@@ -49,8 +54,7 @@ void repl_test() {
         }
     } else {
         char * t[] = {
-            "let z = fn() { if(!true) { return 1; } else { false; } }; \
-                let a = z(); a; a;",
+            "let a = NULL;",
         };
 
         for(i = 0; i < sizeof(t) / sizeof(t[1]); i++) {
@@ -103,6 +107,9 @@ void repl() {
         if(strcmp(str, "\\q\n") == 0) {
             printf("Bye!\n");
             break;
+        } else if(strcmp(str, "\\e\n") == 0) {
+            env_display(env);
+            continue;
         }
 
         lexer = new_lexer(str);
@@ -116,6 +123,11 @@ void repl() {
 
         if(program->sc > 0) {
             eval_statements(program->statements, program->sc, env);
+        }
+
+        if(out != NULL) {
+            env_free(out);
+            out = NULL;
         }
 
         free_program(lexer, parser, program);
