@@ -177,9 +177,15 @@ typedef struct {
     int count;
 } FunctionLiteralStore;
 
+typedef struct {
+    struct Env ** store;
+    int count;
+} EnvStore;
+
 Object * false_bool = NULL, * true_bool = NULL;
 Object * null_obj = NULL;
 FunctionLiteralStore * fls = NULL;
+EnvStore * env_store = NULL;
 
 bool true_eval = false, false_eval = false;
 

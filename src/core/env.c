@@ -25,7 +25,7 @@ Object * env_get(Env * env, char * name) {
     Object * obj = NULL;
 
     if(sl == NULL) {
-        /*Env * oi = env->outer;
+        Env * oi = env->outer;
         Object * ff = NULL;
 
         if(oi != NULL) {
@@ -34,7 +34,7 @@ Object * env_get(Env * env, char * name) {
             ff = (Object *) s2->data;
         }
 
-        if(ff != NULL) return ff;*/
+        if(ff != NULL) return ff;
 
         return NULL;
     }
@@ -77,7 +77,7 @@ void env_free(Env * env) {
             while(current != NULL) {
                 obj = (Object *) current->data;
 
-                if(strcmp(obj->type, BOOLEAN) == 0) {
+                if(is_bool_or_ident(obj->type)) {
                     current->data = malloc(1);
                 } else {
                     free_eval_expression(obj->type, obj, env, false);
@@ -88,7 +88,7 @@ void env_free(Env * env) {
         }
     }
 
-    hash_map_free(env->store, track);
+    hash_map_free(env->store, NULL);
     hash_map_free(track, NULL);
 
     free(env);

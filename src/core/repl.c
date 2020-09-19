@@ -17,6 +17,15 @@ void repl_test() {
 
     if(t == 0) {
         char * t[] = {
+            "let c = fn(x) { if(x > 100) { return true; } \
+                else { x; c(x + 1); } }; c(0);",
+            "let n = 2; let a = fn(x) { let z = 2; let z=2; let n = z * 2; \
+                return n + x; }; a(3) + 2;",
+            "let a = fn(x) { if(x) { return 44; } else { return 42; } }; \
+                let f= a(33); f;",
+            "let a = fn(x) { let z = fn(x, y) { if(x > y) { return true; } \
+                else { return false; } }; z(1, 0); }; a(1);",
+            "let a = fn(x) { x; }; a(z);",
             "!5 == 5",
             "2/a;",
             "z/2;",
@@ -31,8 +40,6 @@ void repl_test() {
                 let z = c(3);",
             "let a = fn() { let z = false; z; return 3; }; a();",
             "let a = fn(x) { if(!true) { 1; } else { 2; } }; a(2);",
-            "let a = fn(x) { let z = 2; let a = z * 2; return a + x; }; \
-                a(3) + 2;",
             "let a = fn(x) { return 1; }; let a = 3; a; \
                 let a = fn(x) { return 1; }; a(3);",
             "let mult = fn(x) { 2; 2; x; return 3; }; mult(33);",
@@ -57,7 +64,7 @@ void repl_test() {
         }
     } else {
         char * t[] = {
-            "let a = fn() { 55; }; a();",
+
         };
 
         for(i = 0; i < sizeof(t) / sizeof(t[1]); i++) {
@@ -71,13 +78,22 @@ void repl_do_test(char * input) {
     fls->count = 0;
     fls->store = malloc(sizeof(FunctionLiteral *));
 
+    env_store = malloc(sizeof(EnvStore));
+    env_store->count = 0;
+    env_store->store = malloc(sizeof(Env *));
+
     Lexer * lexer = new_lexer(input);
     Parser * parser = new_parser(lexer);
     Program * program = parse_program(parser);
     Env * env = new_env();
 
+    env_store_add(env);
+
     if(check_parser_errors(parser)) {
-        env_free(env);
+        for(int i = 0; i < env_store->count; i++) {
+            env_free((Env *) env_store->store[i]);
+        }
+
         free_program(lexer, parser, program);
         return;
     }
@@ -86,20 +102,21 @@ void repl_do_test(char * input) {
         eval_statements(program->statements, program->sc, env);
     }
 
-    if(out != NULL) {
-        env_free(out);
-        out = NULL;
-    }
-
     free_program(lexer, parser, program);
 
     for(int i = 0; i < fls->count; i++) {
         free_function_literal((FunctionLiteral *) fls->store[i]);
     }
 
+    for(int i = 0; i < env_store->count; i++) {
+        env_free((Env *) env_store->store[i]);
+    }
+
     free(fls->store);
     free(fls);
-    env_free(env);
+
+    free(env_store->store);
+    free(env_store);
 }
 
 void repl() {
@@ -115,6 +132,13 @@ void repl() {
     fls = malloc(sizeof(FunctionLiteralStore));
     fls->count = 0;
     fls->store = malloc(sizeof(FunctionLiteral *));
+
+    env_store = malloc(sizeof(EnvStore));
+    env_store->count = 0;
+    env_store->store = malloc(sizeof(Env *));
+
+    env_store_add(env);
+
 
     while(1) {
         printf(">>> ");
@@ -137,17 +161,16 @@ void repl() {
         program = parse_program(parser);
 
         if(check_parser_errors(parser)) {
+            for(int i = 0; i < env_store->count; i++) {
+                env_free((Env *) env_store->store[i]);
+            }
+
             free_program(lexer, parser, program);
             continue;
         }
 
         if(program->sc > 0) {
             eval_statements(program->statements, program->sc, env);
-        }
-
-        if(out != NULL) {
-            env_free(out);
-            out = NULL;
         }
 
         free_program(lexer, parser, program);
@@ -157,7 +180,13 @@ void repl() {
         free_function_literal((FunctionLiteral *) fls->store[i]);
     }
 
+    for(int i = 0; i < env_store->count; i++) {
+        env_free((Env *) env_store->store[i]);
+    }
+
     free(fls->store);
     free(fls);
-    env_free(env);
+
+    free(env_store->store);
+    free(env_store);
 }

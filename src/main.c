@@ -32,7 +32,6 @@ Env * out = NULL;
 #include "test/parsing.c"
 #include "test/eval.c"
 
-
 int main(int argc, char * argv[])
 {
     init_bool(&true_bool, true);

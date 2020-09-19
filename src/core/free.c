@@ -152,11 +152,8 @@ void free_statement(Statement stmt) {
     } else if(stmt.type == EXPRESSION) {
         es = (ExpressionStatement *) stmt.st;
         free_expression_statement(es->expression_type, es->expression);
-
-        //if(strcmp(es->expression_type, FUNCTION) != 0) {
-            free(es->expression_type);
-            free(es);
-        //}
+        free(es->expression_type);
+        free(es);
     }
 }
 
