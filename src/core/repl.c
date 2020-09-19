@@ -7,9 +7,10 @@
  *
  */
 
-void repl();
-void repl_do_test(char * input);
 void repl_test();
+void repl(bool type, char * input);
+void free_function_literal_store();
+void free_env_store();
 
 void repl_test() {
     int t = 0;
@@ -60,7 +61,7 @@ void repl_test() {
         };
 
         for(i = 0; i < sizeof(t) / sizeof(t[1]); i++) {
-            repl_do_test(t[i]);
+            repl(1, t[i]);
         }
     } else {
         char * t[] = {
@@ -68,67 +69,19 @@ void repl_test() {
         };
 
         for(i = 0; i < sizeof(t) / sizeof(t[1]); i++) {
-            repl_do_test(t[i]);
+            repl(1, t[i]);
         }
     }
 }
 
-void repl_do_test(char * input) {
-    fls = malloc(sizeof(FunctionLiteralStore));
-    fls->count = 0;
-    fls->store = malloc(sizeof(FunctionLiteral *));
-
-    env_store = malloc(sizeof(EnvStore));
-    env_store->count = 0;
-    env_store->store = malloc(sizeof(Env *));
-
-    Lexer * lexer = new_lexer(input);
-    Parser * parser = new_parser(lexer);
-    Program * program = parse_program(parser);
-    Env * env = new_env();
-
-    env_store_add(env);
-
-    if(check_parser_errors(parser)) {
-        for(int i = 0; i < env_store->count; i++) {
-            env_free((Env *) env_store->store[i]);
-        }
-
-        free_program(lexer, parser, program);
-        return;
-    }
-
-    if(program->sc > 0) {
-        eval_statements(program->statements, program->sc, env);
-    }
-
-    free_program(lexer, parser, program);
-
-    for(int i = 0; i < fls->count; i++) {
-        free_function_literal((FunctionLiteral *) fls->store[i]);
-    }
-
-    for(int i = 0; i < env_store->count; i++) {
-        env_free((Env *) env_store->store[i]);
-    }
-
-    free(fls->store);
-    free(fls);
-
-    free(env_store->store);
-    free(env_store);
-}
-
-void repl() {
+void repl(bool type, char * input) {
+    int i;
+    char str[120];
     Lexer * lexer = NULL;
     Parser * parser = NULL;
     Program * program = NULL;
     Env * env = new_env();
 
-    char str[120];
-
-    printf("Type '\\h' for help and '\\q' to quit.\n");
-
     fls = malloc(sizeof(FunctionLiteralStore));
     fls->count = 0;
     fls->store = malloc(sizeof(FunctionLiteral *));
@@ -139,32 +92,39 @@ void repl() {
 
     env_store_add(env);
 
+    if(!type) {
+        printf("Type '\\h' for help and '\\q' to quit.\n");
+    }
 
-    while(1) {
-        printf(">>> ");
-        fgets(str, 120, stdin);
-
-        if(strcmp(str, "\\q\n") == 0) {
-            printf("Bye!\n");
-            break;
-        } else if(strcmp(str, "\\e\n") == 0) {
-            env_display(env);
-            continue;
-        } else if(strcmp(str, "\\h\n") == 0) {
-            printf("Commands:\nDisplay environment: \\e\n");
+    for( ; ; ) {
+        if(!type) {
             printf(">>> ");
             fgets(str, 120, stdin);
         }
 
-        lexer = new_lexer(str);
+        if(!type) {
+            lexer = new_lexer(str);
+
+            if(strcmp(str, "\\q\n") == 0) {
+                printf("Bye!\n");
+                break;
+            } else if(strcmp(str, "\\e\n") == 0) {
+                env_display(env);
+                continue;
+            } else if(strcmp(str, "\\h\n") == 0) {
+                printf("Commands:\nDisplay environment: \\e\n");
+                printf(">>> ");
+                fgets(str, 120, stdin);
+            }
+        } else {
+            lexer = new_lexer(input);
+        }
+
         parser = new_parser(lexer);
         program = parse_program(parser);
 
         if(check_parser_errors(parser)) {
-            for(int i = 0; i < env_store->count; i++) {
-                env_free((Env *) env_store->store[i]);
-            }
-
+            free_env_store();
             free_program(lexer, parser, program);
             continue;
         }
@@ -173,20 +133,41 @@ void repl() {
             eval_statements(program->statements, program->sc, env);
         }
 
+        free_env_store();
         free_program(lexer, parser, program);
+
+        if(type) {
+            break;
+        }
     }
 
-    for(int i = 0; i < fls->count; i++) {
+    env_free((Env *) env_store->store[0]);
+    free_function_literal_store();
+    free(env_store->store);
+    free(env_store);
+
+    if(!type) {
+        free(lexer);
+    }
+}
+
+void free_function_literal_store() {
+    int i;
+
+    for(i = 0; i < fls->count; i++) {
         free_function_literal((FunctionLiteral *) fls->store[i]);
-    }
-
-    for(int i = 0; i < env_store->count; i++) {
-        env_free((Env *) env_store->store[i]);
     }
 
     free(fls->store);
     free(fls);
+}
 
-    free(env_store->store);
-    free(env_store);
+void free_env_store() {
+    int i, nc = 0;
+
+    for(i = 1; i < env_store->count; i++, nc++) {
+        env_free((Env *) env_store->store[i]);
+    }
+
+    env_store->count -= nc;
 }
