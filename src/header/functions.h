@@ -114,7 +114,7 @@ char * inspect_error_object(ErrorObject * eobj);
 char * inspect_null_object(NullObject * nobj);
 int inspect_integer_object(IntegerObject * iobj);
 bool inspect_boolean_object(BooleanObject * bobj);
-void print_object(Object * obj);
+String * print_object(Object * obj);
 bool is_truthy(Object * obj);
 Object * eval_integer(IntegerLiteral * il, Env * env);
 Object * eval_bool(bool b, Env * env);

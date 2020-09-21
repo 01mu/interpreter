@@ -7,34 +7,46 @@
  *
  */
 
+Env * new_env();
+Env * env_new_enclosed(Env * outer);
+Object * env_get(Env * env, char * name);
+Object * env_set(Env * env, char * name, Object * data);
+void env_free(Env * env);
+void env_display(Env * env);
+
 Env * new_env() {
     Env * env = malloc(sizeof(Env));
+
     env->store = hash_map_new(150);
     env->outer = NULL;
+
     return env;
 }
 
 Env * env_new_enclosed(Env * outer) {
     Env * env = new_env();
+
     env->outer = outer;
+
     return env;
 }
 
 Object * env_get(Env * env, char * name) {
-    SortedList * sl = (SortedList *) hash_map_find(env->store, name);
+    SortedList * sl = (SortedList *) hash_map_find(env->store, name), * sl2;
     Object * obj = NULL;
 
     if(sl == NULL) {
-        Env * oi = env->outer;
-        Object * ff = NULL;
+        if(env->outer != NULL) {
+            sl2 = (SortedList *) hash_map_find(env->outer->store, name);
 
-        if(oi != NULL) {
-            SortedList * s2 = (SortedList *) hash_map_find(oi->store, name);
-            if(s2 != NULL)
-            ff = (Object *) s2->data;
+            if(sl2 != NULL) {
+                obj = (Object *) sl2->data;
+            }
         }
 
-        if(ff != NULL) return ff;
+        if(obj != NULL) {
+            return obj;
+        }
 
         return NULL;
     }
@@ -52,22 +64,11 @@ Object * env_set(Env * env, char * name, Object * data) {
     return (Object *) hash_map_insert(env->store, name, NULL, data);
 }
 
-void env_test() {
-    const char * input = "let a = 4 + 2; a; let z = a * 10; z;";
-
-    Lexer * lexer = new_lexer(input);
-    Parser * parser = new_parser(lexer);
-    Program * program = parse_program(parser);
-    Env * env = new_env();
-
-    eval_statements(program->statements, program->sc, env);
-}
-
 void env_free(Env * env) {
     int i;
 
     Object * obj = NULL;
-    HashMap * store = env->store, * track = hash_map_new(50);
+    HashMap * store = env->store;
     SortedList * current = NULL;
 
     for(i = 0; i < store->size; i++) {
@@ -89,13 +90,12 @@ void env_free(Env * env) {
     }
 
     hash_map_free(env->store, NULL);
-    hash_map_free(track, NULL);
-
     free(env);
 }
 
 void env_display(Env * env) {
     String * envs = hash_map_print(env->store);
+
     printf("%s", envs->string);
     string_free(envs);
 }

@@ -20,7 +20,6 @@
 #include "lib/string.c"
 #include "lib/sortedlist.c"
 #include "lib/hashmap.c"
-Env * out = NULL;
 #include "core/env.c"
 #include "core/free.c"
 #include "core/lexer.c"
@@ -40,8 +39,16 @@ int main(int argc, char * argv[])
 
     if(strcmp(argv[1], "test-hash") == 0) {
         hash_map_test();
-    } else if(strcmp(argv[1], "test-env") == 0) {
-        env_test();
+    } else if(strcmp(argv[1], "test-string") == 0) {
+        String * s = string_new();
+
+        char * a = "asd\nasd";
+
+        string_cat(s, a, false);
+
+        printf("%i %s\n", s->len, s->string);
+
+        string_free(s);
     } else if(strcmp(argv[1], "test-print") == 0) {
         test_print_program();
     } else if(strcmp(argv[1], "test-eval") == 0) {
@@ -51,7 +58,7 @@ int main(int argc, char * argv[])
     } else if(strcmp(argv[1], "test-repl") == 0) {
         repl_test();
     } else if(strcmp(argv[1], "repl") == 0) {
-        repl(0, NULL);
+        repl(0, 0, NULL, 0);
     } else {
         printf("Invalid command\n");
     }

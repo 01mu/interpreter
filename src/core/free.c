@@ -110,8 +110,6 @@ void free_expression_statement(char * type, void * value) {
         free_boolean((Boolean *) value);
     } else if(strcmp(type, IF) == 0) {
         free_if_expression((IfExpression *) value);
-    } else if(strcmp(type, FUNCTION) == 0) {
-        //free_function_literal((FunctionLiteral *) value);
     } else if(strcmp(type, CALL) == 0) {
         free_call_expression((CallExpression *) value);
     }

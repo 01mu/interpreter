@@ -188,6 +188,8 @@ FunctionLiteralStore * fls = NULL;
 EnvStore * env_store = NULL;
 
 bool true_eval = false, false_eval = false;
+String * repl_test_string = NULL;
+bool is_repl_test_string = false;
 
 typedef struct Env Env;
 typedef struct SortedList SortedList;

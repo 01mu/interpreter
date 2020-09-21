@@ -103,7 +103,7 @@ char * test_error_object() {
         obj = get_eval_object(t[i].input);
         eobj = obj->value;
 
-        printf("[%i] %s: %s", i, t[i].input, inspect_error_object(eobj));
+        //printf("[%i] %s: %s", i, t[i].input, inspect_error_object(eobj));
 
         if(!test_string_cmp("[Error: %i] Expected object type %s got %s\n",
             ERROR, obj->type, i, &fail)) {
@@ -132,7 +132,7 @@ char * test_return_object() {
         obj = get_eval_object(t[i].input);
         ret = (ReturnValue *) obj->value;
 
-        printf("[%i] %s: %s\n", i, t[i].input, t[i].type);
+        //printf("[%i] %s: %s\n", i, t[i].input, t[i].type);
 
         test_string_cmp("[Error: %i] Expected object type %s got %s\n",
             t[i].type, ret->type, i, &fail);
@@ -167,7 +167,7 @@ char * test_boolean_object() {
             continue;
         }
 
-        printf("[%i] %s: %i\n", i, t[i].input, inspect_boolean_object(bobj));
+        //printf("[%i] %s: %i\n", i, t[i].input, inspect_boolean_object(bobj));
 
         test_int_cmp("[Error: %i] Expected boolean object value %i got %i\n",
             t[i].value, bobj->value, i, &fail);
@@ -200,8 +200,8 @@ char * test_integer_object() {
 
         if(obj == false_bool || obj == true_bool) {
             bobj = obj->value;
-            printf("[%i] %s: %i\n", i, t[i].input,
-                inspect_boolean_object(bobj));
+            //printf("[%i] %s: %i\n", i, t[i].input,
+            //    inspect_boolean_object(bobj));
             test_int_cmp("[Error: %i] Expected bool object value %i got %i\n",
                 t[i].value, bobj->value, i, &fail);
             continue;
@@ -214,7 +214,7 @@ char * test_integer_object() {
             continue;
         }
 
-        printf("[%i] %s: %i\n", i, t[i].input, inspect_integer_object(iobj));
+        //printf("[%i] %s: %i\n", i, t[i].input, inspect_integer_object(iobj));
 
         test_int_cmp("[Error: %i] Expected integer object value %i got %i\n",
             t[i].value, iobj->value, i, &fail);

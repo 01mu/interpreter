@@ -7,6 +7,12 @@
  *
  */
 
+void function_literal_store_add(FunctionLiteral * fl) {
+    fls->store = realloc(fls->store, sizeof(FunctionLiteral *) *
+        (fls->count + 1));
+    fls->store[fls->count++] = fl;
+}
+
 ExpressionStatement ** parse_call_arguments(Parser * par, int * ac) {
     ExpressionStatement ** args = malloc(sizeof(ExpressionStatement *));
     int i, c = 0;
@@ -268,12 +274,6 @@ void * parse_integer_literal(Parser * par) {
     lit->token = par->current_token;
     lit->value = str_to_int(par->current_token.literal);
     return lit;
-}
-
-void function_literal_store_add(FunctionLiteral * fl) {
-    fls->store = realloc(fls->store, sizeof(FunctionLiteral *) *
-        (fls->count + 1));
-    fls->store[fls->count++] = fl;
 }
 
 void * parse_expression(Parser * par, int precedence, void * ex, int et) {
