@@ -135,7 +135,10 @@ Object * update_eval_value(Object ** obj, Object * new, Env * env, char * n) {
         free_eval_expression(new_t, new, env, true);
         ret = * obj;
     } else {
-        free_eval_expression(old_t, * obj, env, true);
+        //if(strcmp(old_t, FUNCTION) != 0) {
+            free_eval_expression(old_t, * obj, env, true);
+        //}
+
         env_set(env, n, new);
         ret = * obj;
     }
@@ -196,43 +199,12 @@ Object * apply_function(Object * obj, Object ** args) {
     }
 
     evaluated = eval_statements(bs->statements, bs->sc, out);
-    Object * e = evaluated;
 
     if(strcmp(evaluated->type, RETURN) != 0) {
-        Statement st = bs->statements[bs->sc - 1];
-        char * statement_type = st.type;
-        char * estt = NULL;
-
-        if(strcmp(statement_type, EXPRESSION) == 0) {
-            ExpressionStatement * est = st.st;
-            estt = est->expression_type;
-
-            if(!is_bool_or_ident(estt)) {
-                //free_eval_expression(evaluated->type, evaluated, NULL, true);
-            }
-
-            return null_obj;
-        }
-    } else {
-        Statement st = bs->statements[bs->sc - 1];
-        char * statement_type = st.type;
-        char * estt = NULL;
-
-        ExpressionStatement * est = st.st;
-        estt = est->expression_type;
-
-        if(strcmp(IDENT, estt) == 0) {
-            ReturnValue * rv = evaluated->value;
-
-            e = copy_integer_object(rv->value);
-            free_eval_expression(evaluated->type, rv->value, NULL, true);
-            free(evaluated);
-            free(rv);
-            return e;
-        }
+        return null_obj;
     }
 
-    return unwrap_return_value(e);
+    return unwrap_return_value(evaluated);
 }
 
 Object ** eval_expressions(ExpressionStatement ** args, int c, Env * env) {
@@ -340,26 +312,7 @@ Object * eval_if_expression(IfExpression * iex, Env * env) {
         ret = null_obj;
     }
 
-    if(bs->sc > 0) {
-        Statement st = bs->statements[bs->sc - 1];
-        char * statement_type = st.type;
-        char * estt = NULL;
-
-        if(strcmp(statement_type, EXPRESSION) == 0) {
-            ExpressionStatement * est =  st.st;
-            estt = est->expression_type;
-
-            if(strcmp(estt, IDENT) == 0) {
-                ret = copy_integer_object(ret);
-            }
-        } else if (strcmp(statement_type, LET) == 0) {
-            LetStatement * ls = st.st;
-            Identifier id = ls->name;
-            ExpressionStatement * ee = ls->value;
-
-           // eval_let_statement(ee, env, id.value);
-        }
-    } else if(bs->sc == 0) {
+    if(bs->sc == 0) {
         return null_obj;
     }
 
@@ -624,6 +577,12 @@ Object * eval_return_statement(ExpressionStatement * est, Env * env) {
 
     rv->value = eval_expression(est->expression_type, est->expression, env);
 
+    if(strcmp(est->expression_type, IDENT) == 0 &&
+        strcmp(((Object*) rv->value)->type, INT) == 0) {
+
+        rv->value = copy_integer_object(rv->value);
+    }
+
     if(rv->value != NULL) {
         rv->type = ((Object *) rv->value)->type;
     }
@@ -665,6 +624,11 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
         if(a != NULL) {
             t = (Object **) (&(hash_map_find(env->store, name)->data));
         } else {
+            if(strcmp(get->type, FUNCTION) ==0) {
+                eval_write_env(name, obj, env);
+                return null_obj;
+            }
+
             t = (Object **) (&(hash_map_find(env->outer->store, name)->data));
         }
 

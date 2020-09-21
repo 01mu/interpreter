@@ -14,7 +14,11 @@ void free_env_store();
 
 void repl_test() {
     char * t[][2] = {
-        {"let c = fn(x) { if(x < 5) { c(x + 1); } else { 5; } }; c(0);", "5 "},
+        {"let c = fn(x) { if(x < 9) { return c(x + 1); } else { return x; } }; \
+                let e = c(0); e + 1;", "9 10 "},
+        {"let a = fn() { let b = 3; return b; }; a();", "3 3 "},
+        {"let a = fn() { return fn(x, y) { 1; return x + y; }; }; \
+                let g = a()(1, 2); g;", "1 3 3 "},
         {"let a = 1; if(true) { let a = 55; } else { }; a;", "1 55 "},
         {"let e = 1; let a = fn(z) { if(true) { let f = 3; } }; a(e); e;",
             "1 3 1 "},
@@ -24,64 +28,28 @@ void repl_test() {
         {"a/2;", "Identifier not found: a "},
         {"2/a;", "Identifier not found: a "},
         {"return a; 1;", "Identifier not found: a "},
+        // 10 ==================================================================
         {"let z = 1; let a = fn(z) { if(true) { return 33; } }; \
             let z = a(z); z;", "1 33 "},
         {"true; false; !true; !false; true == false;", "1 0 0 1 0 "},
-        {"let a = fn() { let b = 3; return b; }; a();", "3 3 "},
         {"let a = 2; let b = a; let a = b + 2; a; 3;", "2 4 3 "},
+        {"let v = fn(x) { return x; }(3); v;", "3 3 "},
+        {"let a = fn() { let b = 1; }; a(); a();", "1 1 "},
+        {"let a = fn(x) { return 1; }; let a = 3; a; let a = fn(x) \
+            { return 1; }; a(3);", "3 1 "},
+        {"let a = fn() { 11; return 5; ff; }; let d = a(); d;", "11 5 5 "},
+        {"let z = 1; let a = fn() { let z = 3; return z; }; \
+            let d = a(); z; d;", "1 3 3 3 "},
+
+        // 20 ==================================================================
     };
 
     int e = sizeof(t) / sizeof(t[0]);
+
     //e = 1;
+
     int b = e, i;
     bool res = false;
-
-    /*char * t[] = {
-        "return a;",
-        "return 1;",
-        "let a = fn() { if(false) { 1; 2; return 3; 44; let z = 1; } \
-            else { } }; let z = a(); let z = 22; z;",
-        "let c = fn(x) { if(x > 5) { return true; } \
-            else { x; c(x + 1); } }; c(0);",
-        "let n = 2; let a = fn(x) { let z = 2; let z=2; let n = z * 2; \
-            return n + x; }; a(3) + 2;",
-        "let a = fn(x) { if(x) { return 44; } else { return 42; } }; \
-            let f= a(33); f;",
-        "let a = fn(x) { let z = fn(x, y) { if(x > y) { return true; } \
-            else { return false; } }; z(1, 0); }; a(1);",
-        "let a = fn(x) { x; }; a(z);",
-        "!5 == 5",
-        "2/a;",
-        "z/2;",
-        "1>2; true == true; !false == 0;",
-        "let a = 2; let b = a; a; b; let a = 55; a; b;",
-        "let a = 2; let b = 3; let a = b + 2;",
-        "let a = fn() { if(true) { if(false) { } else { return 5; }; } \
-            else { }; }; let a = a(); a; a; a;",
-        "let z = fn() { if(!true) { return 1; } else { false; } }; \
-            let a = z(); a; a;",
-        "let c = fn(x) { if(2 < 1) { true; } else { x; 3; } }; \
-            let z = c(3);",
-        "let a = fn() { let z = false; z; return 3; }; a();",
-        "let a = fn(x) { if(!true) { 1; } else { 2; } }; a(2);",
-        "let a = fn(x) { return 1; }; let a = 3; a; \
-            let a = fn(x) { return 1; }; a(3);",
-        "let mult = fn(x) { 2; 2; x; return 3; }; mult(33);",
-        "let a = fn(x) { return 1; }; a(1);",
-        "let mult = fn(x) { let z = 2; 2; 2; x; 3; }(33);",
-        "let mult = fn(x) { 2; 2; x; return 3; }; let a = mult(33);",
-        "let mult = fn(x) { 2; 2; x; 3; }; mult(33);",
-        "let mult = fn(x) { 17; }; let j = mult(33);",
-        "let mult = fn(x, a) { 1; 33; x; }; let z = 2; mult(z, 10);",
-        "let mult = fn(x, a) { x * a; }; let b = mult(3, 10);",
-        "let a = true; let a = false; let b = a; a; !b;",
-        "let var = 1 ---3; let z = -1; z * -2;",
-        "let a = !3; if(!!!!false == true) { a } else { 55 }",
-        "!false; !!true; false; true; !5; !!5; !!!500; -5;",
-        "let a = 3; if(a + 1) { 5; } else {  };",
-        "let a = 3; let b = 5; let z = 3; 1 + 2;",
-        "let a = 2; let b = a; let a = b + 2; 3;",
-    };*/
 
     for(i = 0; i < b; i++) {
         res = false;
@@ -94,10 +62,10 @@ void repl_test() {
 
     if(e == b) {
         printf(ANSI_COLOR_GREEN "\n[PASSED] " ANSI_COLOR_RESET
-            "REPL Test | %i out of %i passed\n", e, b);
+            "REPL Test | %i out of %i passed\n\n", e, b);
     } else {
         printf(ANSI_COLOR_RED "\n[FAILED] " ANSI_COLOR_RESET
-            "REPL Test | %i out of %i passed\n", e, b);
+            "REPL Test | %i out of %i passed\n\n", e, b);
     }
 
 }
