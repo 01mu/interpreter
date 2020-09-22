@@ -83,6 +83,21 @@ String * print_object(Object * obj) {
     return s;
 }
 
+Object * copy_string_object(Object * obj) {
+    Object * new = malloc(sizeof(Object));
+    StringObject * nv = malloc(sizeof(StringObject));
+    String * old_string = ((StringObject *) obj->value)->value;
+    String * new_string = string_new();
+
+    string_cat(new_string, old_string->string, 0);
+
+    new->type = STRING;
+    new->value = nv;
+    nv->value = new_string;
+
+    return new;
+}
+
 Object * copy_integer_object(Object * fr) {
     Object * obj = malloc(sizeof(Object));
     IntegerObject * iobj = malloc(sizeof(IntegerObject));
@@ -222,7 +237,12 @@ Object ** eval_expressions(ExpressionStatement ** args, int c, Env * env) {
         eval = eval_expression(est->expression_type, est->expression, env);
 
         if(strcmp(est->expression_type, IDENT) == 0 && !is_error(eval)) {
-            eval = copy_integer_object(eval);
+            if(strcmp(eval->type, INT) == 0) {
+                eval = copy_integer_object(eval);
+            } else if(strcmp(eval->type, STRING) == 0) {
+                Object * copy = copy_string_object(eval);
+                eval = copy;
+            }
         }
 
         if(is_error(eval)) {
@@ -332,6 +352,36 @@ Object * eval_if_expression(IfExpression * iex, Env * env) {
  * =============================================================================
  */
 
+Object * eval_string_infix_exp(char * op, Object * l, Object * r, Env * env) {
+    char * m = NULL;
+
+    Object * new = NULL;
+    StringObject * nv = NULL;
+    String * new_string = NULL;
+
+    StringObject * ls = l->value, * rs = r->value;
+    String * lss = ls->value, * rss = rs->value;
+
+    if(strcmp(op, "+") != 0) {
+        m = malloc(strlen(op) + strlen(r->type) + strlen(l->type) + 20);
+        sprintf(m, "Unknown operator: %s%s%s", l->type, op, r->type);
+        return new_error(m);
+    }
+
+    new = malloc(sizeof(Object));
+    nv = malloc(sizeof(StringObject));
+    new_string = string_new();
+
+    string_cat(new_string, lss->string, 0);
+    string_cat(new_string, rss->string, 0);
+
+    new->type = STRING;
+    new->value = nv;
+    nv->value = new_string;
+
+    return new;
+}
+
 Object * eval_integer_infix_exp(char * op, Object * l, Object * r, Env * env) {
     Object * obj = NULL;
     IntegerObject * int_obj = NULL;
@@ -360,7 +410,7 @@ Object * eval_integer_infix_exp(char * op, Object * l, Object * r, Env * env) {
         obj = eval_bool(left != right, env);
     } else {
         m = malloc(strlen(op) + strlen(r->type) + strlen(l->type) + 20);
-        sprintf(m, "Unknown operator: %s%s%s\n", l->type, op, r->type);
+        sprintf(m, "Unknown operator: %s%s%s", l->type, op, r->type);
         return new_error(m);
     }
 
@@ -408,6 +458,9 @@ Object * eval_infix_expression(InfixExpression * iex, Env * env) {
 
     if(strcmp(l->type, INT) == 0 && strcmp(r->type, INT) == 0) {
         ret = eval_integer_infix_exp(op, l, r, env);
+        eval_free_infix(lext, l, rext, r);
+    } else if(strcmp(l->type, STRING) == 0 && strcmp(r->type, STRING) == 0) {
+        ret = eval_string_infix_exp(op, l, r, env);
         eval_free_infix(lext, l, rext, r);
     } else if(strcmp(l->type, r->type) != 0) {
         m = malloc(strlen(l->type) + strlen(r->type) + strlen(op) + 19);
@@ -540,10 +593,11 @@ Object * eval_identifier(Identifier * ident, Env * env) {
 Object * eval_string(StringLiteral * str, Env * env) {
     Object * obj = malloc(sizeof(Object));
     StringObject * str_obj = malloc(sizeof(StringObject));
+    String * z = str->value;
 
     str_obj->value = string_new();
 
-    string_append(str_obj->value, str->value);
+    string_cat(str_obj->value, z->string, 0);
 
     obj->type = STRING;
     obj->value = str_obj;
@@ -589,7 +643,7 @@ Object * eval_expression(char * ext, void * est, Env * env) {
 }
 
 Object * eval_return_statement(ExpressionStatement * est, Env * env) {
-    Object * obj = malloc(sizeof(Object)), * err;
+    Object * obj = malloc(sizeof(Object)), * err = NULL;
     ReturnValue * rv = malloc(sizeof(ReturnValue));
 
     obj->type = RETURN;
@@ -598,9 +652,15 @@ Object * eval_return_statement(ExpressionStatement * est, Env * env) {
     rv->value = eval_expression(est->expression_type, est->expression, env);
 
     if(strcmp(est->expression_type, IDENT) == 0 &&
-        strcmp(((Object*) rv->value)->type, INT) == 0) {
+        strcmp(((Object *) rv->value)->type, INT) == 0) {
 
         rv->value = copy_integer_object(rv->value);
+    }
+
+    if(strcmp(est->expression_type, IDENT) == 0 &&
+        strcmp(((Object *) rv->value)->type, STRING) == 0) {
+
+        rv->value = copy_string_object(rv->value);
     }
 
     if(rv->value != NULL) {
@@ -632,9 +692,15 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
         return null_obj;
     }
 
-    if(obj != get && strcmp(ext, IDENT) == 0 && strcmp(obj->type, INT) == 0) {
+    if(obj != get && strcmp(ext, IDENT) == 0) {
         get = env_get(env, ((Identifier *) est->expression)->value);
-        get = copy_integer_object(get);
+
+        if(strcmp(obj->type, STRING) == 0) {
+            get = copy_string_object(get);
+        } else if(strcmp(obj->type, INT) == 0) {
+            get = copy_integer_object(get);
+        }
+
         eval_write_env(name, get, env);
         return null_obj;
     }
@@ -751,11 +817,16 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
 
         //printf("[%p: %i] %s %s %s\n", env, i, stt, ety, obj->type);
 
-        if (eval_free_error(obj, env) || eval_free_return(obj, env, ety)) {
+        if(eval_free_error(obj, env) || eval_free_return(obj, env, ety)) {
             return null_obj;
         } else if(env != henv && strcmp(obj->type, RETURN) == 0) {
             return obj;
         } else if(env != henv && !is_bool_or_ident(ety) && sc == 1) {
+            free_eval_expression(obj->type, obj, env, true);
+            return null_obj;
+        } else if((strcmp(ety, INFIX) == 0 ||
+            strcmp(ety, CALL) == 0) && strcmp(obj->type, STRING) == 0) {
+
             free_eval_expression(obj->type, obj, env, true);
             return null_obj;
         } else if(env != henv && !is_bool_or_ident(ety) && i != sc - 1) {

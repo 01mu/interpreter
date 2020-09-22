@@ -93,6 +93,7 @@ void free_identifier(Identifier * id) {
 }
 
 void free_string_literal(StringLiteral * sl) {
+    string_free(sl->value);
     free(sl);
 }
 

@@ -52,6 +52,21 @@ void repl_test() {
             { return x + 1; } }; let g = 20; let e = fn() { c(0, g); }; e(); \
             g;", "20 21 20 "},
         {"\"asd\"; let z = \"ddd\";", "asd ddd "},
+        {"let c = fn(x) { if(x < 9) { return c(x + 1); } else \
+            { return \"a\"; } }; let e = c(0); e;", "a a "},
+        {"let a = 1; let a = \"z\"; a;", "1 z "},
+        {"let a = \"z\"; let a = \"d\"; a;", "z d "},
+        {"let z = fn(a) { return a; }; let a = z(\"d\");", "d "},
+        {"let z = fn(a) { return a; }; z(\"d\");", "d "},
+        {"let g = \"z\"; let z = fn(a) { return a; }; z(g);", "z z "},
+        {"let z = fn() { let g = \"zzz\"; return g; }; let d = z(); \
+            let b = z();", "zzz zzz zzz zzz "},
+        // 30 ==================================================================
+        {"let a = \"a\"; let b = a; b;", "a a " },
+        {"let f = \"abc\" + \"def\"; f;", "abcdef abcdef "},
+        {"\"abc\" + \"def\";", "abcdef "},
+        {"1 + 2;", "3 "},
+        {"\"asd\" - \"a\"", "Unknown operator: STRING-STRING "},
     };
 
     int e = sizeof(t) / sizeof(t[0]);
