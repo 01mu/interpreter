@@ -14,10 +14,9 @@ void function_literal_store_add(FunctionLiteral * fl) {
 }
 
 ExpressionStatement ** parse_call_arguments(Parser * par, int * ac) {
-    ExpressionStatement ** args = malloc(sizeof(ExpressionStatement *));
     int i, c = 0;
-
-    ExpressionStatement * e;
+    ExpressionStatement ** args = malloc(sizeof(ExpressionStatement *));
+    ExpressionStatement * e = NULL;
 
     if(peek_token_is(par, RPAREN)) {
         free(args);
@@ -135,8 +134,8 @@ void * parse_if_expression(Parser * par) {
 }
 
 Identifier ** parse_program_parameters(Parser * parser, int * c) {
-    Identifier ** parameters, * parameter;
     int i, pc = 0;
+    Identifier ** parameters = NULL, * parameter = NULL;
 
     if(peek_token_is(parser, RPAREN)) {
         * c = 0;
@@ -182,8 +181,8 @@ Identifier ** parse_program_parameters(Parser * parser, int * c) {
 }
 
 void * parse_function_literal(Parser * parser) {
-    FunctionLiteral * fl = malloc(sizeof(FunctionLiteral));
     int i;
+    FunctionLiteral * fl = malloc(sizeof(FunctionLiteral));
 
     fl->token = parser->current_token;
 
@@ -212,7 +211,7 @@ void * parse_function_literal(Parser * parser) {
 }
 
 void * parse_grouped_expression(Parser * par) {
-    void * s;
+    void * s = NULL;
 
     parser_next_token(par);
 
@@ -257,28 +256,46 @@ void * parse_prefix_expression(Parser * par) {
 
 void * parse_identifier(Parser * par) {
     Identifier * identifier = malloc(sizeof(Identifier));
+
     identifier->token = par->current_token;
     identifier->value = par->current_token.literal;
+
     return identifier;
 }
 
 void * parse_boolean(Parser * par, bool value) {
     Boolean * b = malloc(sizeof(Boolean));
+
     b->token = par->current_token;
     b->value = value;
+
     return b;
+}
+
+void * parse_string_literal(Parser * par) {
+    StringLiteral * str = malloc(sizeof(StringLiteral));
+    String * st = string_new();
+
+    string_cat(st, par->current_token.literal, 1);
+
+    str->token = par->current_token;
+    str->value = st;
+
+    return str;
 }
 
 void * parse_integer_literal(Parser * par) {
     IntegerLiteral * lit = malloc(sizeof(IntegerLiteral));
+
     lit->token = par->current_token;
     lit->value = str_to_int(par->current_token.literal);
+
     return lit;
 }
 
 void * parse_expression(Parser * par, int precedence, void * ex, int et) {
-    char * type = par->current_token.type, * exp_type;
-    void * expr;
+    char * type = par->current_token.type, * exp_type = NULL;
+    void * expr = NULL;
     size_t type_len;
 
     if(type == IDENT) {
@@ -287,6 +304,9 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
     } else if(type == INT) {
         exp_type = INT;
         expr = parse_integer_literal(par);
+    } else if(type == STRING) {
+        exp_type = STRING;
+        expr = parse_string_literal(par);
     } else if(type == TRUE) {
         exp_type = TRUE;
         expr = parse_boolean(par, true);
@@ -305,7 +325,6 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
     } else if(type == FUNCTION) {
         exp_type = FUNCTION;
         expr = parse_function_literal(par);
-
         function_literal_store_add(expr);
     } else {
         exp_type = ILLEGAL;
@@ -355,7 +374,7 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
 }
 
 void parse_expression_statement(Parser * par, Statement * smt) {
-    ExpressionStatement * est;
+    ExpressionStatement * est = NULL;
 
     smt->st = malloc(sizeof(ExpressionStatement));
     est = (ExpressionStatement *) smt->st;
@@ -369,8 +388,8 @@ void parse_expression_statement(Parser * par, Statement * smt) {
 }
 
 void parse_return_statement(Parser * par, Statement * smt) {
-    ReturnStatement * ret;
-    ExpressionStatement * ex;
+    ReturnStatement * ret = NULL;
+    ExpressionStatement * ex = NULL;
 
     smt->st = malloc(sizeof(ReturnStatement));
     ret = (ReturnStatement *) smt->st;
@@ -391,8 +410,8 @@ void parse_return_statement(Parser * par, Statement * smt) {
 }
 
 void parse_let_statement(Parser * par, Statement * smt) {
-    LetStatement * let;
-    ExpressionStatement * ex;
+    LetStatement * let = NULL;
+    ExpressionStatement * ex = NULL;
 
     smt->st = malloc(sizeof(LetStatement));
     let = (LetStatement *) smt->st;
@@ -442,7 +461,7 @@ void parse_statement(Parser * par, Statement * stmts, int sc, int sz) {
 
 Program * parse_program(Parser * parser) {
     Program * prg = malloc(sizeof(Program));
-    size_t stmt_sz = 0;
+    size_t stmt_sz;
 
     prg->statements = malloc(sizeof(Statement));
     prg->sc = 0;
@@ -458,7 +477,7 @@ Program * parse_program(Parser * parser) {
 }
 
 int parser_get_precedence(Parser * par, int type) {
-    char * pt;
+    char * pt = NULL;
 
     if(type == PREC_PEEK) {
         pt = par->peek_token.type;

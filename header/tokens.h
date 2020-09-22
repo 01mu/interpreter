@@ -49,6 +49,7 @@
 #define PREFIX "PREFIX"
 #define CALL "CALL"
 #define BOOLEAN "BOOLEAN"
+#define STRING "STRING"
 
 #define PREC_PEEK 0
 #define PREC_CURRENT 1

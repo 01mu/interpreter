@@ -17,7 +17,7 @@ void env_display(Env * env);
 Env * new_env() {
     Env * env = malloc(sizeof(Env));
 
-    env->store = hash_map_new(150);
+    env->store = hash_map_new(30);
     env->outer = NULL;
 
     return env;
@@ -37,15 +37,7 @@ Object * env_get(Env * env, char * name) {
 
     if(sl == NULL) {
         if(env->outer != NULL) {
-            sl2 = (SortedList *) hash_map_find(env->outer->store, name);
-
-            if(sl2 != NULL) {
-                obj = (Object *) sl2->data;
-            }
-        }
-
-        if(obj != NULL) {
-            return obj;
+            return env_get(env->outer, name);
         }
 
         return NULL;
@@ -61,12 +53,11 @@ Object * env_get(Env * env, char * name) {
 }
 
 Object * env_set(Env * env, char * name, Object * data) {
-    return (Object *) hash_map_insert(env->store, name, NULL, data);
+    return (Object *) hash_map_insert(env->store, name, data);
 }
 
 void env_free(Env * env) {
     int i;
-
     Object * obj = NULL;
     HashMap * store = env->store;
     SortedList * current = NULL;
@@ -89,13 +80,12 @@ void env_free(Env * env) {
         }
     }
 
-    hash_map_free(env->store, NULL);
+    hash_map_free(env->store);
     free(env);
 }
 
 void env_display(Env * env) {
     String * envs = hash_map_print(env->store);
-
     printf("%s", envs->string);
     string_free(envs);
 }

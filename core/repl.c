@@ -14,11 +14,12 @@ void free_env_store();
 
 void repl_test() {
     char * t[][2] = {
+        // =====================================================================
         {"let c = fn(x) { if(x < 9) { return c(x + 1); } else { return x; } }; \
-                let e = c(0); e + 1;", "9 10 "},
+            let e = c(0); e + 1;", "9 10 "},
         {"let a = fn() { let b = 3; return b; }; a();", "3 3 "},
         {"let a = fn() { return fn(x, y) { 1; return x + y; }; }; \
-                let g = a()(1, 2); g;", "1 3 3 "},
+            let g = a()(1, 2); g;", "1 3 3 "},
         {"let a = 1; if(true) { let a = 55; } else { }; a;", "1 55 "},
         {"let e = 1; let a = fn(z) { if(true) { let f = 3; } }; a(e); e;",
             "1 3 1 "},
@@ -40,14 +41,21 @@ void repl_test() {
         {"let a = fn() { 11; return 5; ff; }; let d = a(); d;", "11 5 5 "},
         {"let z = 1; let a = fn() { let z = 3; return z; }; \
             let d = a(); z; d;", "1 3 3 3 "},
-
+        {"let z = false; let a = fn(z) { let z = true; }; a(z);", "0 " },
+        {"let c = fn(x) { let g = fn() { return 5; }; return g() + 1; }; \
+            let e = c(0); e * e;", "6 36 "},
         // 20 ==================================================================
+        {"let c = fn(x, r) { if(x < r) { return c(x + 1, r); } else \
+            { return x; } }; let g = fn() { return 12; }; let e = c(0, g()); \
+            e * 2;", "12 24 "},
+        {"let c = fn(x, g) { if(x < g) { return c(x + 1, g); } else \
+            { return x + 1; } }; let g = 20; let e = fn() { c(0, g); }; e(); \
+            g;", "20 21 20 "},
+        {"\"asd\"; let z = \"ddd\";", "asd ddd "},
     };
 
     int e = sizeof(t) / sizeof(t[0]);
-
     //e = 1;
-
     int b = e, i;
     bool res = false;
 
@@ -72,7 +80,7 @@ void repl_test() {
 
 void repl(bool is_test, bool * good, char ** input, int * j) {
     int i;
-    char str[120];
+    char str[120], * file = NULL;
     Lexer * lexer = NULL;
     Parser * parser = NULL;
     Program * program = NULL;
@@ -94,7 +102,7 @@ void repl(bool is_test, bool * good, char ** input, int * j) {
     env_store_add(env);
 
     if(!is_test) {
-        printf("Type '\\h' for help and '\\q' to quit.\n");
+        printf("Type '\\h' for help and '\\q' to quit\n");
     }
 
     for( ; ; ) {
@@ -113,8 +121,28 @@ void repl(bool is_test, bool * good, char ** input, int * j) {
                 free(lexer);
                 env_display(env);
                 continue;
+            } else if(strcmp(str, "\\o\n") == 0) {
+                free(lexer);
+                printf("*** Open file: ");
+                fgets(str, 120, stdin);
+                str[strlen(str) - 1] = '\0';
+
+                if(strlen(str) > 0) {
+                    file = read_file(str);
+
+                    if(file != NULL) {
+                        printf("File \"%s\" opened\n", str);
+                        lexer = new_lexer(file);
+                    } else {
+                        printf("Bad file\n");
+                        lexer = new_lexer("");
+                    }
+                } else {
+                    lexer = new_lexer("");
+                }
             } else if(strcmp(str, "\\h\n") == 0) {
-                printf("Commands:\nDisplay environment: \\e\n");
+                printf("Commands:\nDisplay environment: ... \\e\n");
+                printf("Open file: ............. \\o\n");
                 free(lexer);
                 continue;
             }
@@ -137,6 +165,11 @@ void repl(bool is_test, bool * good, char ** input, int * j) {
 
         free_env_store();
         free_program(lexer, parser, program);
+
+        if(file != NULL) {
+            free(file);
+            file = NULL;
+        }
 
         if(is_test) {
             break;

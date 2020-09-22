@@ -92,6 +92,10 @@ void free_identifier(Identifier * id) {
     free(id);
 }
 
+void free_string_literal(StringLiteral * sl) {
+    free(sl);
+}
+
 void free_integer_literal(IntegerLiteral * il) {
     free(il->token.literal);
     free(il);
@@ -100,6 +104,8 @@ void free_integer_literal(IntegerLiteral * il) {
 void free_expression_statement(char * type, void * value) {
     if(strcmp(type, INT) == 0) {
         free_integer_literal((IntegerLiteral *) value);
+    } else if(strcmp(type, STRING) == 0) {
+        free_string_literal((StringLiteral *) value);
     } else if (strcmp(type, IDENT) == 0) {
         free_identifier((Identifier *) value);
     } else if (strcmp(type, PREFIX) == 0) {

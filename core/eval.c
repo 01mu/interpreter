@@ -15,6 +15,7 @@ void env_store_add(Env * env) {
 
 void eval_write_env(char * name, Object * obj, Env * env) {
     char * ident_name = malloc(strlen(name) + 1);
+
     ident_name[0] = '\0';
     strcpy(ident_name, name);
     env_set(env, ident_name, obj);
@@ -61,7 +62,7 @@ void free_stat(Object * b) {
 
 String * print_object(Object * obj) {
     String * s = string_new();
-    char * c = malloc(sizeof(char) + 50);
+    char * c = malloc(sizeof(char) + 40);
 
     c[0] = '\0';
 
@@ -73,6 +74,8 @@ String * print_object(Object * obj) {
         sprintf(c, "NULL ");
     } else if(strcmp(obj->type, "ERROR") == 0) {
         sprintf(c, "%s ", ((ErrorObject *) obj->value)->message);
+    } else if(strcmp(obj->type, "STRING") == 0) {
+        sprintf(c, "%s ", ((StringObject *) obj->value)->value->string);
     }
 
     string_cat(s, c, true);
@@ -113,6 +116,9 @@ void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
         free(obj->value);
     } else if(strcmp(ext, FUNCTION) == 0) {
         free(obj->value);
+    } else if(strcmp(ext, STRING) == 0) {
+        string_free(((StringObject *) obj->value)->value);
+        free(obj->value);
     } else {
         return;
     }
@@ -135,10 +141,7 @@ Object * update_eval_value(Object ** obj, Object * new, Env * env, char * n) {
         free_eval_expression(new_t, new, env, true);
         ret = * obj;
     } else {
-        //if(strcmp(old_t, FUNCTION) != 0) {
-            free_eval_expression(old_t, * obj, env, true);
-        //}
-
+        free_eval_expression(old_t, * obj, env, true);
         env_set(env, n, new);
         ret = * obj;
     }
@@ -323,21 +326,6 @@ Object * eval_if_expression(IfExpression * iex, Env * env) {
     return ret;
 }
 
-Object * eval_function_literal(FunctionLiteral * fl, Env * env) {
-    Object * obj = malloc(sizeof(Object));
-    Function * function = malloc(sizeof(Function));
-
-    obj->type = FUNCTION;
-    obj->value = function;
-
-    function->parameters = fl->parameters;
-    function->body = fl->body;
-    function->env = env;
-    function->pc = fl->pc;
-
-    return obj;
-}
-
 /*
  * =============================================================================
  * infix expression
@@ -509,8 +497,24 @@ Object * eval_prefix_expression(PrefixExpression * pex, Env * env) {
 
 /*
  * =============================================================================
+ *
  * =============================================================================
  */
+
+Object * eval_function_literal(FunctionLiteral * fl, Env * env) {
+    Object * obj = malloc(sizeof(Object));
+    Function * function = malloc(sizeof(Function));
+
+    obj->type = FUNCTION;
+    obj->value = function;
+
+    function->parameters = fl->parameters;
+    function->body = fl->body;
+    function->env = env;
+    function->pc = fl->pc;
+
+    return obj;
+}
 
 Object * eval_bool(bool b, Env * env) {
     if(b) {
@@ -533,6 +537,20 @@ Object * eval_identifier(Identifier * ident, Env * env) {
     return get;
 }
 
+Object * eval_string(StringLiteral * str, Env * env) {
+    Object * obj = malloc(sizeof(Object));
+    StringObject * str_obj = malloc(sizeof(StringObject));
+
+    str_obj->value = string_new();
+
+    string_append(str_obj->value, str->value);
+
+    obj->type = STRING;
+    obj->value = str_obj;
+
+    return obj;
+}
+
 Object * eval_integer(IntegerLiteral * il, Env * env) {
     Object * obj = malloc(sizeof(Object));
     IntegerObject * iobj = malloc(sizeof(IntegerObject));
@@ -549,6 +567,8 @@ Object * eval_expression(char * ext, void * est, Env * env) {
 
     if(strcmp(ext, INT) == 0) {
         res = eval_integer((IntegerLiteral *) est, env);
+    } else if(strcmp(ext, STRING) == 0) {
+        res = eval_string((StringLiteral *) est, env);
     } else if(strcmp(ext, IDENT) == 0) {
         res = eval_identifier((Identifier *) est, env);
     } else if(strcmp(ext, PREFIX) == 0) {
@@ -601,7 +621,8 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
     char * ext = est->expression_type;
     Object * obj = eval_expression(ext, est->expression, env);
     Object * get = env_get(env, name);
-    Object ** t = NULL;
+    Object ** hmd = NULL;
+    SortedList * hm_store = NULL;
 
     if(strcmp(ext, IF) == 0) {
         return null_obj;
@@ -619,25 +640,24 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
     }
 
     if(get != NULL) {
-        SortedList * a = hash_map_find(env->store, name);
+        hm_store = hash_map_find(env->store, name);
 
-        if(a != NULL) {
-            t = (Object **) (&(hash_map_find(env->store, name)->data));
+        if(hm_store != NULL) {
+            hmd = (Object **) (&(hash_map_find(env->store, name)->data));
         } else {
-            if(strcmp(get->type, FUNCTION) ==0) {
+            if(strcmp(get->type, FUNCTION) == 0) {
                 eval_write_env(name, obj, env);
                 return null_obj;
             }
 
-            t = (Object **) (&(hash_map_find(env->outer->store, name)->data));
+            hmd = (Object **) (&(hash_map_find(env->outer->store, name)->data));
         }
 
         if(obj == get) {
             return null_obj;
         }
 
-        update_eval_value(t, obj, env, name);
-
+        update_eval_value(hmd, obj, env, name);
         return null_obj;
     }
 
@@ -710,14 +730,19 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
         est = (ExpressionStatement *) statements[i].st;
         ety = est->expression_type;
 
-        if(strcmp(ety, IF) != 0 && obj->type != "NULL") {
+        if(strcmp(ety, IF) != 0 && obj != null_obj) {
             s = print_object(obj);
 
             if(is_repl_test_string) {
                 //printf("%s", s->string);
                 string_append(repl_test_string, s);
             } else {
-                printf("%s\n", s->string);
+                printf("%s", s->string);
+
+                if(strcmp(s->string, "") != 0) {
+                   printf("\n");
+                }
+
                 string_free(s);
             }
         } else {

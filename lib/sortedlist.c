@@ -7,10 +7,9 @@
  *
  */
 
-SortedList * sorted_list_new(char * data_type, void * data, char * key) {
+SortedList * sorted_list_new(void * data, char * key) {
     SortedList * sl = malloc(sizeof(SortedList));
 
-    sl->data_type = data_type;
     sl->data = data;
     sl->key = key;
     sl->next = NULL;
@@ -18,8 +17,8 @@ SortedList * sorted_list_new(char * data_type, void * data, char * key) {
     return sl;
 }
 
-SortedList * sorted_list_ins(SortedList ** r, char * dt, void * d, char * key) {
-    SortedList * new_sl = sorted_list_new(dt, d, key);
+SortedList * sorted_list_ins(SortedList ** r, void * d, char * key) {
+    SortedList * new_sl = sorted_list_new(d, key);
     SortedList * prev = NULL, * current = * r;
 
     if(r == NULL || key == NULL) {
@@ -65,7 +64,7 @@ bool sorted_list_remove(SortedList ** r, char * key) {
         free(current);
 
         if(* r == NULL) {
-            * r = sorted_list_new(NULL, NULL, NULL);
+            * r = sorted_list_new(NULL, NULL);
         }
     } else {
         prev->next = current->next;
@@ -99,13 +98,6 @@ String * sorted_list_print(SortedList * sl) {
     while(current != NULL && current->key != NULL) {
         string_cat(str, current->key, false);
         string_cat(str, ": ", false);
-
-        if(current->data_type == NULL) {
-            string_cat(str, "-", false);
-        } else {
-            string_cat(str, current->data_type, false);
-        }
-
         a = malloc(sizeof(char) * 20);
         sprintf(a, " %p", current->data);
         string_cat(str, a, true);
@@ -116,29 +108,14 @@ String * sorted_list_print(SortedList * sl) {
     return str;
 }
 
-void sorted_list_free(SortedList * sl, HashMap * track) {
+void sorted_list_free(SortedList * sl) {
     SortedList * current = sl, * temp = NULL;
     char * addr = NULL;
 
     while(current != NULL) {
         temp = current->next;
-
         free(current->key);
-
-        if(track != NULL) {
-            addr = malloc(30);
-            sprintf(addr, "%p", current->data);
-
-            if(hash_map_find(track, addr) == NULL) {
-                hash_map_insert(track, addr, NULL, NULL);
-                free(current->data);
-            } else {
-                free(addr);
-            }
-        } else {
-            free(current->data);
-        }
-
+        free(current->data);
         free(current);
         current = temp;
     }

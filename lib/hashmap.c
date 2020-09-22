@@ -22,8 +22,9 @@ HashMap * hash_map_new(int size) {
     return map;
 }
 
-void * hash_map_insert(HashMap * hm, char * key, char * dt, void * data) {
+void * hash_map_insert(HashMap * hm, char * key, void * data) {
     int idx;
+    SortedList * find = NULL, * insert = NULL;
 
     if(hm == NULL || key == NULL) {
         return NULL;
@@ -32,16 +33,15 @@ void * hash_map_insert(HashMap * hm, char * key, char * dt, void * data) {
     idx = hash_map_hash(hm, key);
 
     if(hm->array[idx] == NULL) {
-        hm->array[idx] = sorted_list_new(dt, data, key);
+        hm->array[idx] = sorted_list_new(data, key);
     }
 
-    SortedList * find = hash_map_find(hm, key), * insert;
+    find = hash_map_find(hm, key);
 
     if(find == NULL) {
         insert = hm->array[idx];
-        sorted_list_ins(&insert, dt, data, key);
+        sorted_list_ins(&insert, data, key);
     } else {
-        find->data_type = dt;
         find->data = data;
     }
 
@@ -96,12 +96,12 @@ String * hash_map_print(HashMap * hm) {
     return str;
 }
 
-void hash_map_free(HashMap * hm, HashMap * track) {
+void hash_map_free(HashMap * hm) {
     int i;
 
     for(i = 0; i < hm->size; i++) {
         if(hm->array[i] != NULL) {
-            sorted_list_free(hm->array[i], track);
+            sorted_list_free(hm->array[i]);
         }
     }
 
@@ -110,21 +110,5 @@ void hash_map_free(HashMap * hm, HashMap * track) {
 }
 
 void hash_map_test() {
-    int i;
-    HashMap * hm = hash_map_new(50);
-    String * hmp;
 
-    char * a = malloc(10);
-    a[0] = '\0';
-    strcpy(a, "zzzz");
-
-    hash_map_insert(hm, a, NULL, NULL);
-   // hash_map_insert(hm, b, NULL, NULL);
-
-    //hash_map_remove(hm, "f");
-
-    hmp = hash_map_print(hm);
-    printf("%s", hmp->string);
-    hash_map_free(hm, NULL);
-    string_free(hmp);
 }

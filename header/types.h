@@ -193,3 +193,12 @@ bool is_repl_test_string = false;
 
 typedef struct Env Env;
 typedef struct SortedList SortedList;
+
+typedef struct {
+    Token token;
+    String * value;
+} StringLiteral;
+
+typedef struct {
+    String * value;
+} StringObject;

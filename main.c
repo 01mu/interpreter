@@ -39,16 +39,6 @@ int main(int argc, char * argv[])
 
     if(strcmp(argv[1], "test-hash") == 0) {
         hash_map_test();
-    } else if(strcmp(argv[1], "test-string") == 0) {
-        String * s = string_new();
-
-        char * a = "asd\nasd";
-
-        string_cat(s, a, false);
-
-        printf("%i %s\n", s->len, s->string);
-
-        string_free(s);
     } else if(strcmp(argv[1], "test-print") == 0) {
         test_print_program();
     } else if(strcmp(argv[1], "test-eval") == 0) {

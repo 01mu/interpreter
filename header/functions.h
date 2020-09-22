@@ -141,18 +141,18 @@ void string_cat(String * string, char * ap, bool h);
 void string_append(String * string, String * ap);
 void string_free(String * string);
 
-SortedList * sorted_list_new(char * data_type, void * data, char * key);
-SortedList * sorted_list_ins(SortedList ** r, char * dt, void * d, char * key);
+SortedList * sorted_list_new(void * data, char * key);
+SortedList * sorted_list_ins(SortedList ** r, void * d, char * key);
 bool sorted_list_remove(SortedList ** r, char * key);
 SortedList * sorted_list_find(SortedList * r, char * key);
 String * sorted_list_print(SortedList * sl);
-void sorted_list_free(SortedList * sl, HashMap * track);
+void sorted_list_free(SortedList * sl);
 
 HashMap * hash_map_new(int size);
-void * hash_map_insert(HashMap * hm, char * key, char * dt, void * data);
+void * hash_map_insert(HashMap * hm, char * key, void * data);
 void hash_map_remove(HashMap * hm, char * key);
 SortedList * hash_map_find(HashMap * hm, char * key);
 int hash_map_hash(HashMap * hm, char * key);
 String * hash_map_print(HashMap * hm);
-void hash_map_free(HashMap * hm, HashMap * track);
+void hash_map_free(HashMap * hm);
 void hash_map_test();

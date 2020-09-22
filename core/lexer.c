@@ -135,11 +135,26 @@ char peek_char(Lexer * lexer) {
 }
 
 Token lexer_next_token(Lexer * lexer) {
+    int position;
     Token token;
 
     skip_whitespace(lexer);
 
     switch(lexer->ch) {
+    case '"':
+        token.type = STRING;
+        position = lexer->pos + 1;
+
+        while(1) {
+            read_char(lexer);
+
+            if(lexer->ch == '"' || lexer->ch == 0) {
+                break;
+            }
+        }
+
+        token.literal = get_substr(position, lexer->pos, lexer->input);
+        break;
     case ';':
         token = new_token(SEMICOLON);
         break;
