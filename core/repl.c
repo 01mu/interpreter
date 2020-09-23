@@ -67,10 +67,11 @@ void repl_test() {
         {"\"abc\" + \"def\";", "abcdef "},
         {"1 + 2;", "3 "},
         {"\"asd\" - \"a\"", "Unknown operator: STRING-STRING "},
+        {"let z = \"a\"; let d = z + \"b\" + \"c\" + \"a\" + \"b\" + \"c\"; d;",
+            "a abcabc abcabc "},
     };
 
     int e = sizeof(t) / sizeof(t[0]);
-    //e = 1;
     int b = e, i;
     bool res = false;
 

@@ -461,6 +461,11 @@ Object * eval_infix_expression(InfixExpression * iex, Env * env) {
         eval_free_infix(lext, l, rext, r);
     } else if(strcmp(l->type, STRING) == 0 && strcmp(r->type, STRING) == 0) {
         ret = eval_string_infix_exp(op, l, r, env);
+
+        if(strcmp(lext, INFIX) == 0) {
+            string_free(((StringObject *) l->value)->value);
+        }
+
         eval_free_infix(lext, l, rext, r);
     } else if(strcmp(l->type, r->type) != 0) {
         m = malloc(strlen(l->type) + strlen(r->type) + strlen(op) + 19);
