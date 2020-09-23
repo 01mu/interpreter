@@ -21,6 +21,7 @@
 #include "lib/sortedlist.c"
 #include "lib/hashmap.c"
 
+#include "core/builtin.c"
 #include "core/env.c"
 #include "core/free.c"
 #include "core/lexer.c"

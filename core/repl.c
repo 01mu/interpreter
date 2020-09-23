@@ -35,7 +35,8 @@ void repl_test() {
         {"true; false; !true; !false; true == false;", "1 0 0 1 0 "},
         {"let a = 2; let b = a; let a = b + 2; a; 3;", "2 4 3 "},
         {"let v = fn(x) { return x; }(3); v;", "3 3 "},
-        {"let a = fn() { let b = 1; }; a(); a();", "1 1 "},
+        {"let n = false; let a = fn() { n; let b = 1; }; a(); a(); b;", \
+            "0 0 1 0 1 Identifier not found: b "},
         {"let a = fn(x) { return 1; }; let a = 3; a; let a = fn(x) \
             { return 1; }; a(3);", "3 1 "},
         {"let a = fn() { 11; return 5; ff; }; let d = a(); d;", "11 5 5 "},
@@ -69,9 +70,13 @@ void repl_test() {
         {"\"asd\" - \"a\"", "Unknown operator: STRING-STRING "},
         {"let z = \"a\"; let d = z + \"b\" + \"c\" + \"a\" + \"b\" + \"c\"; d;",
             "a abcabc abcabc "},
+        {"let meme = \"aaaa\"; len(1);", "aaaa Argument not a string "},
+        {"len(\"z\");", "1 "},
+        {"let meme = \"aaaa\"; len(meme + \"z\"); meme;", "aaaa 5 aaaa "},
     };
 
     int e = sizeof(t) / sizeof(t[0]);
+    //e = 1;
     int b = e, i;
     bool res = false;
 

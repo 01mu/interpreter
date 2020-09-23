@@ -32,7 +32,7 @@ Env * env_new_enclosed(Env * outer) {
 }
 
 Object * env_get(Env * env, char * name) {
-    SortedList * sl = (SortedList *) hash_map_find(env->store, name), * sl2;
+    SortedList * sl = (SortedList *) hash_map_find(env->store, name);
     Object * obj = NULL;
 
     if(sl == NULL) {

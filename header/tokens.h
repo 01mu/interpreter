@@ -50,6 +50,7 @@
 #define CALL "CALL"
 #define BOOLEAN "BOOLEAN"
 #define STRING "STRING"
+#define BUILTIN "BUILTIN"
 
 #define PREC_PEEK 0
 #define PREC_CURRENT 1

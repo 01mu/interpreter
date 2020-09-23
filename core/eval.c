@@ -27,6 +27,17 @@ bool is_error(Object * obj) {
     }
 }
 
+Object * new_builtin(char * fn) {
+    Object * obj = malloc(sizeof(Object));
+    BuiltIn * bi = malloc(sizeof(BuiltIn));
+
+    bi->fn = fn;
+    obj->type = BUILTIN;
+    obj->value = bi;
+
+    return obj;
+}
+
 Object * new_error(char * msg) {
     Object * obj = malloc(sizeof(Object));
     ErrorObject * err = malloc(sizeof(ErrorObject));
@@ -131,6 +142,8 @@ void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
         free(obj->value);
     } else if(strcmp(ext, FUNCTION) == 0) {
         free(obj->value);
+    } else if(strcmp(ext, BUILTIN) == 0) {
+        free(obj->value);
     } else if(strcmp(ext, STRING) == 0) {
         string_free(((StringObject *) obj->value)->value);
         free(obj->value);
@@ -201,34 +214,45 @@ Env * extend_function_env(Function * func, Object ** args) {
     return env;
 }
 
-Object * apply_function(Object * obj, Object ** args) {
-    char * m = NULL;
+Object * apply_function(Object * obj, Object ** args, int argc) {
+    char * m = NULL, * type = NULL;
     Object * evaluated = NULL;
-    Function * func = (Function *) obj->value;
-    BlockStatement * bs = func->body;
-    Env * out = extend_function_env(func, args);
+    Function * func = NULL;
+    BlockStatement * bs = NULL;
+    Env * out = NULL;
 
-    env_store_add(out);
-
-    if(strcmp(FUNCTION, obj->type) != 0) {
+    if(strcmp(FUNCTION, obj->type) != 0 && strcmp(BUILTIN, obj->type) != 0) {
         m = malloc(strlen(obj->type) + 23);
-        sprintf(m, "Not a function: %s\n", obj->type);
+        sprintf(m, "Not a function: %s", obj->type);
         return new_error(m);
-    }
+    } else if(strcmp(FUNCTION, obj->type) == 0) {
+        func = (Function *) obj->value;
+        bs = func->body;
+        out = extend_function_env(func, args);
+        evaluated = eval_statements(bs->statements, bs->sc, out);
 
-    evaluated = eval_statements(bs->statements, bs->sc, out);
+        env_store_add(out);
 
-    if(strcmp(evaluated->type, RETURN) != 0) {
+        if(strcmp(evaluated->type, RETURN) != 0) {
+            return null_obj;
+        }
+
+        return unwrap_return_value(evaluated);
+    } else if(strcmp(BUILTIN, obj->type) == 0) {
+        type = ((BuiltIn *) obj->value)->fn;
+
+        if(strcmp(type, "len") == 0) {
+            return built_in_len(obj, args, argc);
+        }
+
         return null_obj;
     }
-
-    return unwrap_return_value(evaluated);
 }
 
 Object ** eval_expressions(ExpressionStatement ** args, int c, Env * env) {
     int i;
     Object ** objects = malloc(sizeof(Object *)), ** err = NULL;
-    Object * eval = NULL, * ret;
+    Object * eval = NULL, * ret = NULL;
     ExpressionStatement * est = NULL;
 
     for(i = 0; i < c; i++) {
@@ -240,8 +264,7 @@ Object ** eval_expressions(ExpressionStatement ** args, int c, Env * env) {
             if(strcmp(eval->type, INT) == 0) {
                 eval = copy_integer_object(eval);
             } else if(strcmp(eval->type, STRING) == 0) {
-                Object * copy = copy_string_object(eval);
-                eval = copy;
+                eval = copy_string_object(eval);
             }
         }
 
@@ -284,7 +307,7 @@ Object * eval_call_expression(CallExpression * ce, Env * env) {
         return ret;
     }
 
-    ret = apply_function(obj, args);
+    ret = apply_function(obj, args, ce->ac);
 
     if(strcmp(ce->function_type, IDENT) != 0) {
         free(obj->value);
@@ -438,7 +461,7 @@ void eval_free_infix(char * lt, Object * lo, char * rt, Object * ro) {
 }
 
 Object * eval_infix_expression(InfixExpression * iex, Env * env) {
-    Object * l, * r, * ret;
+    Object * l = NULL, * r = NULL, * ret = NULL;
     char * op = iex->operator, * lext = iex->left_expression_type,
         * rext = iex->right_expression_type, * m = NULL;
 
@@ -586,6 +609,10 @@ Object * eval_identifier(Identifier * ident, Env * env) {
     Object * get = env_get(env, ident->value);
     char * msg = NULL;
 
+    if(strcmp(ident->value, "len") == 0) {
+        return new_builtin("len");
+    }
+
     if(get == NULL) {
         msg = malloc(strlen(ident->value) + 28);
         sprintf(msg, "Identifier not found: %s", ident->value);
@@ -638,7 +665,7 @@ Object * eval_expression(char * ext, void * est, Env * env) {
         res = eval_bool(((Boolean *) est)->value, env);
     } else if(strcmp(ext, IF) == 0) {
         res = eval_if_expression((IfExpression *) est, env);
-    } else if(strcmp(ext, FUNCTION) == 0) {
+    } else if(strcmp(ext, FUNCTION) == 0 || strcmp(ext, BUILTIN) == 0) {
         res = eval_function_literal((FunctionLiteral *) est, env);
     } else if(strcmp(ext, CALL) == 0) {
         res = eval_call_expression((CallExpression *) est, env);
@@ -833,7 +860,6 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
             strcmp(ety, CALL) == 0) && strcmp(obj->type, STRING) == 0) {
 
             free_eval_expression(obj->type, obj, env, true);
-            return null_obj;
         } else if(env != henv && !is_bool_or_ident(ety) && i != sc - 1) {
             free_eval_expression(obj->type, obj, env, true);
         } else if(env == henv && !is_bool_or_ident(obj->type)) {
