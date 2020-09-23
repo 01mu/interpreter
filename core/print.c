@@ -306,7 +306,9 @@ void test_print_program() {
         let a = asd(12 + 3, asd, 3); \
         return 500;";
 
-    char * file = read_file("input");
+    //char * file = read_file("input");
+
+    init_function_literal_store();
 
     Lexer * lexer = new_lexer(input);
     Parser * parser = new_parser(lexer);
@@ -316,6 +318,7 @@ void test_print_program() {
     print = print_program(program);
     printf("%s", print);
     free(print);
-    free(file);
-    //free_program(lexer, parser, program);
+    //free(input);
+    free_program(lexer, parser, program);
+    free_function_literal_store();
 }

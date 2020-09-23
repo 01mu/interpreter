@@ -9,8 +9,11 @@
 
 void repl_test();
 void repl(bool is_test, bool * good, char ** input, int * j);
+void init_function_literal_store();
+void init_env_store();
 void free_function_literal_store();
 void free_env_store();
+void create_fn_map();
 
 void repl_test() {
     char * t[][2] = {
@@ -73,6 +76,9 @@ void repl_test() {
         {"let meme = \"aaaa\"; len(1);", "aaaa Argument not a string "},
         {"len(\"z\");", "1 "},
         {"let meme = \"aaaa\"; len(meme + \"z\"); meme;", "aaaa 5 aaaa "},
+        {"len(\"aaa\") + len(\"z\");", "4 "},
+        {"find(\"a\", \"e\") find(\"abcde\", \"cd\"); \
+            find(\"abcde\", \"e\");", "-1 2 4 "},
     };
 
     int e = sizeof(t) / sizeof(t[0]);
@@ -96,7 +102,6 @@ void repl_test() {
         printf(ANSI_COLOR_RED "\n[FAILED] " ANSI_COLOR_RESET
             "REPL Test | %i out of %i passed\n\n", e, b);
     }
-
 }
 
 void repl(bool is_test, bool * good, char ** input, int * j) {
@@ -107,13 +112,8 @@ void repl(bool is_test, bool * good, char ** input, int * j) {
     Program * program = NULL;
     Env * env = new_env();
 
-    fls = malloc(sizeof(FunctionLiteralStore));
-    fls->count = 0;
-    fls->store = malloc(sizeof(FunctionLiteral *));
-
-    env_store = malloc(sizeof(EnvStore));
-    env_store->count = 0;
-    env_store->store = malloc(sizeof(Env *));
+    init_function_literal_store();
+    init_env_store();
 
     if(is_test) {
         repl_test_string = string_new();
@@ -121,6 +121,7 @@ void repl(bool is_test, bool * good, char ** input, int * j) {
     }
 
     env_store_add(env);
+    create_fn_map();
 
     if(!is_test) {
         printf("Type '\\h' for help and '\\q' to quit\n");
@@ -201,6 +202,7 @@ void repl(bool is_test, bool * good, char ** input, int * j) {
     free_function_literal_store();
     free(env_store->store);
     free(env_store);
+    hash_map_free(fn_map);
 
     if(!is_test) {
         free(lexer);
@@ -215,6 +217,18 @@ void repl(bool is_test, bool * good, char ** input, int * j) {
 
         string_free(repl_test_string);
     }
+}
+
+void init_function_literal_store() {
+    fls = malloc(sizeof(FunctionLiteralStore));
+    fls->count = 0;
+    fls->store = malloc(sizeof(FunctionLiteral *));
+}
+
+void init_env_store() {
+    env_store = malloc(sizeof(EnvStore));
+    env_store->count = 0;
+    env_store->store = malloc(sizeof(Env *));
 }
 
 void free_function_literal_store() {
@@ -236,4 +250,19 @@ void free_env_store() {
     }
 
     env_store->count -= nc;
+}
+
+void create_fn_map() {
+    char * t[] = {"len", "find"};
+    int i, c = sizeof(t) / sizeof(t[0]);
+    char * z[c];
+
+    fn_map = hash_map_new(30);
+
+    for(i = 0; i < c; i++) {
+        z[i] = malloc(strlen(t[i]) + 1);
+        z[i][0] = '\0';
+        strcat(z[i], t[i]);
+        hash_map_insert(fn_map, z[i], NULL);
+    }
 }

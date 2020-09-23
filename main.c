@@ -27,8 +27,8 @@
 #include "core/lexer.c"
 #include "core/parser.c"
 #include "core/eval.c"
-#include "core/print.c"
 #include "core/repl.c"
+#include "core/print.c"
 
 #include "test/parsing.c"
 #include "test/eval.c"
@@ -47,7 +47,7 @@ int main(int argc, char * argv[])
         test_eval_all(argv[2]);
     } else if(strcmp(argv[1], "test-parse") == 0) {
         test_parse_all(argv[2]);
-    } else if(strcmp(argv[1], "test-repl") == 0) {
+    } else if(strcmp(argv[1], "test") == 0) {
         repl_test();
     } else if(strcmp(argv[1], "repl") == 0) {
         repl(0, 0, NULL, 0);

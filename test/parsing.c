@@ -11,7 +11,15 @@ void test_parse_all(char * option) {
     int i, c;
     char * result = NULL;
 
-    if(strcmp(option, "prefix") == 0) {
+    fls = malloc(sizeof(FunctionLiteralStore));
+    fls->count = 0;
+    fls->store = malloc(sizeof(FunctionLiteral *));
+
+    if(option == NULL) {
+        free_function_literal_store();
+        printf("Usage: test-parse <option> (all, if, prefix, boolean, etc.)\n");
+        return;
+    } else if(strcmp(option, "prefix") == 0) {
         result = test_parsing_prefix_expressions();
     } else if(strcmp(option, "boolean") == 0) {
         result = test_parsing_boolean_expression();
@@ -36,9 +44,9 @@ void test_parse_all(char * option) {
     } else if(strcmp(option, "let") == 0) {
         result = test_let_statements();
     } else {
-        c = 11;
+        c = 12;
 
-        char * s[11] = {
+        char * s[12] = {
             test_next_token(),
             test_let_statements(),
             test_return_statements(),
@@ -47,7 +55,7 @@ void test_parse_all(char * option) {
             test_integer_literal_expression(),
             test_parsing_prefix_expressions(),
             test_parsing_infix_expressions(),
-            //test_parsing_function_literal_expressions(),
+            test_parsing_function_literal_expressions(),
             test_parsing_call_expressions(),
             test_parsing_grouped_expressions(),
             test_parsing_if_expressions()};
@@ -61,6 +69,7 @@ void test_parse_all(char * option) {
         return;
     }
 
+    free_function_literal_store();
     printf("%s", result);
 }
 
@@ -377,7 +386,7 @@ char * test_integer_literal_expression() {
 }
 
 char * test_parsing_prefix_expressions() {
-    int i, tc = 0, fail = 0;
+    int i, tc = 5, fail = 0;
     ExpressionStatement * es;
     PrefixExpression * pex;
     struct {
@@ -471,12 +480,11 @@ char * test_parsing_function_literal_expressions() {
         char * input;
         int param_count, statement_count;
     } t[5] = {
-        {"fn(a) { let a = 4; }", 1, 1},
-        {"fn(a, b) { x a }", 2, 2},
-        {"fn(z) { !5 }", 1, 1},
-        {"fn(a) { }", 1, 0},
-        {"fn(a) { }", 1, 0},
-        /*{"fn() { }", 0, 0}*/};
+        {"fn(a) { let a = 4; };", 1, 1},
+        {"fn(a, b) { x a };", 2, 2},
+        {"fn(z) { !5 };", 1, 1},
+        {"fn(a) { };", 1, 0},
+        {"fn(a) { };", 1, 0}};
 
     printf("Testing FUNCTION LITERAL expressions\n");
 
@@ -506,7 +514,7 @@ char * test_parsing_function_literal_expressions() {
 }
 
 char * test_parsing_call_expressions() {
-    int i, tc = 0, fail = 0;
+    int i, tc = 5, fail = 0;
     ExpressionStatement * es;
     CallExpression * cex;
     struct {

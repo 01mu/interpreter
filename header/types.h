@@ -195,7 +195,7 @@ bool true_eval = false, false_eval = false;
 String * repl_test_string = NULL;
 bool is_repl_test_string = false;
 
-HashMap * built_in = NULL;
+HashMap * fn_map = NULL;
 
 typedef struct Env Env;
 typedef struct SortedList SortedList;

@@ -183,6 +183,16 @@ Object * update_eval_value(Object ** obj, Object * new, Env * env, char * n) {
  * =============================================================================
  */
 
+Object * get_built_in_fn(char * type, Object * obj, Object ** args, int argc) {
+    if(strcmp(type, "len") == 0) {
+        return bi_len(obj, args, argc);
+    } else if(strcmp(type, "find") == 0) {
+        return bi_find(obj, args, argc);
+    }
+
+    return null_obj;
+}
+
 Object * unwrap_return_value(Object * obj) {
     ReturnValue * rv = NULL;
     Object * ret_obj = NULL;
@@ -225,6 +235,8 @@ Object * apply_function(Object * obj, Object ** args, int argc) {
         m = malloc(strlen(obj->type) + 23);
         sprintf(m, "Not a function: %s", obj->type);
         return new_error(m);
+    } else if(strcmp(BUILTIN, obj->type) == 0) {
+        return get_built_in_fn(((BuiltIn *) obj->value)->fn, obj, args, argc);
     } else if(strcmp(FUNCTION, obj->type) == 0) {
         func = (Function *) obj->value;
         bs = func->body;
@@ -238,14 +250,6 @@ Object * apply_function(Object * obj, Object ** args, int argc) {
         }
 
         return unwrap_return_value(evaluated);
-    } else if(strcmp(BUILTIN, obj->type) == 0) {
-        type = ((BuiltIn *) obj->value)->fn;
-
-        if(strcmp(type, "len") == 0) {
-            return built_in_len(obj, args, argc);
-        }
-
-        return null_obj;
     }
 }
 
@@ -609,8 +613,8 @@ Object * eval_identifier(Identifier * ident, Env * env) {
     Object * get = env_get(env, ident->value);
     char * msg = NULL;
 
-    if(strcmp(ident->value, "len") == 0) {
-        return new_builtin("len");
+    if(hash_map_find(fn_map, ident->value)) {
+        return new_builtin(ident->value);
     }
 
     if(get == NULL) {
