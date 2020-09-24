@@ -468,11 +468,23 @@ Object * eval_infix_expression(InfixExpression * iex, Env * env) {
     Object * l = NULL, * r = NULL, * ret = NULL;
     char * op = iex->operator, * lext = iex->left_expression_type,
         * rext = iex->right_expression_type, * m = NULL;
+    char * err_lt = NULL;
+    InfixExpression * err_idx = NULL;
 
     l = eval_expression(lext, iex->left, env);
 
     if(is_error(l)) {
-        eval_free_infix(lext, l, NULL, NULL);
+        if(strcmp(lext, INFIX) == 0) {
+            err_idx = iex->left;
+            err_lt = err_idx->left_expression_type;
+
+            if(strcmp(err_lt, ERROR) == 0) {
+                free_eval_expression(err_lt, err_idx->left, NULL, true);
+            }
+        } else {
+            eval_free_infix(lext, l, NULL, NULL);
+        }
+
         return l;
     }
 
@@ -854,7 +866,7 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
         //printf("[%p: %i] %s %s %s\n", env, i, stt, ety, obj->type);
 
         if(eval_free_error(obj, env) || eval_free_return(obj, env, ety)) {
-            return null_obj;
+            //return null_obj;
         } else if(env != henv && strcmp(obj->type, RETURN) == 0) {
             return obj;
         } else if(env != henv && !is_bool_or_ident(ety) && sc == 1) {

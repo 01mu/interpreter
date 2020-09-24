@@ -31,7 +31,7 @@ void repl_test() {
         {"!!!false == true", "1 "},
         {"a/2;", "Identifier not found: a "},
         {"2/a;", "Identifier not found: a "},
-        {"return a; 1;", "Identifier not found: a "},
+        {"return a; 1;", "Identifier not found: a 1 "},
         // 10 ==================================================================
         {"let z = 1; let a = fn(z) { if(true) { return 33; } }; \
             let z = a(z); z;", "1 33 "},
@@ -79,6 +79,9 @@ void repl_test() {
         {"len(\"aaa\") + len(\"z\");", "4 "},
         {"find(\"a\", \"e\") find(\"abcde\", \"cd\"); \
             find(\"abcde\", \"e\");", "-1 2 4 "},
+        {"a + \"zz\" + c + 2; \"zz\" + c + 2 + a;", \
+            "Identifier not found: a Identifier not found: c "},
+        {"z; 3; ", "Identifier not found: z 3 "},
     };
 
     int e = sizeof(t) / sizeof(t[0]);
