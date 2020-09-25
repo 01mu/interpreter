@@ -77,11 +77,15 @@ void repl_test() {
         {"len(\"z\");", "1 "},
         {"let meme = \"aaaa\"; len(meme + \"z\"); meme;", "aaaa 5 aaaa "},
         {"len(\"aaa\") + len(\"z\");", "4 "},
+        // 40 ==================================================================
         {"find(\"a\", \"e\") find(\"abcde\", \"cd\"); \
             find(\"abcde\", \"e\");", "-1 2 4 "},
         {"a + \"zz\" + c + 2; \"zz\" + c + 2 + a;", \
             "Identifier not found: a Identifier not found: c "},
         {"z; 3; ", "Identifier not found: z 3 "},
+        {"let a = 5; let a = a; a;", "5 5 "},
+        {"\"a\" + str(1) + 1; \"a\" + str(1); str(1) + \"a\";",
+                "Type mismatch: STRING + INT a1 1a "},
     };
 
     int e = sizeof(t) / sizeof(t[0]);
@@ -256,7 +260,7 @@ void free_env_store() {
 }
 
 void create_fn_map() {
-    char * t[] = {"len", "find"};
+    char * t[] = {"len", "find", "str"};
     int i, c = sizeof(t) / sizeof(t[0]);
     char * z[c];
 

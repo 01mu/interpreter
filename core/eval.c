@@ -188,6 +188,8 @@ Object * get_built_in_fn(char * type, Object * obj, Object ** args, int argc) {
         return bi_len(obj, args, argc);
     } else if(strcmp(type, "find") == 0) {
         return bi_find(obj, args, argc);
+    } else if(strcmp(type, "str") == 0) {
+        return bi_str(obj, args, argc);
     }
 
     return null_obj;
@@ -308,7 +310,7 @@ Object * eval_call_expression(CallExpression * ce, Env * env) {
         free(err);
         free(args[0]);
         free(args);
-        return ret;
+        return args[0];
     }
 
     ret = apply_function(obj, args, ce->ac);
@@ -454,6 +456,11 @@ Object * eval_integer_infix_exp(char * op, Object * l, Object * r, Env * env) {
     return obj;
 }
 
+bool is_infix_or_call(char * lext, char * rext) {
+    return strcmp(lext, INFIX) == 0 || strcmp(rext, INFIX) == 0 ||
+        strcmp(lext, CALL) == 0 || strcmp(rext, CALL) == 0;
+}
+
 void eval_free_infix(char * lt, Object * lo, char * rt, Object * ro) {
     if(lt != NULL && !is_bool_or_ident(lt)) {
         free_eval_expression(lt, lo, NULL, true);
@@ -461,6 +468,14 @@ void eval_free_infix(char * lt, Object * lo, char * rt, Object * ro) {
 
     if(rt != NULL && !is_bool_or_ident(rt)) {
         free_eval_expression(rt, ro, NULL, true);
+    }
+}
+
+void infix_free_lr(char * lext, char * rext, Object * l, Object * r) {
+    if(is_infix_or_call(lext, rext)) {
+        eval_free_infix(l->type, l, r->type, r);
+    } else {
+        eval_free_infix(lext, l, rext, r);
     }
 }
 
@@ -474,7 +489,7 @@ Object * eval_infix_expression(InfixExpression * iex, Env * env) {
     l = eval_expression(lext, iex->left, env);
 
     if(is_error(l)) {
-        if(strcmp(lext, INFIX) == 0) {
+        if(is_infix_or_call(lext, rext)) {
             err_idx = iex->left;
             err_lt = err_idx->left_expression_type;
 
@@ -497,19 +512,14 @@ Object * eval_infix_expression(InfixExpression * iex, Env * env) {
 
     if(strcmp(l->type, INT) == 0 && strcmp(r->type, INT) == 0) {
         ret = eval_integer_infix_exp(op, l, r, env);
-        eval_free_infix(lext, l, rext, r);
+        infix_free_lr(lext, rext, l, r);
     } else if(strcmp(l->type, STRING) == 0 && strcmp(r->type, STRING) == 0) {
         ret = eval_string_infix_exp(op, l, r, env);
-
-        if(strcmp(lext, INFIX) == 0) {
-            string_free(((StringObject *) l->value)->value);
-        }
-
-        eval_free_infix(lext, l, rext, r);
+        infix_free_lr(lext, rext, l, r);
     } else if(strcmp(l->type, r->type) != 0) {
         m = malloc(strlen(l->type) + strlen(r->type) + strlen(op) + 19);
         sprintf(m, "Type mismatch: %s %s %s", l->type, op, r->type);
-        eval_free_infix(lext, l, rext, r);
+        infix_free_lr(lext, rext, l, r);
         ret = new_error(m);
     } else if(strcmp(op, "==") == 0) {
         ret = eval_bool(l == r, env);
@@ -518,6 +528,7 @@ Object * eval_infix_expression(InfixExpression * iex, Env * env) {
     } else {
         m = malloc(strlen(l->type) + strlen(r->type) + strlen(op) + 23);
         sprintf(m, "Unknown operation: %s %s %s", l->type, op, r->type);
+        infix_free_lr(lext, rext, l, r);
         ret = new_error(m);
     }
 

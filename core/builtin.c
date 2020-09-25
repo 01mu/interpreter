@@ -28,6 +28,46 @@ void bi_free_args(Object * obj, Object ** args, int argc) {
     free_eval_expression(obj->type, obj, NULL, true);
 }
 
+Object * bi_str(Object * obj, Object ** args, int argc) {
+    char * arg_0_type = args[0]->type, * m = NULL;
+
+    free_eval_expression(obj->type, obj, NULL, true);
+
+    if(argc != 1) {
+        m = malloc(sizeof(char) * 40);
+        bi_free_args(obj, args, argc);
+        sprintf(m, "Invalid args (expected: %i, got: %i)", 1, argc);
+        return new_error(m);
+    } else if(strcmp(arg_0_type, STRING) == 0) {
+        m = malloc(sizeof(char) * 30);
+        bi_free_args(obj, args, argc);
+        sprintf(m, "Argument already a string");
+        return new_error(m);
+    } else {
+        Object * new = NULL;
+        StringObject * nv = NULL;
+        String * new_string = NULL;
+
+        new = malloc(sizeof(Object));
+        nv = malloc(sizeof(StringObject));
+        new_string = string_new();
+
+        char * l = malloc(sizeof(char) * 30);
+        l[0] = '\0';
+        sprintf(l, "%i", ((IntegerObject *) args[0]->value)->value);
+
+        string_cat(new_string, l, 1);
+
+        new->type = STRING;
+        new->value = nv;
+        nv->value = new_string;
+
+        free_eval_expression(INT, args[0], NULL, true);
+
+        return new;
+    }
+}
+
 Object * bi_find(Object * obj, Object ** args, int argc) {
     char * arg_0_type = args[0]->type, * arg_1_type = args[1]->type, * m = NULL;
 
