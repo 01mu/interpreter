@@ -8,6 +8,11 @@
  */
 
 typedef struct {
+    void ** array;
+    int size;
+} Array;
+
+typedef struct {
     char * string;
     int len;
 } String;
@@ -185,6 +190,11 @@ typedef struct {
     struct Env ** store;
     int count;
 } EnvStore;
+
+typedef struct {
+    Token token;
+    Array * elements;
+} ArrayLiteral;
 
 Object * false_bool = NULL, * true_bool = NULL;
 Object * null_obj = NULL;

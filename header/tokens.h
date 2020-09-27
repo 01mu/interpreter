@@ -35,6 +35,8 @@
 #define RETURN "RETURN"
 #define EQ "=="
 #define NOT_EQ "!="
+#define LBRACKET "["
+#define RBRACKET "]"
 
 #define PRE_LOWEST 1
 #define PRE_EQUALS 2
@@ -51,6 +53,7 @@
 #define BOOLEAN "BOOLEAN"
 #define STRING "STRING"
 #define BUILTIN "BUILTIN"
+#define ARRAY "ARRAY"
 
 #define PREC_PEEK 0
 #define PREC_CURRENT 1

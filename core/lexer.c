@@ -155,6 +155,12 @@ Token lexer_next_token(Lexer * lexer) {
 
         token.literal = get_substr(position, lexer->pos, lexer->input);
         break;
+    case '[':
+        token = new_token(LBRACKET);
+        break;
+    case ']':
+        token = new_token(RBRACKET);
+        break;
     case ';':
         token = new_token(SEMICOLON);
         break;

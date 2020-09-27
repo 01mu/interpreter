@@ -41,11 +41,7 @@ int main(int argc, char * argv[])
     init_null(&null_obj);
 
     if(strcmp(argv[1], "test-array") == 0) {
-        Array * array = array_new();
-        void * thing = malloc(1);
-        array_insert(array, thing);
-        printf("%i", array->size);
-        array_free(array);
+
     } else if(strcmp(argv[1], "test-print") == 0) {
         test_print_program();
     } else if(strcmp(argv[1], "test-eval") == 0) {

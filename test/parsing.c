@@ -7,6 +7,8 @@
  *
  */
 
+char * test_parsing_array_literal();
+
 void test_parse_all(char * option) {
     int i, c;
     char * result = NULL;
@@ -43,6 +45,8 @@ void test_parse_all(char * option) {
         result = test_next_token();
     } else if(strcmp(option, "let") == 0) {
         result = test_let_statements();
+    } else if(strcmp(option, "array") == 0) {
+        result = test_parsing_array_literal();
     } else {
         c = 12;
 
@@ -653,4 +657,50 @@ char * test_parsing_if_expressions() {
     }
 
     return print_test_result("IF", tc - fail, tc);
+}
+
+char * test_parsing_array_literal() {
+    int i, tc = 2, fail = 0;
+    char * cons_type, * alt_type;
+    ExpressionStatement * es;
+    ArrayLiteral * al;
+    Array * ar;
+    ExpressionStatement * first, * last;
+    struct {
+        char * input;
+        int c;
+        char * first, * last;
+    } t[2] = {
+        {"[1,2,3,4];", 4, INT, INT},
+        {"[\"a\"];", 1, STRING, STRING}};
+
+    printf("Testing ARRAY literals\n");
+
+    for(i = 0; i < tc; i++) {
+        if(!get_parse_test_expression(&es, t[i].input)) {
+            fail++;
+            continue;
+        }
+
+        al = (ArrayLiteral *) es->expression;
+        ar = al->elements;
+        first = (ExpressionStatement *) ar->array[0];
+        last = (ExpressionStatement *) ar->array[ar->size-1];
+
+        if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
+            ARRAY, es->expression_type, i, &fail)) {
+            continue;
+        }
+
+        printf("[%i] %i\n", i, ar->size);
+
+        test_int_cmp("[Error: %i] Expected array count %i got %i\n",
+            t[i].c, ar->size, i, &fail);
+        test_string_cmp("[Error: %i] Expected first type %s got %s\n",
+            t[i].first, first->expression_type, i, &fail);
+        test_string_cmp("[Error: %i] Expected last type %s got %s\n",
+            t[i].last, last->expression_type, i, &fail);
+    }
+
+    return print_test_result("ARRAY", tc - fail, tc);
 }

@@ -13,6 +13,43 @@ void function_literal_store_add(FunctionLiteral * fl) {
     fls->store[fls->count++] = fl;
 }
 
+Array * parse_expression_list(Parser * par, char * end) {
+    Array * array = array_new();
+    ExpressionStatement * e = NULL;
+
+    if(peek_token_is(par, end)) {
+        return array;
+    }
+
+    parser_next_token(par);
+
+    e = malloc(sizeof(ExpressionStatement));
+    e->expression = parse_expression(par, PRE_LOWEST, e, PE_EXPRESSION);
+    array_insert(array, e);
+
+    while(peek_token_is(par, COMMA)) {
+        parser_next_token(par);
+        parser_next_token(par);
+
+        e = malloc(sizeof(ExpressionStatement));
+        e->expression = parse_expression(par, PRE_LOWEST, e, PE_EXPRESSION);
+        array_insert(array, e);
+    }
+
+    if(!expect_peek(par, end)) {
+        return NULL;
+    }
+
+    return array;
+}
+
+void * parse_array_literal(Parser * parser) {
+    ArrayLiteral * al = malloc(sizeof(ArrayLiteral));
+    al->token = parser->current_token;
+    al->elements = parse_expression_list(parser, RBRACKET);
+    return al;
+}
+
 ExpressionStatement ** parse_call_arguments(Parser * par, int * ac) {
     int i, c = 0;
     ExpressionStatement ** args = malloc(sizeof(ExpressionStatement *));
@@ -326,6 +363,9 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
         exp_type = FUNCTION;
         expr = parse_function_literal(par);
         function_literal_store_add(expr);
+    } else if(type == LBRACKET) {
+        exp_type = ARRAY;
+        expr = parse_array_literal(par);
     } else {
         exp_type = ILLEGAL;
         expr = NULL;
