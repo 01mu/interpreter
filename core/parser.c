@@ -13,6 +13,28 @@ void function_literal_store_add(FunctionLiteral * fl) {
     fls->store[fls->count++] = fl;
 }
 
+void * parse_index_expression(Parser * par, void * left, char * left_type) {
+    IndexExpression * ie = malloc(sizeof(IndexExpression));
+    ExpressionStatement * e = NULL;
+
+    ie->token = par->current_token;
+    ie->left_expression_type = left_type;
+    ie->left = left;
+
+    parser_next_token(par);
+
+    e = malloc(sizeof(ExpressionStatement));
+    e->expression = parse_expression(par, PRE_LOWEST, ie, PE_ARRAYIDX);
+
+    ie->index = e;
+
+    if(!expect_peek(par, RBRACKET)) {
+        return NULL;
+    }
+
+    return ie;
+}
+
 Array * parse_expression_list(Parser * par, char * end) {
     Array * array = array_new();
     ExpressionStatement * e = NULL;
@@ -45,8 +67,10 @@ Array * parse_expression_list(Parser * par, char * end) {
 
 void * parse_array_literal(Parser * parser) {
     ArrayLiteral * al = malloc(sizeof(ArrayLiteral));
+
     al->token = parser->current_token;
     al->elements = parse_expression_list(parser, RBRACKET);
+
     return al;
 }
 
@@ -386,6 +410,9 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
         } else if(type == LPAREN) {
             expr = parse_call_expression(par, exp_type, expr);
             exp_type = CALL;
+        } else if(type == LBRACKET) {
+            expr = parse_index_expression(par, expr, exp_type);
+            exp_type = ARRAYIDX;
         } else {
             exp_type = ILLEGAL;
             expr = NULL;
@@ -407,6 +434,9 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
         } else if(et == PE_CONDITION){
             ((IfExpression *) ex)->condition_type = malloc(type_len);
             strcpy(((IfExpression *) ex)->condition_type, exp_type);
+        } else if(et == PE_ARRAYIDX) {
+            ((IndexExpression *) ex)->index_expression_type = malloc(type_len);
+            strcpy(((IndexExpression *) ex)->index_expression_type, exp_type);
         }
     }
 
@@ -535,6 +565,8 @@ int parser_get_precedence(Parser * par, int type) {
         return PRE_PRODUCT;
     } else if(pt == LPAREN) {
         return PRE_CALL;
+    } else if(pt == LBRACKET) {
+        return PRE_INDEX;
     } else {
         return PRE_LOWEST;
     }

@@ -45,6 +45,7 @@
 #define PRE_PRODUCT 5
 #define PRE_PREFIX 6
 #define PRE_CALL 7
+#define PRE_INDEX 99
 
 #define EXPRESSION "EXPRESSION"
 #define INFIX "INFIX"
@@ -54,6 +55,8 @@
 #define STRING "STRING"
 #define BUILTIN "BUILTIN"
 #define ARRAY "ARRAY"
+#define ARRAYIDX "ARRAYIDX"
+#define NULL_ "NULL"
 
 #define PREC_PEEK 0
 #define PREC_CURRENT 1
@@ -62,6 +65,7 @@
 #define PE_PREFIX 1
 #define PE_INFIX 2
 #define PE_CONDITION 3
+#define PE_ARRAYIDX 4
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"

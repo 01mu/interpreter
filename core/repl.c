@@ -17,6 +17,13 @@ void create_fn_map();
 
 void repl_test() {
     char * t[][2] = {
+        {"[1, 2, [1, [2]]][2][1][0]", "2 "},
+        {"[1, 2, [1]][2][0]", "1 "},
+        {"let e = [1, 2, [\"a\"]][2]; let z = e[0]; z;", "a a "},
+        {"[1, 2, [1]][2];", ""},
+        {"[1, 2][1];", "2 "},
+        {"let a = [1, 2, 3]; let j = 0; a[j]; j;", "0 1 0 "},
+        {"let a = [1, 2, 3]; let d = a[0]; d + 4;", "1 5 "},
         // =====================================================================
         {"let c = fn(x) { if(x < 9) { return c(x + 1); } else { return x; } }; \
             let e = c(0); e + 1;", "9 10 "},
@@ -127,7 +134,7 @@ void repl(bool is_test, bool * good, char ** input, int * j) {
         is_repl_test_string = true;
     }
 
-    env_store_add(env);
+    eval_env_store_add(env);
     create_fn_map();
 
     if(!is_test) {

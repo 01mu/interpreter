@@ -196,6 +196,18 @@ typedef struct {
     Array * elements;
 } ArrayLiteral;
 
+typedef struct {
+    Token token;
+    void * left;
+    void * index;
+    char * left_expression_type;
+    char * index_expression_type;
+} IndexExpression;
+
+typedef struct {
+    Array * elements;
+} ArrayObject;
+
 Object * false_bool = NULL, * true_bool = NULL;
 Object * null_obj = NULL;
 FunctionLiteralStore * fls = NULL;

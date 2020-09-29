@@ -8,6 +8,7 @@
  */
 
 char * test_parsing_array_literal();
+char * test_parsing_array_index();
 
 void test_parse_all(char * option) {
     int i, c;
@@ -47,10 +48,12 @@ void test_parse_all(char * option) {
         result = test_let_statements();
     } else if(strcmp(option, "array") == 0) {
         result = test_parsing_array_literal();
+    } else if(strcmp(option, "arrayidx") == 0) {
+        result = test_parsing_array_index();
     } else {
-        c = 12;
+        c = 14;
 
-        char * s[12] = {
+        char * s[14] = {
             test_next_token(),
             test_let_statements(),
             test_return_statements(),
@@ -62,6 +65,8 @@ void test_parse_all(char * option) {
             test_parsing_function_literal_expressions(),
             test_parsing_call_expressions(),
             test_parsing_grouped_expressions(),
+            test_parsing_array_literal(),
+            test_parsing_array_index(),
             test_parsing_if_expressions()};
 
         printf("\n");
@@ -704,3 +709,38 @@ char * test_parsing_array_literal() {
 
     return print_test_result("ARRAY", tc - fail, tc);
 }
+
+char * test_parsing_array_index() {
+    int i, tc = 1, fail = 0;
+    char * cons_type, * alt_type;
+    ExpressionStatement * es;
+    IndexExpression * ae;
+    char * right;
+    struct {
+        char * input, * right;
+    } t[1] = {
+        {"a[2];", INT}};
+
+    printf("Testing ARRAY INDEX expression\n");
+
+    for(i = 0; i < tc; i++) {
+        if(!get_parse_test_expression(&es, t[i].input)) {
+            fail++;
+            continue;
+        }
+
+        ae = (IndexExpression *) es->expression;
+        right = ae->index_expression_type;
+
+        if(!test_string_cmp("[Error: %i] Expected type %s got %s\n",
+            ARRAYIDX, es->expression_type, i, &fail)) {
+            continue;
+        }
+
+        test_string_cmp("[Error: %i] Expected index type %s got %s\n",
+            t[i].right, right, i, &fail);
+    }
+
+    return print_test_result("ARRAY INDEX", tc - fail, tc);
+}
+

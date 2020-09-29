@@ -7,6 +7,38 @@
  *
  */
 
+void free_index_expression(IndexExpression * ie) {
+    ExpressionStatement * left = ie->left;
+    ExpressionStatement * index = ie->index;
+
+    //free_expression_statement(ie->left_expression_type, left->expression);
+    free_expression_statement(ie->left_expression_type, left);
+    free_expression_statement(ie->index_expression_type, index->expression);
+
+    //free(ie->left_expression_type);
+    free(ie->index_expression_type);
+
+    //free(left);
+    free(index);
+    free(ie);
+}
+
+void free_array_literal(ArrayLiteral * al) {
+    int i;
+    Array * arr = al->elements;
+    ExpressionStatement * est = NULL;
+
+    for(i = 0; i < arr->size; i++) {
+        est = arr->array[i];
+        free_expression_statement(est->expression_type, est->expression);
+        free(est->expression_type);
+        //free(est);
+    }
+
+    array_free(arr);
+    free(al);
+}
+
 void free_block_statement(BlockStatement * bst) {
     int i;
 
@@ -119,6 +151,10 @@ void free_expression_statement(char * type, void * value) {
         free_if_expression((IfExpression *) value);
     } else if(strcmp(type, CALL) == 0) {
         free_call_expression((CallExpression *) value);
+    } else if(strcmp(type, ARRAY) == 0) {
+        free_array_literal((ArrayLiteral *) value);
+    } else if(strcmp(type, ARRAYIDX) == 0) {
+        free_index_expression((IndexExpression *) value);
     }
 }
 
