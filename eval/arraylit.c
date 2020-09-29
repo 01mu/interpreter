@@ -19,7 +19,7 @@ Object * eval_array_literal(ArrayLiteral * al, Env * env) {
     obj->value = ao;
     ao->elements = b;
 
-    for(i = 0; i < a->size;i ++) {
+    for(i = 0; i < a->size; i++) {
         array_insert(b, ee[i]);
     }
 

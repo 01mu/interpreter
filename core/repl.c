@@ -17,6 +17,16 @@ void create_fn_map();
 
 void repl_test() {
     char * t[][2] = {
+        {"let a = [1]; let a = [2]; a[0];", ""},
+        {"[1] == [1]; [1,2,3] == [1,2,3,4]; [1,\"a\",[1]] == [1,\"a\",[1]];",
+            "1 0 1 "},
+        {"let a = \"a\"; a == \"a\";", "a 1 "},
+        {"\"a\" == \"a\"; \"a\" == \"b\"; \"a\" != \"a\"" , "1 0 0 "},
+        {"let a = fn() { let d = [1]; return [\"a\", \"b\"]; }; \
+            let d=a(); d[0];", "a "},
+        {"let a = fn() { let d = [1]; return d; }; a()[0]; \
+            let a = fn() { let d = [1]; return [\"a\", \"b\"]; }; a()[0];",
+            "1 a "},
         {"[1, 2, [1, [2]]][2][1][0]", "2 "},
         {"[1, 2, [1]][2][0]", "1 "},
         {"let e = [1, 2, [\"a\"]][2]; let z = e[0]; z;", "a a "},
@@ -77,7 +87,7 @@ void repl_test() {
         {"let f = \"abc\" + \"def\"; f;", "abcdef abcdef "},
         {"\"abc\" + \"def\";", "abcdef "},
         {"1 + 2;", "3 "},
-        {"\"asd\" - \"a\"", "Unknown operator: STRING-STRING "},
+        {"\"asd\" - \"a\"", "Unknown operator: STRING - STRING "},
         {"let z = \"a\"; let d = z + \"b\" + \"c\" + \"a\" + \"b\" + \"c\"; d;",
             "a abcabc abcabc "},
         {"let meme = \"aaaa\"; len(1);", "aaaa Argument not a string "},
@@ -96,7 +106,7 @@ void repl_test() {
     };
 
     int e = sizeof(t) / sizeof(t[0]);
-    //e = 1;
+    e = 1;
     int b = e, i;
     bool res = false;
 

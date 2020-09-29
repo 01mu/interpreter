@@ -109,6 +109,12 @@ void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
         free(obj->value);
     } else if(strcmp(ext, INFIX) == 0) {
         free(obj->value);
+    } else if(strcmp(ext, CALL) == 0) {
+        if(strcmp(obj->type, ARRAY) == 0) {
+            free_eval_expression(ARRAY, obj, NULL, 0);
+        } else {
+            free(obj->value);
+        }
     } else if(strcmp(ext, CALL) == 0 && strcmp(obj->type, INT) == 0) {
         free(obj->value);
     } else if(strcmp(ext, FUNCTION) == 0) {
@@ -117,7 +123,7 @@ void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
         if(strcmp(obj->type, ARRAY) == 0) {
             free_eval_expression(ARRAY, obj, NULL, 0);
         } else {
-            free(obj->value);
+            free_eval_expression(obj->type, obj, NULL, 0);
         }
     } else if(strcmp(ext, BUILTIN) == 0) {
         free(obj->value);

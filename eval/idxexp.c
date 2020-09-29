@@ -10,7 +10,6 @@
 Object * eval_array_index_expression(Object * left, int v, bool del) {
     ArrayObject * ao = left->value;
     Array * la = ao->elements;
-    char * type = ((Object *) la->array[v])->type;
     Object * a = copy_object(la->array[v]);
 
     if(del) {
@@ -29,7 +28,8 @@ Object * eval_index_expression(IndexExpression * ie, Env * env) {
 
     bool del = 0;
 
-    if(strcmp(ie->left_expression_type, ARRAY) == 0 ||
+    if(strcmp(ie->left_expression_type, CALL) == 0 ||
+        strcmp(ie->left_expression_type, ARRAY) == 0 ||
         strcmp(ie->left_expression_type, ARRAYIDX) == 0) {
 
         del = 1;
