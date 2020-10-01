@@ -7,11 +7,35 @@
  *
  */
 
+void eval_infix_array_update(IndexExpression * ie, Env * env, Object * r) {
+    Object * io = eval_integer(((ExpressionStatement *) ie->index)->expression,
+        env);
+
+    int v = ((IntegerObject *) io->value)->value;
+    Object * arr  = env_get(env, ((Identifier *) ie->left)->value);
+    Array * az = ((ArrayObject *) arr->value)->elements;
+
+    Object * ch = az->array[v];
+    Object * j = copy_object(r);
+
+    free_eval_expression(ch->type, ch, NULL, 0);
+
+    ch->value = j->value;
+    ch->type = j->type;
+
+    free(j);
+    free_eval_expression(io->type, io, NULL, 1);
+}
+
 Object * eval_array_infix_comp(Array * arl, Array * arr) {
     int i;
     Object * lo = NULL, * ro = NULL;
     char * lot = NULL, * rot = NULL;
     StringObject * los = NULL, * ros = NULL;
+
+    if(arl->size != arr->size) {
+        return false_bool;
+    }
 
     for(i = 0; i < arl->size; i++) {
         lo = arl->array[i];
@@ -53,14 +77,19 @@ Object * eval_array_infix_comp(Array * arl, Array * arr) {
 Object * eval_array_infix_exp(char * op, Object * l, Object * r, Env * env) {
     ArrayObject * all = l->value, * alr = r->value;
     Array * arl = all->elements, * arr = alr->elements;
+    Object * ret = NULL;
 
     if(strcmp(op, "==") == 0) {
-        if(arl->size != arr->size) {
-            return false_bool;
+        ret = eval_array_infix_comp(arl, arr);
+    } else if(strcmp(op, "!=") == 0) {
+        if(eval_array_infix_comp(arl, arr) == true_bool) {
+            ret = false_bool;
         }
 
-        return eval_array_infix_comp(arl, arr);
+        ret = true_bool;
     }
+
+    return ret;
 }
 
 Object * eval_string_infix_exp(char * op, Object * l, Object * r, Env * env) {
@@ -194,6 +223,16 @@ Object * eval_infix_expression(InfixExpression * iex, Env * env) {
     if(is_error(r)) {
         eval_free_infix(lext, l, rext, r);
         return r;
+    }
+
+    if(strcmp(lext, ARRAYIDX) == 0 && strcmp(op, "=") == 0) {
+        IndexExpression * ie = iex->left;
+
+        if(strcmp(ie->left_expression_type, IDENT) == 0) {
+            eval_infix_array_update(ie, env, r);
+            infix_free_lr(lext, rext, l, r);
+            return null_obj;
+        }
     }
 
     if(strcmp(l->type, INT) == 0 && strcmp(r->type, INT) == 0) {

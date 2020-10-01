@@ -403,7 +403,8 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
         parser_next_token(par);
 
         if(type == PLUS || type == MINUS || type == SLASH || type == ASTERISK ||
-            type == EQ || type == NOT_EQ || type == LT || type == GT) {
+            type == EQ || type == NOT_EQ || type == LT || type == GT ||
+            type == ASSIGN) {
 
             expr = parse_infix_expression(par, expr, exp_type);
             exp_type = INFIX;
@@ -555,7 +556,7 @@ int parser_get_precedence(Parser * par, int type) {
         pt = par->current_token.type;
     }
 
-    if(pt == EQ || pt == NOT_EQ) {
+    if(pt == EQ || pt == NOT_EQ || pt == ASSIGN) {
         return PRE_EQUALS;
     } else if(pt == LT || pt == GT) {
         return PRE_LESSGREATER;

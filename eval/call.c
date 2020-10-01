@@ -97,11 +97,7 @@ Object ** eval_expressions(ExpressionStatement ** args, int c, Env * env) {
         eval = eval_expression(est->expression_type, est->expression, env);
 
         if(strcmp(est->expression_type, IDENT) == 0 && !is_error(eval)) {
-            if(strcmp(eval->type, INT) == 0) {
-                eval = copy_integer_object(eval);
-            } else if(strcmp(eval->type, STRING) == 0) {
-                eval = copy_string_object(eval);
-            }
+            eval = copy_object(eval);
         }
 
         if(is_error(eval)) {

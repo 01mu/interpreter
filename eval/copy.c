@@ -55,6 +55,22 @@ Object * copy_array_object(Object * obj) {
     return new;
 }
 
+Object * copy_function_object(Object * obj) {
+    Object * new = malloc(sizeof(Object));
+    Function * old = obj->value;
+    Function * newf = malloc(sizeof(Function));
+
+    newf->pc = old->pc;
+    newf->env = old->env;
+    newf->body = old->body;
+    newf->parameters = old->parameters;
+
+    new->type = FUNCTION;
+    new->value = newf;
+
+    return new;
+}
+
 Object * copy_object(Object * obj) {
     Object * ret = NULL;
 
@@ -64,6 +80,10 @@ Object * copy_object(Object * obj) {
         ret = copy_integer_object(obj);
     } else if(strcmp(obj->type, ARRAY) == 0) {
         ret = copy_array_object(obj);
+    } else if(strcmp(obj->type, FUNCTION) == 0) {
+        ret = copy_function_object(obj);
+    } else {
+        return obj;
     }
 
     return ret;

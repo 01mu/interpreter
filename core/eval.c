@@ -107,11 +107,17 @@ void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
         free(obj->value);
     } else if(strcmp(ext, PREFIX) == 0 && strcmp(obj->type, INT) == 0) {
         free(obj->value);
+    } else if(strcmp(ext, NULL_) == 0) {
+        return;
     } else if(strcmp(ext, INFIX) == 0) {
-        free(obj->value);
+        if(strcmp(obj->type, ARRAY) == 0 || strcmp(obj->type, STRING) == 0) {
+            free_eval_expression(obj->type, obj, NULL, 0);
+        } else {
+            free(obj->value);
+        }
     } else if(strcmp(ext, CALL) == 0) {
-        if(strcmp(obj->type, ARRAY) == 0) {
-            free_eval_expression(ARRAY, obj, NULL, 0);
+        if(strcmp(obj->type, ARRAY) == 0 || strcmp(obj->type, STRING) == 0) {
+            free_eval_expression(obj->type, obj, NULL, 0);
         } else {
             free(obj->value);
         }
@@ -133,7 +139,12 @@ void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
 
         for(i = 0; i < el->size; i++) {
             t = el->array[i];
-            free_eval_expression(t->type, t, NULL, 0);
+
+            if(is_bool_or_ident(t->type)) {
+                el->array[i] = malloc(1);
+            } else {
+                free_eval_expression(t->type, t, NULL, 0);
+            }
         }
 
         array_free(el);
@@ -246,38 +257,35 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
         est = (ExpressionStatement *) statements[i].st;
         ety = est->expression_type;
 
-        if(strcmp(ety, IF) != 0 && obj != null_obj) {
-            s = print_object(obj);
-
-            if(is_repl_test_string) {
-                //printf("%s", s->string);
-                string_append(repl_test_string, s);
-            } else {
-                printf("%s", s->string);
-
-                if(strcmp(s->string, "") != 0) {
-                   printf("\n");
-                }
-
-                string_free(s);
-            }
-        } else {
+        if(strcmp(ety, IF) == 0) {
             continue;
+        }
+
+        s = print_object(obj);
+
+        if(is_repl_test_string) {
+            string_append(repl_test_string, s);
+        } else {
+            printf("%s", s->string);
+
+            if(strcmp(s->string, "") != 0) {
+               printf("\n");
+            }
+
+            string_free(s);
         }
 
         //printf("[%p: %i] %s %s %s\n", env, i, stt, ety, obj->type);
 
         if(eval_free_error(obj, env) || eval_free_return(obj, env, ety)) {
-            //return null_obj;
-        } else if(env != henv && strcmp(obj->type, RETURN) == 0) {
+            continue;
+        }
+
+        if(env != henv && strcmp(obj->type, RETURN) == 0) {
             return obj;
         } else if(env != henv && !is_bool_or_ident(ety) && sc == 1) {
             free_eval_expression(obj->type, obj, env, true);
             return null_obj;
-        } else if((strcmp(ety, INFIX) == 0 ||
-            strcmp(ety, CALL) == 0) && strcmp(obj->type, STRING) == 0) {
-
-            free_eval_expression(obj->type, obj, env, true);
         } else if(env != henv && !is_bool_or_ident(ety) && i != sc - 1) {
             free_eval_expression(obj->type, obj, env, true);
         } else if(env == henv && !is_bool_or_ident(obj->type)) {

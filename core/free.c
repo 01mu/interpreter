@@ -11,14 +11,9 @@ void free_index_expression(IndexExpression * ie) {
     ExpressionStatement * left = ie->left;
     ExpressionStatement * index = ie->index;
 
-    //free_expression_statement(ie->left_expression_type, left->expression);
     free_expression_statement(ie->left_expression_type, left);
     free_expression_statement(ie->index_expression_type, index->expression);
-
-    //free(ie->left_expression_type);
     free(ie->index_expression_type);
-
-    //free(left);
     free(index);
     free(ie);
 }
@@ -32,7 +27,6 @@ void free_array_literal(ArrayLiteral * al) {
         est = arr->array[i];
         free_expression_statement(est->expression_type, est->expression);
         free(est->expression_type);
-        //free(est);
     }
 
     array_free(arr);
