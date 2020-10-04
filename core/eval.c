@@ -7,6 +7,8 @@
  *
  */
 
+#include "../eval/free.c"
+#include "../eval/new.c"
 #include "../eval/copy.c"
 #include "../eval/call.c"
 #include "../eval/if.c"
@@ -21,21 +23,7 @@
 #include "../eval/ident.c"
 #include "../eval/string.c"
 #include "../eval/integer.c"
-
-Object * new_error(char * msg) {
-    Object * obj = malloc(sizeof(Object));
-    ErrorObject * err = malloc(sizeof(ErrorObject));
-
-    obj->type = ERROR;
-    obj->value = err;
-    err->message = malloc(strlen(msg) + 1);
-    err->message[0] = '\0';
-
-    strcat(err->message, msg);
-    free(msg);
-
-    return obj;
-}
+#include "../eval/print.c"
 
 void init_bool(Object ** b, bool lit) {
     (*b) = malloc(sizeof(Object));
@@ -55,31 +43,6 @@ void free_stat(Object * b) {
     free(b);
 }
 
-String * print_object(Object * obj) {
-    String * s = string_new();
-    char * c = malloc(sizeof(char) + 40);
-
-    c[0] = '\0';
-
-    if(strcmp(obj->type, INT) == 0) {
-        sprintf(c, "%i ", ((IntegerObject *) obj->value)->value);
-    } else if(strcmp(obj->type, BOOLEAN) == 0) {
-        sprintf(c, "%i ", ((BooleanObject *) obj->value)->value);
-    } else if(strcmp(obj->type, NULL_) == 0) {
-        sprintf(c, "NULL ");
-    } else if(strcmp(obj->type, ERROR) == 0) {
-        sprintf(c, "%s ", ((ErrorObject *) obj->value)->message);
-    } else if(strcmp(obj->type, STRING) == 0) {
-        sprintf(c, "%s ", ((StringObject *) obj->value)->value->string);
-    } else if(strcmp(obj->type, ARRAY) == 0) {
-
-    }
-
-    string_cat(s, c, true);
-
-    return s;
-}
-
 bool is_bool_or_ident(char * t) {
     bool eval_is_bool = strcmp(t, TRUE) == 0 || strcmp(t, FALSE) == 0 ||
         strcmp(t, BOOLEAN) == 0;
@@ -94,70 +57,6 @@ bool is_bool_or_ident(char * t) {
 bool is_error(Object * obj) {
     if(obj != NULL) {
         return strcmp(obj->type, ERROR) == 0;
-    }
-}
-
-void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
-    int i;
-    ArrayObject * ao = NULL;
-    Array * el = NULL;
-    Object * t = NULL;
-
-    if(strcmp(ext, INT) == 0) {
-        free(obj->value);
-    } else if(strcmp(ext, PREFIX) == 0 && strcmp(obj->type, INT) == 0) {
-        free(obj->value);
-    } else if(strcmp(ext, NULL_) == 0) {
-        return;
-    } else if(strcmp(ext, INFIX) == 0) {
-        if(strcmp(obj->type, ARRAY) == 0 || strcmp(obj->type, STRING) == 0) {
-            free_eval_expression(obj->type, obj, NULL, 0);
-        } else {
-            free(obj->value);
-        }
-    } else if(strcmp(ext, CALL) == 0) {
-        if(strcmp(obj->type, ARRAY) == 0 || strcmp(obj->type, STRING) == 0) {
-            free_eval_expression(obj->type, obj, NULL, 0);
-        } else {
-            free(obj->value);
-        }
-    } else if(strcmp(ext, CALL) == 0 && strcmp(obj->type, INT) == 0) {
-        free(obj->value);
-    } else if(strcmp(ext, FUNCTION) == 0) {
-        free(obj->value);
-    } else if(strcmp(ext, ARRAYIDX) == 0) {
-        if(strcmp(obj->type, ARRAY) == 0) {
-            free_eval_expression(ARRAY, obj, NULL, 0);
-        } else {
-            free_eval_expression(obj->type, obj, NULL, 0);
-        }
-    } else if(strcmp(ext, BUILTIN) == 0) {
-        free(obj->value);
-    } else if(strcmp(ext, ARRAY) == 0) {
-        ao = obj->value;
-        el = ao->elements;
-
-        for(i = 0; i < el->size; i++) {
-            t = el->array[i];
-
-            if(is_bool_or_ident(t->type)) {
-                el->array[i] = malloc(1);
-            } else {
-                free_eval_expression(t->type, t, NULL, 0);
-            }
-        }
-
-        array_free(el);
-        free(obj->value);
-    } else if(strcmp(ext, STRING) == 0) {
-        string_free(((StringObject *) obj->value)->value);
-        free(obj->value);
-    } else {
-        return;
-    }
-
-    if(free_obj) {
-        free(obj);
     }
 }
 
@@ -278,7 +177,7 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
         //printf("[%p: %i] %s %s %s\n", env, i, stt, ety, obj->type);
 
         if(eval_free_error(obj, env) || eval_free_return(obj, env, ety)) {
-            continue;
+            return null_obj;
         }
 
         if(env != henv && strcmp(obj->type, RETURN) == 0) {

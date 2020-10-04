@@ -14,6 +14,10 @@ bool is_truthy(Object * obj) {
         return true;
     } else if(obj == false_bool) {
         return false;
+    } else if(strcmp(obj->type, INT) == 0  &&
+        ((IntegerObject *) obj->value)->value == 0) {
+
+        return false;
     } else {
         return true;
     }

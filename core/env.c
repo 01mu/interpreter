@@ -17,7 +17,7 @@ void env_display(Env * env);
 Env * new_env() {
     Env * env = malloc(sizeof(Env));
 
-    env->store = hash_map_new(30);
+    env->store = hash_map_new(26);
     env->outer = NULL;
 
     return env;

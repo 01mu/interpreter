@@ -8,9 +8,8 @@
  */
 
 void eval_infix_array_update(IndexExpression * ie, Env * env, Object * r) {
-    Object * io = eval_integer(((ExpressionStatement *) ie->index)->expression,
-        env);
-
+    ExpressionStatement * est = (ExpressionStatement *) ie->index;
+    Object * io = eval_integer(est->expression, env);
     int v = ((IntegerObject *) io->value)->value;
     Object * arr  = env_get(env, ((Identifier *) ie->left)->value);
     Array * az = ((ArrayObject *) arr->value)->elements;
@@ -27,20 +26,19 @@ void eval_infix_array_update(IndexExpression * ie, Env * env, Object * r) {
     free_eval_expression(io->type, io, NULL, 1);
 }
 
-Object * eval_array_infix_comp(Array * arl, Array * arr) {
+bool eval_array_infix_comp(Array * arl, Array * arr) {
     int i;
     Object * lo = NULL, * ro = NULL;
     char * lot = NULL, * rot = NULL;
     StringObject * los = NULL, * ros = NULL;
 
     if(arl->size != arr->size) {
-        return false_bool;
+        return false;
     }
 
     for(i = 0; i < arl->size; i++) {
         lo = arl->array[i];
         ro = arr->array[i];
-
         lot = lo->type;
         rot = ro->type;
 
@@ -48,7 +46,7 @@ Object * eval_array_infix_comp(Array * arl, Array * arr) {
             if(((IntegerObject *) lo->value)->value !=
                 ((IntegerObject *) ro->value)->value) {
 
-                return false_bool;
+                return false;
             }
         } else if(strcmp(lot, STRING) == 0 && strcmp(rot, STRING) == 0) {
             los = lo->value;
@@ -57,36 +55,44 @@ Object * eval_array_infix_comp(Array * arl, Array * arr) {
             if(strcmp(((String *) los->value)->string,
                 ((String *) ros->value)->string) != 0) {
 
-                return false_bool;
+                return false;
             }
         } else if(strcmp(lot, BOOLEAN) == 0 && strcmp(rot, BOOLEAN) == 0) {
             if(lo->value != ro->value) {
-                return false_bool;
+                return false;
             }
         } else if(strcmp(lot, ARRAY) == 0 && strcmp(rot, ARRAY) == 0) {
             return eval_array_infix_comp(((ArrayObject *) lo->value)->elements,
                 ((ArrayObject *) ro->value)->elements);
         } else {
-            return false_bool;
+            return false;
         }
     }
 
-    return true_bool;
+    return true;
 }
 
 Object * eval_array_infix_exp(char * op, Object * l, Object * r, Env * env) {
+    int i;
     ArrayObject * all = l->value, * alr = r->value;
-    Array * arl = all->elements, * arr = alr->elements;
+    Array * arl = all->elements, * arr = alr->elements, * new_arr = NULL;
     Object * ret = NULL;
 
     if(strcmp(op, "==") == 0) {
-        ret = eval_array_infix_comp(arl, arr);
+        ret = eval_bool(eval_array_infix_comp(arl, arr), env);
     } else if(strcmp(op, "!=") == 0) {
-        if(eval_array_infix_comp(arl, arr) == true_bool) {
-            ret = false_bool;
+        ret = eval_bool(!eval_array_infix_comp(arl, arr), env);
+    } else if(strcmp(op, "+") == 0) {
+        ret = eval_new_array();
+        new_arr = ((ArrayObject *) ret->value)->elements;
+
+        for(i = 0; i < arl->size; i++) {
+            array_insert(new_arr, copy_object(arl->array[i]));
         }
 
-        ret = true_bool;
+        for(i = 0; i < arr->size; i++) {
+            array_insert(new_arr, copy_object(arr->array[i]));
+        }
     }
 
     return ret;
@@ -94,36 +100,29 @@ Object * eval_array_infix_exp(char * op, Object * l, Object * r, Env * env) {
 
 Object * eval_string_infix_exp(char * op, Object * l, Object * r, Env * env) {
     char * m = NULL;
-
-    Object * new = NULL;
-    StringObject * nv = NULL;
-    String * new_string = NULL;
-
-    StringObject * ls = l->value, * rs = r->value;
-    String * lss = ls->value, * rss = rs->value;
+    String * lss = ((StringObject *) l->value)->value;
+    String * rss = ((StringObject *) r->value)->value;
+    Object * ret = NULL;
 
     if(strcmp(op, "+") == 0) {
-        new = malloc(sizeof(Object));
-        nv = malloc(sizeof(StringObject));
-        new_string = string_new();
+        Object * new = eval_new_string();
+        StringObject * sobj = new->value;
 
-        string_cat(new_string, lss->string, 0);
-        string_cat(new_string, rss->string, 0);
+        string_cat(sobj->value, lss->string, 0);
+        string_cat(sobj->value, rss->string, 0);
 
-        new->type = STRING;
-        new->value = nv;
-        nv->value = new_string;
-
-        return new;
+        ret = new;
     } else if(strcmp(op, "==") == 0) {
-        return eval_bool(strcmp(lss->string, rss->string) == 0, env);
+        ret = eval_bool(strcmp(lss->string, rss->string) == 0, env);
     } else if(strcmp(op, "!=") == 0) {
-        return eval_bool(strcmp(lss->string, rss->string) != 0, env);
+        ret = eval_bool(strcmp(lss->string, rss->string) != 0, env);
     } else {
         m = malloc(strlen(op) + strlen(r->type) + strlen(l->type) + 25);
         sprintf(m, "Unknown operator: %s %s %s", l->type, op, r->type);
-        return new_error(m);
+        ret = new_error(m);
     }
+
+    return ret;
 }
 
 Object * eval_integer_infix_exp(char * op, Object * l, Object * r, Env * env) {
@@ -144,6 +143,10 @@ Object * eval_integer_infix_exp(char * op, Object * l, Object * r, Env * env) {
         arith = left * right;
     } else if(strcmp(op, "/") == 0) {
         arith = left / right;
+    } else if(strcmp(op, "<=") == 0) {
+        obj = eval_bool(left <= right, env);
+    } else if(strcmp(op, ">=") == 0) {
+        obj = eval_bool(left >= right, env);
     } else if(strcmp(op, "<") == 0) {
         obj = eval_bool(left < right, env);
     } else if(strcmp(op, ">") == 0) {
@@ -152,6 +155,10 @@ Object * eval_integer_infix_exp(char * op, Object * l, Object * r, Env * env) {
         obj = eval_bool(left == right, env);
     } else if(strcmp(op, "!=") == 0) {
         obj = eval_bool(left != right, env);
+    } else if(strcmp(op, "&&") == 0) {
+        obj = eval_bool(is_truthy(l) && is_truthy(r), env);
+    } else if(strcmp(op, "||") == 0) {
+        obj = eval_bool(is_truthy(l) || is_truthy(r), env);
     } else {
         m = malloc(strlen(op) + strlen(r->type) + strlen(l->type) + 25);
         sprintf(m, "Unknown operator: %s %s %s", l->type, op, r->type);
@@ -237,28 +244,29 @@ Object * eval_infix_expression(InfixExpression * iex, Env * env) {
 
     if(strcmp(l->type, INT) == 0 && strcmp(r->type, INT) == 0) {
         ret = eval_integer_infix_exp(op, l, r, env);
-        infix_free_lr(lext, rext, l, r);
     } else if(strcmp(l->type, STRING) == 0 && strcmp(r->type, STRING) == 0) {
         ret = eval_string_infix_exp(op, l, r, env);
-        infix_free_lr(lext, rext, l, r);
     } else if(strcmp(l->type, ARRAY) == 0 && strcmp(r->type, ARRAY) == 0) {
         ret = eval_array_infix_exp(op, l, r, env);
-        infix_free_lr(lext, rext, l, r);
     } else if(strcmp(l->type, r->type) != 0) {
         m = malloc(strlen(l->type) + strlen(r->type) + strlen(op) + 19);
         sprintf(m, "Type mismatch: %s %s %s", l->type, op, r->type);
-        infix_free_lr(lext, rext, l, r);
         ret = new_error(m);
     } else if(strcmp(op, "==") == 0) {
-        ret = eval_bool(l == r, env);
+        ret = eval_bool(is_truthy(l) == is_truthy(r), env);
+    } else if(strcmp(op, "&&") == 0) {
+        ret = eval_bool(is_truthy(l) && is_truthy(r), env);
+    } else if(strcmp(op, "||") == 0) {
+        ret = eval_bool(is_truthy(l) || is_truthy(r), env);
     } else if(strcmp(op, "!=") == 0) {
-        ret = eval_bool(l != r, env);
+        ret = eval_bool(is_truthy(l) != is_truthy(r), env);
     } else {
         m = malloc(strlen(l->type) + strlen(r->type) + strlen(op) + 23);
         sprintf(m, "Unknown operation: %s %s %s", l->type, op, r->type);
-        infix_free_lr(lext, rext, l, r);
         ret = new_error(m);
     }
+
+    infix_free_lr(lext, rext, l, r);
 
     return ret;
 }

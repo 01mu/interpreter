@@ -191,11 +191,37 @@ Token lexer_next_token(Lexer * lexer) {
     case '/':
         token = new_token(SLASH);
         break;
+    case '&':
+        if(peek_char(lexer) == '&') {
+            read_char(lexer);
+            token.type = CONDAND;
+            token.literal = "&&";
+        }
+        break;
+    case '|':
+        if(peek_char(lexer) == '|') {
+            read_char(lexer);
+            token.type = CONDOR;
+            token.literal = "||";
+        }
+        break;
     case '<':
-        token = new_token(LT);
+        if(peek_char(lexer) == '=') {
+            read_char(lexer);
+            token.type = LTE;
+            token.literal = "<=";
+        } else {
+            token = new_token(LT);
+        }
         break;
     case '>':
-        token = new_token(GT);
+        if(peek_char(lexer) == '=') {
+            read_char(lexer);
+            token.type = GTE;
+            token.literal = ">=";
+        } else {
+            token = new_token(GT);
+        }
         break;
     case '=':
         if(peek_char(lexer) == '=') {

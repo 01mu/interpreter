@@ -22,15 +22,16 @@
 #include "lib/sortedlist.c"
 #include "lib/hashmap.c"
 
-#include "core/builtin.c"
 #include "core/env.c"
 #include "core/free.c"
 #include "core/lexer.c"
 #include "core/parser.c"
+#include "core/bi.c"
 #include "core/eval.c"
 #include "core/repl.c"
 #include "core/print.c"
 
+#include "test/repl.c"
 #include "test/parsing.c"
 #include "test/eval.c"
 

@@ -8,11 +8,9 @@
  */
 
 Object * eval_string(StringLiteral * str, Env * env) {
-    Object * obj = malloc(sizeof(Object));
-    StringObject * str_obj = malloc(sizeof(StringObject));
+    Object * obj = eval_new_string();
+    StringObject * str_obj = obj->value;
     String * z = str->value;
-
-    str_obj->value = string_new();
 
     string_cat(str_obj->value, z->string, 0);
 

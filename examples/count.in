@@ -1,0 +1,22 @@
+let c = fn(x, g) {
+    if(x < g) {
+        return c(x + 1, g);
+    } else {
+        return x;
+    }
+};
+
+
+let fib = fn(x) {
+    if(x == 0) {
+        return 0;
+    } else {
+        if(x == 1) {
+            return 1;
+        } else {
+            return fib(x - 1) + fib(x - 2);
+        }
+    }
+};
+
+fib(10);

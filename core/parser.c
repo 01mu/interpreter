@@ -404,7 +404,8 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
 
         if(type == PLUS || type == MINUS || type == SLASH || type == ASTERISK ||
             type == EQ || type == NOT_EQ || type == LT || type == GT ||
-            type == ASSIGN) {
+            type == CONDAND || type == CONDOR ||
+            type == LTE || type == GTE || type == ASSIGN) {
 
             expr = parse_infix_expression(par, expr, exp_type);
             exp_type = INFIX;
@@ -556,9 +557,9 @@ int parser_get_precedence(Parser * par, int type) {
         pt = par->current_token.type;
     }
 
-    if(pt == EQ || pt == NOT_EQ || pt == ASSIGN) {
+    if(pt == EQ || pt == NOT_EQ || pt == ASSIGN || pt == CONDOR || pt == CONDAND) {
         return PRE_EQUALS;
-    } else if(pt == LT || pt == GT) {
+    } else if(pt == LT || pt == GT || pt == LTE || pt == GTE) {
         return PRE_LESSGREATER;
     } else if(pt == PLUS || pt == MINUS) {
         return PRE_SUM;

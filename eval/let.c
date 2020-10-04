@@ -52,7 +52,7 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
         get = copy_object(get);
 
         eval_write_env(name, get, env);
-        return null_obj;
+        return get;
     }
 
     if(get != NULL) {

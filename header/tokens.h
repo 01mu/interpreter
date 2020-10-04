@@ -37,6 +37,10 @@
 #define NOT_EQ "!="
 #define LBRACKET "["
 #define RBRACKET "]"
+#define LTE "<="
+#define GTE ">="
+#define CONDAND "&&"
+#define CONDOR "||"
 
 #define PRE_LOWEST 1
 #define PRE_EQUALS 2
