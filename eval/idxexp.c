@@ -7,6 +7,19 @@
  *
  */
 
+Object * eval_hash_index_expression(Object * left, Object * index) {
+    HashObject * ho = left->value;
+    HashMap * values = ho->pairs;
+    String * s = ((StringObject *) index->value)->value;
+
+    SortedList * sl = hash_map_find(values, s->string);
+    HashPair * d = sl->data;
+    Object * ob = d->value;
+
+    return ob;
+}
+
+
 Object * eval_array_index_expression(Object * left, int v, bool del) {
     ArrayObject * ao = left->value;
     Array * la = ao->elements;
@@ -26,6 +39,12 @@ Object * eval_index_expression(IndexExpression * ie, Env * env) {
 
     ExpressionStatement * iex = ie->index;
 
+    index = eval_expression(ie->index_expression_type, iex->expression, env);
+
+    if(strcmp(left->type, HASHPAIR) == 0) {
+        return eval_hash_index_expression(left, index);
+    }
+
     bool del = 0;
 
     if(strcmp(ie->left_expression_type, CALL) == 0 ||
@@ -38,8 +57,6 @@ Object * eval_index_expression(IndexExpression * ie, Env * env) {
     if(is_error(left)) {
         return left;
     }
-
-    index = eval_expression(ie->index_expression_type, iex->expression, env);
 
     if(is_error(index)) {
         return index;

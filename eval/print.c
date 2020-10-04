@@ -61,7 +61,7 @@ char * print_obj_str(Object * obj, bool t) {
 String * print_object(Object * obj) {
     String * s = string_new();
 
-    if(obj->type != RETURN && obj->type != FUNCTION) {
+    if(obj->type != RETURN && obj->type != FUNCTION && obj->type != HASHPAIR) {
         string_cat(s, print_obj_str(obj, 1), true);
     }
 

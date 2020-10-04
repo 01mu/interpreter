@@ -109,3 +109,8 @@ typedef struct {
     Token token;
     String * value;
 } StringLiteral;
+
+typedef struct {
+    Token token;
+    HashMap * pairs;
+} HashLiteral;

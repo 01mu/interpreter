@@ -41,6 +41,7 @@
 #define GTE ">="
 #define CONDAND "&&"
 #define CONDOR "||"
+#define COLON ":"
 
 #define PRE_LOWEST 1
 #define PRE_EQUALS 2
@@ -61,6 +62,8 @@
 #define ARRAY "ARRAY"
 #define ARRAYIDX "ARRAYIDX"
 #define NULL_ "NULL"
+#define HASHMAP "HASHMAP"
+#define HASHPAIR "HASHPAIR"
 
 #define PREC_PEEK 0
 #define PREC_CURRENT 1

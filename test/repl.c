@@ -9,6 +9,7 @@
 
 void repl_test() {
     char * t[][2] = {
+        {"let z = {\"a\": 1, \"b\": \"z\"}; z[\"a\"]; z[\"b\"]", "1 z "},
         // =====================================================================
         {"let c = fn(x) { if(x < 9) { return c(x + 1); } else { return x; } }; \
             let e = c(0); e + 1;", "9 10 "},
@@ -108,7 +109,7 @@ void repl_test() {
     };
 
     int e = sizeof(t) / sizeof(t[0]);
-    //e = 1;
+    e = 1;
     int b = e, i;
     bool res = false;
 

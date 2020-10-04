@@ -185,6 +185,9 @@ Token lexer_next_token(Lexer * lexer) {
     case '-':
         token = new_token(MINUS);
         break;
+    case ':':
+        token = new_token(COLON);
+        break;
     case '*':
         token = new_token(ASTERISK);
         break;

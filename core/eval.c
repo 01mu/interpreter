@@ -10,6 +10,7 @@
 #include "../eval/free.c"
 #include "../eval/new.c"
 #include "../eval/copy.c"
+#include "../eval/hash.c"
 #include "../eval/call.c"
 #include "../eval/if.c"
 #include "../eval/infix.c"
@@ -85,6 +86,8 @@ Object * eval_expression(char * ext, void * est, Env * env) {
         res = eval_index_expression((IndexExpression *) est, env);
     } else if(strcmp(ext, CALL) == 0) {
         res = eval_call_expression((CallExpression *) est, env);
+    } else if(strcmp(ext, HASHMAP) == 0) {
+        res = eval_hash_literal((HashLiteral *) est, env);
     }
 
     return res;

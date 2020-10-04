@@ -7,6 +7,46 @@
  *
  */
 
+void * parse_hash_literal(Parser * par) {
+    HashLiteral * hl = malloc(sizeof(HashLiteral));
+    hl->pairs = hash_map_new(26);
+
+    while(!peek_token_is(par, RBRACE)) {
+        parser_next_token(par);
+
+        ExpressionStatement * key = malloc(sizeof(ExpressionStatement));
+        key->expression = parse_expression(par, PRE_LOWEST, key, PE_EXPRESSION);
+
+        if(!expect_peek(par, COLON)) {
+            return NULL;
+        }
+
+        parser_next_token(par);
+
+        ExpressionStatement * exp = malloc(sizeof(ExpressionStatement));
+        exp->expression = parse_expression(par, PRE_LOWEST, exp, PE_EXPRESSION);
+
+        if(strcmp(key->expression_type, STRING) != 0) {
+            return NULL;
+        }
+
+        StringLiteral * sl = key->expression;
+        String * s = sl->value;
+
+        hash_map_insert(hl->pairs, s->string, exp);
+
+        if(!peek_token_is(par, RBRACE) && !expect_peek(par, COMMA)) {
+            return NULL;
+        }
+    }
+
+    if(!expect_peek(par, RBRACE)) {
+        return NULL;
+    }
+
+    return hl;
+}
+
 void function_literal_store_add(FunctionLiteral * fl) {
     fls->store = realloc(fls->store, sizeof(FunctionLiteral *) *
         (fls->count + 1));
@@ -390,6 +430,9 @@ void * parse_expression(Parser * par, int precedence, void * ex, int et) {
     } else if(type == LBRACKET) {
         exp_type = ARRAY;
         expr = parse_array_literal(par);
+    } else if(type == LBRACE) {
+        expr = parse_hash_literal(par);
+        exp_type = HASHMAP;
     } else {
         exp_type = ILLEGAL;
         expr = NULL;

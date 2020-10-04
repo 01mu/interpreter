@@ -9,6 +9,7 @@
 
 char * test_parsing_array_literal();
 char * test_parsing_array_index();
+char * test_parsing_hash_map_literal();
 
 void test_parse_all(char * option) {
     int i, c;
@@ -50,6 +51,8 @@ void test_parse_all(char * option) {
         result = test_parsing_array_literal();
     } else if(strcmp(option, "arrayidx") == 0) {
         result = test_parsing_array_index();
+    } else if(strcmp(option, "hashmap") == 0) {
+        result = test_parsing_hash_map_literal();
     } else {
         c = 14;
 
@@ -742,5 +745,42 @@ char * test_parsing_array_index() {
     }
 
     return print_test_result("ARRAY INDEX", tc - fail, tc);
+}
+
+char * test_parsing_hash_map_literal() {
+    int i, tc = 1, fail = 0;
+    char * cons_type, * alt_type;
+    ExpressionStatement * es;
+    HashLiteral * hl;
+    HashMap * hm;
+    char * left, * right;
+    void * v;
+    IntegerLiteral * r;
+    SortedList * sl;
+    struct {
+        char * input, * left, * right;
+    } t[1] = {
+        {"{\"a\": 33, \"b\": \"z\"}", "a", INT}};
+
+    printf("Testing HASH MAP LITERAL expression\n");
+
+    for(i = 0; i < tc; i++) {
+        if(!get_parse_test_expression(&es, t[i].input)) {
+            fail++;
+            continue;
+        }
+
+        hl = (HashLiteral *) es->expression;
+        hm = hl->pairs;
+
+        sl = hash_map_find(hm, t[i].left);
+        es = sl->data;
+        r = es->expression;
+
+        test_string_cmp("[Error: %i] Expected map value type %s got %s\n",
+            t[i].right, es->expression_type, i, &fail);
+    }
+
+    return print_test_result("HASH MAP LITERAL", tc - fail, tc);
 }
 

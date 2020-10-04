@@ -57,4 +57,13 @@ typedef struct {
     Array * elements;
 } ArrayObject;
 
+typedef struct {
+    char * key;
+    void * value;
+} HashPair;
+
+typedef struct {
+    HashMap * pairs;
+} HashObject;
+
 typedef struct Env Env;
