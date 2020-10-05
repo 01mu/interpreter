@@ -19,7 +19,6 @@ Object * eval_hash_index_expression(Object * left, Object * index) {
     return ob;
 }
 
-
 Object * eval_array_index_expression(Object * left, int v, bool del) {
     ArrayObject * ao = left->value;
     Array * la = ao->elements;

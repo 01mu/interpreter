@@ -7,25 +7,6 @@
  *
  */
 
-void eval_infix_array_update(IndexExpression * ie, Env * env, Object * r) {
-    ExpressionStatement * est = (ExpressionStatement *) ie->index;
-    Object * io = eval_integer(est->expression, env);
-    int v = ((IntegerObject *) io->value)->value;
-    Object * arr  = env_get(env, ((Identifier *) ie->left)->value);
-    Array * az = ((ArrayObject *) arr->value)->elements;
-
-    Object * ch = az->array[v];
-    Object * j = copy_object(r);
-
-    free_eval_expression(ch->type, ch, NULL, 0);
-
-    ch->value = j->value;
-    ch->type = j->type;
-
-    free(j);
-    free_eval_expression(io->type, io, NULL, 1);
-}
-
 bool eval_array_infix_comp(Array * arl, Array * arr) {
     int i;
     Object * lo = NULL, * ro = NULL;
@@ -201,6 +182,56 @@ void infix_free_lr(char * lext, char * rext, Object * l, Object * r) {
     }
 }
 
+int get_index(IndexExpression * ie, Env * env) {
+    ExpressionStatement * est = (ExpressionStatement *) ie->index;
+    Object * io = eval_integer(est->expression, env);
+    int v = ((IntegerObject *) io->value)->value;
+
+    free_eval_expression(io->type, io, NULL, 1);
+
+    return v;
+}
+
+Object * get_array(Object * obj, int idx) {
+    Array * az = ((ArrayObject *) obj->value)->elements;
+
+    return az->array[idx];
+}
+
+Object * eval_get_array_edit(InfixExpression * iex, Env * env) {
+    Object * get = NULL;
+    IndexExpression * ie = iex->left;
+    IndexExpression * exp = ie;
+    Array * hold = array_new();
+    int * j, i;
+
+    while(strcmp(exp->left_expression_type, ARRAYIDX) == 0) {
+        j = malloc(sizeof(int));
+        * j = get_index(exp, env);
+        array_insert(hold, j);
+        exp = exp->left;
+    }
+
+    j = malloc(sizeof(int));
+    * j = get_index(exp, env);
+    array_insert(hold, j);
+
+    if(strcmp(exp->left_expression_type, ARRAY) == 0) {
+        array_free(hold);
+        return false_bool;
+    }
+
+    get = env_get(env, ((Identifier *) exp->left)->value);
+
+    for(i = hold->size - 1; i >= 0; i--) {
+        get = get_array(get, *((int *) hold->array[i]));
+    }
+
+    array_free(hold);
+
+    return get;
+}
+
 Object * eval_infix_expression(InfixExpression * iex, Env * env) {
     Object * l = NULL, * r = NULL, * ret = NULL;
     char * op = iex->operator, * lext = iex->left_expression_type,
@@ -235,8 +266,22 @@ Object * eval_infix_expression(InfixExpression * iex, Env * env) {
     if(strcmp(lext, ARRAYIDX) == 0 && strcmp(op, "=") == 0) {
         IndexExpression * ie = iex->left;
 
-        if(strcmp(ie->left_expression_type, IDENT) == 0) {
-            eval_infix_array_update(ie, env, r);
+        if(strcmp(ie->left_expression_type, ARRAYIDX) == 0 ||
+            strcmp(ie->left_expression_type, IDENT) == 0) {
+
+            Object * edit = eval_get_array_edit(iex, env);
+
+            if(edit == false_bool) {
+                infix_free_lr(lext, rext, l, r);
+                return null_obj;
+            }
+
+            Object * j = copy_object(r);
+
+            free_eval_expression(edit->type, edit, NULL, 0);
+            edit->value = j->value;
+            edit->type = j->type;
+            free(j);
             infix_free_lr(lext, rext, l, r);
             return null_obj;
         }
