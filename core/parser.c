@@ -33,7 +33,14 @@ void * parse_hash_literal(Parser * par) {
         StringLiteral * sl = key->expression;
         String * s = sl->value;
 
-        hash_map_insert(hl->pairs, s->string, exp);
+        char * a = malloc(strlen(s->string) + 1);
+        strcpy(a, s->string);
+
+        free_string_literal(sl);
+        free(key->expression_type);
+        free(key);
+
+        hash_map_insert(hl->pairs, a, exp);
 
         if(!peek_token_is(par, RBRACE) && !expect_peek(par, COMMA)) {
             return NULL;

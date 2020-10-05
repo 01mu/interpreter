@@ -7,6 +7,28 @@
  *
  */
 
+void free_hash_literal(HashLiteral * hl) {
+    int i;
+    HashMap * hm = hl->pairs;
+    SortedList * current = NULL;
+    ExpressionStatement * est = NULL;
+
+    for(i = 0; i < hm->size; i++) {
+        current = hm->array[i];
+
+        while(current != NULL) {
+            est = current->data;
+            //free(current->key);
+            free_expression_statement(est->expression_type, est->expression);
+            free(est->expression_type);
+            current = current->next;
+        }
+    }
+
+    hash_map_free(hm);
+    free(hl);
+}
+
 void free_index_expression(IndexExpression * ie) {
     ExpressionStatement * left = ie->left;
     ExpressionStatement * index = ie->index;
@@ -149,6 +171,8 @@ void free_expression_statement(char * type, void * value) {
         free_array_literal((ArrayLiteral *) value);
     } else if(strcmp(type, ARRAYIDX) == 0) {
         free_index_expression((IndexExpression *) value);
+    } else if(strcmp(type, HASHMAP) == 0) {
+        free_hash_literal((HashLiteral *) value);
     }
 }
 

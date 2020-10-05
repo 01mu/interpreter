@@ -33,6 +33,30 @@ void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
         }
     } else if(strcmp(ext, CALL) == 0 && strcmp(obj->type, INT) == 0) {
         free(obj->value);
+    } else if(strcmp(ext, HASHMAP) == 0) {
+        int i;
+        HashObject * ho = obj->value;
+        HashMap * hm = ho->pairs;
+        SortedList * current = NULL;
+
+        for(i = 0; i < hm->size; i++) {
+            current = hm->array[i];
+
+            while(current != NULL) {
+                HashPair * o = current->data;
+                Object * oo = o->value;
+
+                //printf("%s %s\n", o->key, oo->type);
+                free_eval_expression(oo->type, oo, env, 1);
+                //free(o->key);
+
+                current = current->next;
+            }
+        }
+
+        hash_map_free(hm);
+        free(ho);
+
     } else if(strcmp(ext, FUNCTION) == 0) {
         free(obj->value);
     } else if(strcmp(ext, ARRAYIDX) == 0) {

@@ -15,7 +15,7 @@ Object * eval_hash_literal(HashLiteral * hl, Env * env) {
     Object * obj = malloc(sizeof(Object));
     HashObject * ho = malloc(sizeof(HashObject));
 
-    obj->type = HASHPAIR;
+    obj->type = HASHMAP;
     obj->value = ho;
     ho->pairs = hash_map_new(26);
 
@@ -29,14 +29,17 @@ Object * eval_hash_literal(HashLiteral * hl, Env * env) {
 
             Object * g = eval_expression(d->expression_type, d->expression, env);
 
-            hp->key = key;
+            char * keyc = malloc(strlen(key) + 1);
+            strcpy(keyc, key);
+
+            hp->key = keyc;
             hp->value = g;
 
             if(is_error(g)) {
                 return g;
             }
 
-            hash_map_insert(ho->pairs, key, hp);
+            hash_map_insert(ho->pairs, keyc, hp);
 
             current = current->next;
         }
