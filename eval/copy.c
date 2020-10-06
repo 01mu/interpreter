@@ -38,18 +38,15 @@ Object * copy_string_object(Object * obj) {
 Object * copy_array_object(Object * obj) {
     int i;
     Object * new = malloc(sizeof(Object));
-    ArrayObject * newao = malloc(sizeof(ArrayObject));
-    Array * newarr = array_new();
+    ArrayObject * new_ao = malloc(sizeof(ArrayObject)), * old_ao = obj->value;
+    Array * new_arr = array_new(), * old_arr = old_ao->elements;
 
     new->type = ARRAY;
-    new->value = newao;
-    newao->elements = newarr;
+    new->value = new_ao;
+    new_ao->elements = new_arr;
 
-    ArrayObject * ao = obj->value;
-    Array * ar = ao->elements;
-
-    for(i = 0; i < ar->size; i++) {
-        array_insert(newarr, copy_object(ar->array[i]));
+    for(i = 0; i < old_arr->size; i++) {
+        array_insert(new_arr, copy_object(old_arr->array[i]));
     }
 
     return new;
@@ -58,15 +55,15 @@ Object * copy_array_object(Object * obj) {
 Object * copy_function_object(Object * obj) {
     Object * new = malloc(sizeof(Object));
     Function * old = obj->value;
-    Function * newf = malloc(sizeof(Function));
+    Function * new_func = malloc(sizeof(Function));
 
-    newf->pc = old->pc;
-    newf->env = old->env;
-    newf->body = old->body;
-    newf->parameters = old->parameters;
+    new_func->pc = old->pc;
+    new_func->env = old->env;
+    new_func->body = old->body;
+    new_func->parameters = old->parameters;
 
     new->type = FUNCTION;
-    new->value = newf;
+    new->value = new_func;
 
     return new;
 }

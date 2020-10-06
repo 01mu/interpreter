@@ -3,7 +3,7 @@
  * interpreter
  * github.com/01mu/interpreter
  *
- * eval/ident.c
+ * eval/identifier.c
  *
  */
 

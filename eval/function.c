@@ -3,7 +3,7 @@
  * interpreter
  * github.com/01mu/interpreter
  *
- * eval/funclit.c
+ * eval/function.c
  *
  */
 

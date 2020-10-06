@@ -18,7 +18,6 @@ void free_hash_literal(HashLiteral * hl) {
 
         while(current != NULL) {
             est = current->data;
-            //free(current->key);
             free_expression_statement(est->expression_type, est->expression);
             free(est->expression_type);
             current = current->next;
