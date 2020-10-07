@@ -19,7 +19,6 @@ typedef struct {
 
 struct SortedList {
     struct SortedList * next;
-    char * data_type;
     void * data;
     char * key;
 };

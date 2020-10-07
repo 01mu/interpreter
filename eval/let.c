@@ -43,6 +43,11 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
     Object ** hmd = NULL;
     SortedList * hm_store = NULL;
 
+    if(obj == null_obj) {
+        eval_write_env(name, obj, env);
+        return null_obj;
+    }
+
     if(is_error(obj)) {
         return obj;
     }
@@ -58,8 +63,13 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
     if(get != NULL) {
         hm_store = hash_map_find(env->store, name);
 
+        if(obj == get) {
+            return obj;
+        }
+
         if(hm_store != NULL) {
             hmd = (Object **) (&(hash_map_find(env->store, name)->data));
+            eval_update_value(hmd, obj, env, name);
         } else {
             if(strcmp(get->type, FUNCTION) == 0) {
                 eval_write_env(name, obj, env);
@@ -67,13 +77,10 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
             }
 
             hmd = (Object **) (&(hash_map_find(env->outer->store, name)->data));
+            eval_update_value(hmd, obj, env->outer, name);
         }
 
-        if(obj == get) {
-            return obj;
-        }
 
-        eval_update_value(hmd, obj, env, name);
         return * hmd;
     }
 

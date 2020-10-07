@@ -20,6 +20,8 @@ Object * get_built_in_fn(char * type, Object * obj, Object ** args, int argc) {
         return bi_find(obj, args, argc);
     } else if(strcmp(type, "str") == 0) {
         return bi_str(obj, args, argc);
+    } else if(strcmp(type, "push") == 0) {
+        return bi_push(obj, args, argc);
     }
 
     return null_obj;
@@ -77,7 +79,40 @@ Object * apply_function(Object * obj, Object ** args, int argc) {
 
         eval_env_store_add(out);
 
+        /*HashMap * store = out->store;
+        SortedList * current = NULL;
+
+        for(int i = 0; i < store->size; i++) {
+            current = store->array[i];
+
+            while(current != NULL) {
+                obj = (Object *) current->data;
+
+                if(strcmp(obj->type, ARRAY) == 0) {
+                    current->data = malloc(1);
+                }
+
+                current = current->next;
+            }
+        }*/
+
+        Statement a = bs->statements[bs->sc - 1];
+        char * t = a.type;
+
         if(strcmp(evaluated->type, RETURN) != 0) {
+            if(strcmp(t, EXPRESSION) == 0) {
+                ExpressionStatement * e = a.st;
+                char * tt = e->expression_type;
+
+                if(!is_bool_or_ident(tt) && strcmp(tt, IF) != 0) {
+                    free_eval_expression(tt, evaluated, NULL, 0);
+
+                    if(strcmp(tt, ARRAYIDX) == 0) {
+                        free(evaluated);
+                    }
+                }
+            }
+
             return null_obj;
         }
 
@@ -97,7 +132,9 @@ Object ** eval_expressions(ExpressionStatement ** args, int c, Env * env) {
         eval = eval_expression(est->expression_type, est->expression, env);
 
         if(strcmp(est->expression_type, IDENT) == 0 && !is_error(eval)) {
-            eval = copy_object(eval);
+            //if(strcmp(eval->type, ARRAY) != 0) {
+                eval = copy_object(eval);
+            //}
         }
 
         if(is_error(eval)) {

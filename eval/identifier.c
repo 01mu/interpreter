@@ -19,8 +19,14 @@ Object * new_builtin(char * fn) {
 }
 
 Object * eval_identifier(Identifier * ident, Env * env) {
-    Object * get = env_get(env, ident->value);
+    Object * get = NULL;
     char * msg = NULL;
+
+    if(strcmp(ident->value, "NULL") == 0) {
+        return null_obj;
+    }
+
+    get = env_get(env, ident->value);
 
     if(hash_map_find(fn_map, ident->value)) {
         return new_builtin(ident->value);

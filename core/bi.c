@@ -8,6 +8,7 @@
  */
 
 char * print_obj_str(Object * obj, bool t);
+Object * copy_object(Object * obj);
 
 Object * bi_int_obj(int i) {
     Object * obj = malloc(sizeof(Object));
@@ -28,6 +29,31 @@ void bi_free_args(Object * obj, Object ** args, int argc) {
     }
 
     free_eval_expression(obj->type, obj, NULL, true);
+}
+
+Object * bi_push(Object * obj, Object ** args, int argc) {
+    char * m = NULL, * l = NULL;
+    Object * new = NULL, * rt = NULL;
+
+    if(argc != 2) {
+        m = malloc(sizeof(char) * 40);
+        sprintf(m, "Invalid args (expected: %i, got: %i)", 2, argc);
+        rt = new_error(m);
+    } else if(args[0]->type != ARRAY) {
+        m = malloc(sizeof(char) * 30);
+        sprintf(m, "First argument not an array");
+        rt = new_error(m);
+    } else {
+        ArrayObject * ao = args[0]->value;
+        Array * arr = ao->elements;
+
+        printf("%i\n", arr->size);
+        array_insert(arr, copy_object(args[1]));
+    }
+
+    //bi_free_args(obj, args, argc);
+
+    return null_obj;
 }
 
 Object * bi_str(Object * obj, Object ** args, int argc) {

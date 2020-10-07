@@ -134,6 +134,24 @@ char peek_char(Lexer * lexer) {
     }
 }
 
+Token lexer_str(Lexer * lexer, char ch) {
+    Token token;
+    int position = lexer->pos + 1;
+
+    while(1) {
+        read_char(lexer);
+
+        if(lexer->ch == ch || lexer->ch == 0) {
+            break;
+        }
+    }
+
+    token.type = STRING;
+    token.literal = get_substr(position, lexer->pos, lexer->input);
+
+    return token;
+}
+
 Token lexer_next_token(Lexer * lexer) {
     int position;
     Token token;
@@ -141,19 +159,11 @@ Token lexer_next_token(Lexer * lexer) {
     skip_whitespace(lexer);
 
     switch(lexer->ch) {
-    case '"':
-        token.type = STRING;
-        position = lexer->pos + 1;
-
-        while(1) {
-            read_char(lexer);
-
-            if(lexer->ch == '"' || lexer->ch == 0) {
-                break;
-            }
-        }
-
-        token.literal = get_substr(position, lexer->pos, lexer->input);
+    case '"' :
+        token = lexer_str(lexer, '"');
+        break;
+    case '\'' :
+        token = lexer_str(lexer, '\'');
         break;
     case '[':
         token = new_token(LBRACKET);

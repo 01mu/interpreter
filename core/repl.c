@@ -163,11 +163,11 @@ void free_env_store() {
 }
 
 void create_fn_map() {
-    char * t[] = {"len", "find", "str"};
+    char * t[] = {"len", "find", "str", "push"};
     int i, c = sizeof(t) / sizeof(t[0]);
     char * z[c];
 
-    fn_map = hash_map_new(30);
+    fn_map = hash_map_new(26);
 
     for(i = 0; i < c; i++) {
         z[i] = malloc(strlen(t[i]) + 1);
