@@ -75,7 +75,7 @@ Object * copy_object(Object * obj) {
         ret = copy_string_object(obj);
     } else if(strcmp(obj->type, INT) == 0) {
         ret = copy_integer_object(obj);
-    } else if(strcmp(obj->type, ARRAY) == 0) {
+    } else if(is_array(obj)) {
         ret = copy_array_object(obj);
     } else if(strcmp(obj->type, FUNCTION) == 0) {
         ret = copy_function_object(obj);

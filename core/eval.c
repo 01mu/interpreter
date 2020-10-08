@@ -7,6 +7,8 @@
  *
  */
 
+bool is_array(Object * obj);
+
 #include "../eval/free.c"
 #include "../eval/new.c"
 #include "../eval/copy.c"
@@ -25,6 +27,10 @@
 #include "../eval/string.c"
 #include "../eval/integer.c"
 #include "../eval/print.c"
+
+bool is_array(Object * obj) {
+    return strcmp(obj->type, ARRAY) == 0 || strcmp(obj->type, REFARRAY) == 0;
+}
 
 void init_bool(Object ** b, bool lit) {
     (*b) = malloc(sizeof(Object));

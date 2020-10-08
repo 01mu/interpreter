@@ -80,7 +80,7 @@ char * print_obj_str(Object * obj, bool t) {
         sprintf(c, "%s", ((ErrorObject *) obj->value)->message);
     } else if(strcmp(obj->type, STRING) == 0) {
         sprintf(c, "'%s'", ((StringObject *) obj->value)->value->string);
-    } else if(strcmp(obj->type, ARRAY) == 0) {
+    } else if(strcmp(obj->type, ARRAY) == 0 || strcmp(obj->type, REFARRAY) == 0) {
         print_array(&c, obj);
     } else if(strcmp(obj->type, HASHMAP) == 0) {
         print_hash(&c, obj);

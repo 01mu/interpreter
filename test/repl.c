@@ -9,9 +9,6 @@
 
 void repl_test() {
     char * t[][2] = {
-        {"let a = [1]; let g = fn(x) { x[0] = 2; let a = 3; x[0]; }; g(a); a;",
-            "[1] NULL 3 2 NULL 3"},
-        //{"let a = 1; let f = fn(a) { let a = a + 2; }; f(a); a;", ""},
         // =====================================================================
         {"let c = fn(x) { if(x < 9) { return c(x + 1); } else { return x; } }; \
             let e = c(0); e + 1;", "9 10 "},
@@ -39,7 +36,7 @@ void repl_test() {
             { return 1; }; a(3);", "3 3 1 "},
         {"let a = fn() { 11; return 5; ff; }; let d = a(); d;", "11 5 5 "},
         {"let z = 1; let a = fn() { let z = 3; return z; }; \
-            let d = a(); z; d;", "1 3 3 3 3 "},
+            let d = a(); z; d;", "1 3 3 3 3 "}, // h
         {"let z = false; let a = fn(z) { let z = true; }; a(z);", "0 1 NULL " },
         {"let c = fn(x) { let g = fn() { return 5; }; return g() + 1; }; \
             let e = c(0); e * e;", "6 36 "},
@@ -103,8 +100,8 @@ void repl_test() {
         {"[1, 2][1];", "2 "},
         {"let a = [1, 2, 3]; let j = 0; a[j]; j;", "[1, 2, 3] 0 1 0 "},
         {"let a = [1, 2, 3]; let d = a[0]; d + 4;", "[1, 2, 3] 1 5 "},
-        {"let g = [-5]; let a = fn(g) { let d = [1]; return [d, [2], g]; }; \
-            a(g)[0][0] + a(g)[1][0]; a(g)[2][0];", "[-5] [1] [1] 3 [1] -5 "},
+        {"let g = [-5]; let a = fn(x) { return [[1], [2], [1]]; }; \
+            a(g);", "[-5] [[1], [2], [1]] "},
         // 60 ==================================================================
         {"let a = [1, 2]; a[0] = 3; a[0]; [0][0] = 2;",
             "[1, 2] NULL 3 Unknown operator: INT = INT "},
@@ -122,10 +119,19 @@ void repl_test() {
             "[1, 2, [[1, 2], 0]] NULL [1, 2, [[1, 1], 0]] "},
         {"let z = {\"a\": [1], \"b\": \"z\"}; z[\"a\"][0];",
             "{'a': [1], 'b': 'z'} 1 "},
+        // 70 ==================================================================
+        {"let a = [1]; let g = fn(x) { x[0] = 2; }; g(a); a;",
+            "[1] NULL NULL [2] "},
+        {"let a = [[1]]; let g = fn(x) { a + [1]; a == [[1]]; }; g(a);",
+            "[[1]] [[1], 1] 1 NULL "},
+        {"let a = [1]; let g = fn(x) { x[0] = 2; x[0]; let x = [1]; x; }; \
+            g(a); a;", "[1] NULL 2 [1] [1] NULL [1] "},
+        {"let a = 1; let f = fn(a) { let a = a + 2; }; f(a); a;",
+            "1 3 NULL 1 "},
     };
 
     int e = sizeof(t) / sizeof(t[0]);
-    e = 1;
+    //e = 1;
     int b = e, i;
     bool res = false;
 

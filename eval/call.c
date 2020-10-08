@@ -59,11 +59,14 @@ Env * extend_function_env(Function * func, Object ** args) {
 }
 
 Object * apply_function(Object * obj, Object ** args, int argc) {
+    int i;
     char * m = NULL, * type = NULL;
     Object * evaluated = NULL;
     Function * func = NULL;
     BlockStatement * bs = NULL;
     Env * out = NULL;
+    HashMap * store = NULL;
+    SortedList * current = NULL;
 
     if(strcmp(FUNCTION, obj->type) != 0 && strcmp(BUILTIN, obj->type) != 0) {
         m = malloc(strlen(obj->type) + 23);
@@ -72,29 +75,37 @@ Object * apply_function(Object * obj, Object ** args, int argc) {
     } else if(strcmp(BUILTIN, obj->type) == 0) {
         return get_built_in_fn(((BuiltIn *) obj->value)->fn, obj, args, argc);
     } else if(strcmp(FUNCTION, obj->type) == 0) {
+        for(i = 0; i < argc; i++) {
+            if(strcmp(args[i]->type, ARRAY) == 0) {
+                args[i]->type = REFARRAY;
+            }
+        }
+
         func = (Function *) obj->value;
         bs = func->body;
         out = extend_function_env(func, args);
         evaluated = eval_statements(bs->statements, bs->sc, out);
-
         eval_env_store_add(out);
+        store = out->store;
 
-        /*HashMap * store = out->store;
-        SortedList * current = NULL;
-
-        for(int i = 0; i < store->size; i++) {
+        for(i = 0; i < store->size; i++) {
             current = store->array[i];
 
             while(current != NULL) {
                 obj = (Object *) current->data;
 
-                if(strcmp(obj->type, ARRAY) == 0) {
-                    current->data = malloc(1);
+                if(strcmp(obj->type, REFARRAY) == 0) {
+                    for(int j = 0; j < argc; j++) {
+                        if(args[j] == obj) {
+                            current->data = malloc(sizeof(Object));
+                            ((Object *) current->data)->type = "REF";
+                        }
+                    }
                 }
 
                 current = current->next;
             }
-        }*/
+        }
 
         Statement a = bs->statements[bs->sc - 1];
         char * t = a.type;
@@ -105,11 +116,7 @@ Object * apply_function(Object * obj, Object ** args, int argc) {
                 char * tt = e->expression_type;
 
                 if(!is_bool_or_ident(tt) && strcmp(tt, IF) != 0) {
-                    free_eval_expression(tt, evaluated, NULL, 0);
-
-                    if(strcmp(tt, ARRAYIDX) == 0) {
-                        free(evaluated);
-                    }
+                    free_eval_expression(evaluated->type, evaluated, NULL, 1);
                 }
             }
 
@@ -132,9 +139,9 @@ Object ** eval_expressions(ExpressionStatement ** args, int c, Env * env) {
         eval = eval_expression(est->expression_type, est->expression, env);
 
         if(strcmp(est->expression_type, IDENT) == 0 && !is_error(eval)) {
-            //if(strcmp(eval->type, ARRAY) != 0) {
+            if(strcmp(eval->type, ARRAY) != 0) {
                 eval = copy_object(eval);
-            //}
+            }
         }
 
         if(is_error(eval)) {

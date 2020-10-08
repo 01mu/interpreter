@@ -61,7 +61,7 @@ void free_eval_expression(char * ext, Object * obj, Env * env, bool free_obj) {
         free_eval_expression(obj->type, obj, NULL, 0);
     } else if(strcmp(ext, HASHMAP) == 0) {
         free_eval_hash_map(obj);
-    } else if(strcmp(ext, ARRAY) == 0) {
+    } else if(strcmp(ext, ARRAY) == 0 || strcmp(ext, REFARRAY) == 0) {
         free_eval_array(obj);
     } else if(strcmp(ext, FUNCTION) == 0) {
         free(obj->value);

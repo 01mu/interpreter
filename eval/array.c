@@ -20,7 +20,11 @@ Object * eval_array_literal(ArrayLiteral * al, Env * env) {
     ao->elements = b;
 
     for(i = 0; i < a->size; i++) {
-        array_insert(b, ee[i]);
+        if(strcmp(el[i]->expression_type, IDENT) == 0) {
+            array_insert(b, copy_object(ee[i]));
+        } else {
+            array_insert(b, ee[i]);
+        }
     }
 
     free(ee);

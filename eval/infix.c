@@ -291,7 +291,7 @@ Object * eval_infix_expression(InfixExpression * iex, Env * env) {
         ret = eval_integer_infix_exp(op, l, r, env);
     } else if(strcmp(l->type, STRING) == 0 && strcmp(r->type, STRING) == 0) {
         ret = eval_string_infix_exp(op, l, r, env);
-    } else if(strcmp(l->type, ARRAY) == 0 && strcmp(r->type, ARRAY) == 0) {
+    } else if(is_array(l) && is_array(r)) {
         ret = eval_array_infix_exp(op, l, r, env);
     } else if(strcmp(l->type, r->type) != 0) {
         m = malloc(strlen(l->type) + strlen(r->type) + strlen(op) + 19);

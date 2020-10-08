@@ -17,11 +17,18 @@ Object * eval_update_value(Object ** obj, Object * new, Env * env, char * n) {
         iob_old = (IntegerObject *) (*obj)->value;
         iob_new = (IntegerObject *) new->value;
         iob_old->value = iob_new->value;
-        free_eval_expression(new_t, new, env, true);
+        free_eval_expression(new_t, new, env, 1);
         ret = * obj;
     } else {
-        free_eval_expression(old_t, * obj, env, true);
-        env_set(env, n, new);
+        if(strcmp(old_t, REFARRAY) != 0) {
+            free_eval_expression(old_t, * obj, env, 1);
+            env_set(env, n, new);
+        } else {
+            free_eval_expression(old_t, * obj, env, 0);
+            (*obj)->value = new->value;
+            free(new);
+        }
+
         ret = * obj;
     }
 
@@ -79,7 +86,6 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
             hmd = (Object **) (&(hash_map_find(env->outer->store, name)->data));
             eval_update_value(hmd, obj, env->outer, name);
         }
-
 
         return * hmd;
     }
