@@ -128,7 +128,7 @@ Object * eval_identifier(Identifier * ident, Env * env);
 Object ** eval_expressions(ExpressionStatement ** args, int c, Env * env);
 Env * extend_function_env(Function * func, Object ** args);
 Object * unwrap_return_value(Object * obj);
-Object * apply_function(Object * obj, Object ** args, int argc);
+Object * apply_function(ExpressionStatement ** a, Object * obj, Object ** args, int argc);
 Object * eval_call_expression(CallExpression * ce, Env * env);
 Object * eval_expression(char * ext, void * est, Env * env);
 Object * eval_return_statement(ExpressionStatement * est, Env * env);

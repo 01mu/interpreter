@@ -13,20 +13,6 @@ void eval_env_store_add(Env * env) {
     env_store->store[env_store->count++] = env;
 }
 
-Object * get_built_in_fn(char * type, Object * obj, Object ** args, int argc) {
-    if(strcmp(type, "len") == 0) {
-        return bi_len(obj, args, argc);
-    } else if(strcmp(type, "find") == 0) {
-        return bi_find(obj, args, argc);
-    } else if(strcmp(type, "str") == 0) {
-        return bi_str(obj, args, argc);
-    } else if(strcmp(type, "push") == 0) {
-        return bi_push(obj, args, argc);
-    }
-
-    return null_obj;
-}
-
 Object * unwrap_return_value(Object * obj) {
     ReturnValue * rv = NULL;
     Object * ret_obj = NULL;
@@ -58,7 +44,9 @@ Env * extend_function_env(Function * func, Object ** args) {
     return env;
 }
 
-Object * apply_function(Object * obj, Object ** args, int argc) {
+Object * apply_function(ExpressionStatement ** ea, Object * obj, Object ** args,
+    int argc) {
+
     int i;
     char * m = NULL, * type = NULL;
     Object * evaluated = NULL;
@@ -73,10 +61,20 @@ Object * apply_function(Object * obj, Object ** args, int argc) {
         sprintf(m, "Not a function: %s", obj->type);
         return new_error(m);
     } else if(strcmp(BUILTIN, obj->type) == 0) {
+        for(i = 0; i < argc; i++) {
+            if(strcmp(args[i]->type, ARRAY) == 0 &&
+                strcmp(ea[0]->expression_type, IDENT) == 0) {
+
+                args[i]->type = REFARRAY;
+            }
+        }
+
         return get_built_in_fn(((BuiltIn *) obj->value)->fn, obj, args, argc);
     } else if(strcmp(FUNCTION, obj->type) == 0) {
         for(i = 0; i < argc; i++) {
-            if(strcmp(args[i]->type, ARRAY) == 0) {
+            if(strcmp(args[i]->type, ARRAY) == 0 &&
+                strcmp(ea[0]->expression_type, IDENT) == 0) {
+
                 args[i]->type = REFARRAY;
             }
         }
@@ -138,10 +136,10 @@ Object ** eval_expressions(ExpressionStatement ** args, int c, Env * env) {
         est = (ExpressionStatement *) args[i];
         eval = eval_expression(est->expression_type, est->expression, env);
 
-        if(strcmp(est->expression_type, IDENT) == 0 && !is_error(eval)) {
-            if(strcmp(eval->type, ARRAY) != 0) {
-                eval = copy_object(eval);
-            }
+        if(strcmp(est->expression_type, IDENT) == 0 && !is_error(eval) &&
+            !is_array(eval)) {
+
+            eval = copy_object(eval);
         }
 
         if(is_error(eval)) {
@@ -183,7 +181,7 @@ Object * eval_call_expression(CallExpression * ce, Env * env) {
         return args[0];
     }
 
-    ret = apply_function(obj, args, ce->ac);
+    ret = apply_function(ce->arguments, obj, args, ce->ac);
 
     if(strcmp(ce->function_type, IDENT) != 0) {
         free(obj->value);

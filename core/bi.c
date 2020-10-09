@@ -9,6 +9,8 @@
 
 char * print_obj_str(Object * obj, bool t);
 Object * copy_object(Object * obj);
+bool is_array(Object * obj);
+Object * eval_new_array();
 
 Object * bi_int_obj(int i) {
     Object * obj = malloc(sizeof(Object));
@@ -25,35 +27,126 @@ void bi_free_args(Object * obj, Object ** args, int argc) {
     int i;
 
     for(i = 0; i < argc; i++) {
-        free_eval_expression(args[i]->type, args[i], NULL, true);
+        if(strcmp(args[i]->type, REFARRAY) != 0) {
+            free_eval_expression(args[i]->type, args[i], NULL, true);
+        }
     }
 
     free_eval_expression(obj->type, obj, NULL, true);
 }
 
+Object * bi_rest(Object * obj, Object ** args, int argc) {
+    int i;
+    char * m = NULL, * l = NULL;
+    Object * rt = NULL;
+    ArrayObject * ao = NULL;
+    Array * arr = NULL, * new_arr = NULL;
+
+    if(argc != 1) {
+        m = malloc(sizeof(char) * 40);
+        sprintf(m, "Invalid args (expected: %i, got: %i)", 1, argc);
+        rt = new_error(m);
+    } else if(!is_array(args[0])) {
+        m = malloc(sizeof(char) * 30);
+        sprintf(m, "First argument not an array");
+        rt = new_error(m);
+    } else {
+        ao = args[0]->value;
+        arr = ao->elements;
+        rt = eval_new_array();
+        new_arr = ((ArrayObject *) rt->value)->elements;
+
+        for(i = 1; i < arr->size; i++) {
+            array_insert(new_arr, copy_object(arr->array[i]));
+        }
+
+    }
+
+    bi_free_args(obj, args, argc);
+
+    return rt;
+}
+
+Object * bi_last(Object * obj, Object ** args, int argc) {
+    char * m = NULL, * l = NULL;
+    Object * rt = NULL;
+    ArrayObject * ao = NULL;
+    Array * arr = NULL;
+
+    if(argc != 1) {
+        m = malloc(sizeof(char) * 40);
+        sprintf(m, "Invalid args (expected: %i, got: %i)", 1, argc);
+        rt = new_error(m);
+    } else if(!is_array(args[0])) {
+        m = malloc(sizeof(char) * 30);
+        sprintf(m, "First argument not an array");
+        rt = new_error(m);
+    } else {
+        ao = args[0]->value;
+        arr = ao->elements;
+        rt = copy_object(arr->array[arr->size - 1]);
+    }
+
+    bi_free_args(obj, args, argc);
+
+    return rt;
+}
+
+Object * bi_first(Object * obj, Object ** args, int argc) {
+    char * m = NULL, * l = NULL;
+    Object * rt = NULL;
+    ArrayObject * ao = NULL;
+    Array * arr = NULL;
+
+    if(argc != 1) {
+        m = malloc(sizeof(char) * 40);
+        sprintf(m, "Invalid args (expected: %i, got: %i)", 1, argc);
+        rt = new_error(m);
+    } else if(!is_array(args[0])) {
+        m = malloc(sizeof(char) * 30);
+        sprintf(m, "First argument not an array");
+        rt = new_error(m);
+    } else {
+        ao = args[0]->value;
+        arr = ao->elements;
+        rt = copy_object(arr->array[0]);
+    }
+
+    bi_free_args(obj, args, argc);
+
+    return rt;
+}
+
 Object * bi_push(Object * obj, Object ** args, int argc) {
     char * m = NULL, * l = NULL;
-    Object * new = NULL, * rt = NULL;
+    Object * rt = NULL;
+    ArrayObject * ao = NULL;
+    Array * arr = NULL;
 
     if(argc != 2) {
         m = malloc(sizeof(char) * 40);
         sprintf(m, "Invalid args (expected: %i, got: %i)", 2, argc);
         rt = new_error(m);
-    } else if(args[0]->type != ARRAY) {
+    } else if(!is_array(args[0])) {
         m = malloc(sizeof(char) * 30);
         sprintf(m, "First argument not an array");
         rt = new_error(m);
     } else {
-        ArrayObject * ao = args[0]->value;
-        Array * arr = ao->elements;
+        ao = args[0]->value;
+        arr = ao->elements;
 
-        printf("%i\n", arr->size);
         array_insert(arr, copy_object(args[1]));
+
+        if(rt == NULL) {
+            bi_free_args(obj, args, argc);
+            return null_obj;
+        }
     }
 
-    //bi_free_args(obj, args, argc);
+    bi_free_args(obj, args, argc);
+    args[0]->type = ARRAY;
 
-    return null_obj;
+    return rt;
 }
 
 Object * bi_str(Object * obj, Object ** args, int argc) {
@@ -149,4 +242,24 @@ Object * bi_len(Object * obj, Object ** args, int argc) {
     bi_free_args(obj, args, argc);
 
     return ret;
+}
+
+Object * get_built_in_fn(char * type, Object * obj, Object ** args, int argc) {
+    if(strcmp(type, "len") == 0) {
+        return bi_len(obj, args, argc);
+    } else if(strcmp(type, "find") == 0) {
+        return bi_find(obj, args, argc);
+    } else if(strcmp(type, "str") == 0) {
+        return bi_str(obj, args, argc);
+    } else if(strcmp(type, "push") == 0) {
+        return bi_push(obj, args, argc);
+    } else if(strcmp(type, "first") == 0) {
+        return bi_first(obj, args, argc);
+    } else if(strcmp(type, "last") == 0) {
+        return bi_last(obj, args, argc);
+    } else if(strcmp(type, "rest") == 0) {
+        return bi_rest(obj, args, argc);
+    }
+
+    return null_obj;
 }

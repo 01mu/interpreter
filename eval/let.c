@@ -76,18 +76,11 @@ Object * eval_let_statement(ExpressionStatement * est, Env * env, char * name) {
 
         if(hm_store != NULL) {
             hmd = (Object **) (&(hash_map_find(env->store, name)->data));
-            eval_update_value(hmd, obj, env, name);
         } else {
-            if(strcmp(get->type, FUNCTION) == 0) {
-                eval_write_env(name, obj, env);
-                return obj;
-            }
-
-            hmd = (Object **) (&(hash_map_find(env->outer->store, name)->data));
-            eval_update_value(hmd, obj, env->outer, name);
+            hmd = (Object **) (&(get));
         }
 
-        return * hmd;
+        return eval_update_value(hmd, obj, env, name);;
     }
 
     eval_write_env(name, obj, env);

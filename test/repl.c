@@ -9,6 +9,11 @@
 
 void repl_test() {
     char * t[][2] = {
+        {"let d =fn() {return  [1];}; let a = fn() { return d(); }; \
+            first(a());", "1 "},
+        {"first([1, 2]); first('a');", "1 First argument not an array "},
+        {"let a = [1]; push(a, 'a'); push(a, 1); a;",
+            "[1] NULL NULL [1, 'a', 1] "},
         // =====================================================================
         {"let c = fn(x) { if(x < 9) { return c(x + 1); } else { return x; } }; \
             let e = c(0); e + 1;", "9 10 "},
@@ -128,6 +133,12 @@ void repl_test() {
             g(a); a;", "[1] NULL 2 [1] [1] NULL [1] "},
         {"let a = 1; let f = fn(a) { let a = a + 2; }; f(a); a;",
             "1 3 NULL 1 "},
+        {"let a = 3; let g = fn() { let z = fn() { let a = 5; }; z(); }; g(); \
+            a;", "3 5 NULL NULL 5 "},
+        {"let b = [1]; let g = fn (x) { return [x]; }; let a = [g(b), 2]; \
+            a; b[0] = 2; a;", "[1] [[[1]], 2] [[[1]], 2] NULL [[[1]], 2] "},
+        {"let a = [1]; push(a, 'a'); push(a, 1); a;",
+            "[1] NULL NULL [1, 'a', 1] "},
     };
 
     int e = sizeof(t) / sizeof(t[0]);

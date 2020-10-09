@@ -85,7 +85,7 @@ void env_free(Env * env) {
                 if(is_bool_or_ident(obj->type)) {
                     current->data = malloc(1);
                 } else {
-                    free_eval_expression(obj->type, obj, env, false);
+                    free_eval_expression(obj->type, obj, env, 0);
                 }
 
                 current = current->next;
