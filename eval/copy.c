@@ -16,6 +16,7 @@ Object * copy_integer_object(Object * fr) {
     iobj->value = ((IntegerObject *) fr->value)->value;
     obj->type = INT;
     obj->value = iobj;
+    obj->ref = 0;
 
     return obj;
 }
@@ -30,6 +31,7 @@ Object * copy_string_object(Object * obj) {
 
     new->type = STRING;
     new->value = nv;
+    new->ref = 0;
     nv->value = new_string;
 
     return new;
@@ -43,6 +45,7 @@ Object * copy_array_object(Object * obj) {
 
     new->type = ARRAY;
     new->value = new_ao;
+    new->ref = 0;
     new_ao->elements = new_arr;
 
     for(i = 0; i < old_arr->size; i++) {
@@ -64,6 +67,7 @@ Object * copy_function_object(Object * obj) {
 
     new->type = FUNCTION;
     new->value = new_func;
+    new->ref = 0;
 
     return new;
 }

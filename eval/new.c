@@ -13,6 +13,7 @@ Object * eval_new_array() {
 
     new->type = ARRAY;
     new->value = ao;
+    new->ref = 0;
     ao->elements = array_new();
 
     return new;
@@ -24,6 +25,7 @@ Object * eval_new_string() {
 
     obj->type = STRING;
     obj->value = sobj;
+    obj->ref = 0;
     sobj->value = string_new();
 
     return obj;
@@ -35,6 +37,7 @@ Object * new_error(char * msg) {
 
     obj->type = ERROR;
     obj->value = err;
+    obj->ref = 0;
     err->message = malloc(strlen(msg) + 1);
     err->message[0] = '\0';
 

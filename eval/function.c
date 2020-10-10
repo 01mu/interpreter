@@ -13,6 +13,7 @@ Object * eval_function_literal(FunctionLiteral * fl, Env * env) {
 
     obj->type = FUNCTION;
     obj->value = function;
+    obj->ref = 0;
 
     function->parameters = fl->parameters;
     function->body = fl->body;

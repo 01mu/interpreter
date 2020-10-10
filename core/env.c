@@ -31,19 +31,6 @@ Env * env_new_enclosed(Env * outer) {
     return env;
 }
 
-Object * env_get_local(Env * env, char * name) {
-    SortedList * sl = (SortedList *) hash_map_find(env->store, name);
-    Object * obj = NULL;
-
-    if(sl == NULL) {
-        return NULL;
-    }
-
-    obj = (Object *) sl->data;
-
-    return obj;
-}
-
 Object * env_get(Env * env, char * name) {
     SortedList * sl = (SortedList *) hash_map_find(env->store, name);
     Object * obj = NULL;

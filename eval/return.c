@@ -14,9 +14,10 @@ Object * eval_return_statement(ExpressionStatement * est, Env * env) {
 
     obj->type = RETURN;
     obj->value = rv;
+    obj->ref = 0;
     rv->value = e;
 
-    if(strcmp(est->expression_type, IDENT) == 0 || strcmp(e->type, REFARRAY) == 0) {
+    if(strcmp(est->expression_type, IDENT) == 0 || e->ref == 1) {
         rv->value = copy_object(e);
     }
 

@@ -36,6 +36,7 @@ typedef struct {
 typedef struct {
     char * type;
     void * value;
+    bool ref;
 } Object;
 
 typedef struct {

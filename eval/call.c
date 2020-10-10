@@ -44,80 +44,65 @@ Env * extend_function_env(Function * func, Object ** args) {
     return env;
 }
 
-Object * apply_function(ExpressionStatement ** ea, Object * obj, Object ** args,
-    int argc) {
-
+void env_tag_reference(Env * env) {
     int i;
+    HashMap * store = env->store;
+    SortedList * current = NULL;
+    Object * obj = NULL;
+
+    for(i = 0; i < store->size; i++) {
+        current = store->array[i];
+
+        while(current != NULL) {
+            obj = current->data;
+
+            if(obj->ref == 1) {
+                current->data = malloc(sizeof(Object));
+                ((Object *) current->data)->type = "REFERENCE";
+            }
+
+            current = current->next;
+        }
+    }
+}
+
+void args_tag_reference(Object ** args, ExpressionStatement ** ea, int argc) {
+    int i;
+    char * obj = NULL, * ext = NULL;
+
+    for(i = 0; i < argc; i++) {
+        obj = args[i]->type;
+        ext = ea[0]->expression_type;
+
+        if(strcmp(obj, ARRAY) == 0 && strcmp(ext, IDENT) == 0) {
+            args[i]->ref = 1;
+        }
+    }
+}
+
+Object * apply_function(Object * obj, Object ** args, int c) {
     char * m = NULL, * type = NULL;
     Object * evaluated = NULL;
     Function * func = NULL;
     BlockStatement * bs = NULL;
     Env * out = NULL;
-    HashMap * store = NULL;
-    SortedList * current = NULL;
 
     if(strcmp(FUNCTION, obj->type) != 0 && strcmp(BUILTIN, obj->type) != 0) {
         m = malloc(strlen(obj->type) + 23);
         sprintf(m, "Not a function: %s", obj->type);
         return new_error(m);
     } else if(strcmp(BUILTIN, obj->type) == 0) {
-        for(i = 0; i < argc; i++) {
-            if(strcmp(args[i]->type, ARRAY) == 0 &&
-                strcmp(ea[0]->expression_type, IDENT) == 0) {
-
-                args[i]->type = REFARRAY;
-            }
-        }
-
-        return get_built_in_fn(((BuiltIn *) obj->value)->fn, obj, args, argc);
+        return get_built_in_fn(((BuiltIn *) obj->value)->fn, obj, args, c);
     } else if(strcmp(FUNCTION, obj->type) == 0) {
-        for(i = 0; i < argc; i++) {
-            if(strcmp(args[i]->type, ARRAY) == 0 &&
-                strcmp(ea[0]->expression_type, IDENT) == 0) {
-
-                args[i]->type = REFARRAY;
-            }
-        }
-
         func = (Function *) obj->value;
         bs = func->body;
         out = extend_function_env(func, args);
         evaluated = eval_statements(bs->statements, bs->sc, out);
+
         eval_env_store_add(out);
-        store = out->store;
-
-        for(i = 0; i < store->size; i++) {
-            current = store->array[i];
-
-            while(current != NULL) {
-                obj = (Object *) current->data;
-
-                if(strcmp(obj->type, REFARRAY) == 0) {
-                    for(int j = 0; j < argc; j++) {
-                        if(args[j] == obj) {
-                            current->data = malloc(sizeof(Object));
-                            ((Object *) current->data)->type = "REF";
-                        }
-                    }
-                }
-
-                current = current->next;
-            }
-        }
-
-        Statement a = bs->statements[bs->sc - 1];
-        char * t = a.type;
+        env_tag_reference(out);
 
         if(strcmp(evaluated->type, RETURN) != 0) {
-            if(strcmp(t, EXPRESSION) == 0) {
-                ExpressionStatement * e = a.st;
-                char * tt = e->expression_type;
-
-                if(!is_bool_or_ident(tt) && strcmp(tt, IF) != 0) {
-                    free_eval_expression(evaluated->type, evaluated, NULL, 1);
-                }
-            }
-
             return null_obj;
         }
 
@@ -171,6 +156,7 @@ Object * eval_call_expression(CallExpression * ce, Env * env) {
     }
 
     args = eval_expressions(ce->arguments, ce->ac, env);
+    args_tag_reference(args, ce->arguments, ce->ac);
 
     if(args != NULL && is_error(args[0])) {
         err = args[0]->value;
@@ -181,7 +167,7 @@ Object * eval_call_expression(CallExpression * ce, Env * env) {
         return args[0];
     }
 
-    ret = apply_function(ce->arguments, obj, args, ce->ac);
+    ret = apply_function(obj, args, ce->ac);
 
     if(strcmp(ce->function_type, IDENT) != 0) {
         free(obj->value);

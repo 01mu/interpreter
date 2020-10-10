@@ -14,6 +14,7 @@ Object * eval_integer(IntegerLiteral * il, Env * env) {
     iobj->value = il->value;
     obj->type = INT;
     obj->value = iobj;
+    obj->ref = 0;
 
     return obj;
 }

@@ -35,6 +35,7 @@ bool is_array(Object * obj) {
 void init_bool(Object ** b, bool lit) {
     (*b) = malloc(sizeof(Object));
     (*b)->type = BOOLEAN;
+    (*b)->ref = 0;
     (*b)->value = malloc(sizeof(BooleanObject));
     ((BooleanObject *) (*b)->value)->value = lit;
 }
@@ -43,6 +44,7 @@ void init_null(Object ** n) {
     (*n) = malloc(sizeof(Object));
     (*n)->type = "NULL";
     (*n)->value = malloc(sizeof(NullObject));
+    (*n)->ref = 0;
 }
 
 void free_stat(Object * b) {

@@ -16,6 +16,7 @@ Object * eval_string(StringLiteral * str, Env * env) {
 
     obj->type = STRING;
     obj->value = str_obj;
+    obj->ref = 0;
 
     return obj;
 }

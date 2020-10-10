@@ -154,6 +154,7 @@ Object * eval_integer_infix_exp(char * op, Object * l, Object * r, Env * env) {
         int_obj->value = arith;
         obj->type = INT;
         obj->value = int_obj;
+        obj->ref = 0;
     }
 
     return obj;

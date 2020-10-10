@@ -163,7 +163,8 @@ void free_env_store() {
 }
 
 void create_fn_map() {
-    char * t[] = {"len", "find", "str", "push", "first", "last", "rest"};
+    char * t[] = {"len", "find", "str", "push", "first", "last", "rest",
+        "type"};
     int i, c = sizeof(t) / sizeof(t[0]);
     char * z[c];
 

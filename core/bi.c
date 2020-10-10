@@ -11,6 +11,7 @@ char * print_obj_str(Object * obj, bool t);
 Object * copy_object(Object * obj);
 bool is_array(Object * obj);
 Object * eval_new_array();
+Object * eval_new_string();
 
 Object * bi_int_obj(int i) {
     Object * obj = malloc(sizeof(Object));
@@ -19,6 +20,7 @@ Object * bi_int_obj(int i) {
     iobj->value = i;
     obj->type = INT;
     obj->value = iobj;
+    obj->ref = 0;
 
     return obj;
 }
@@ -27,12 +29,38 @@ void bi_free_args(Object * obj, Object ** args, int argc) {
     int i;
 
     for(i = 0; i < argc; i++) {
-        if(strcmp(args[i]->type, REFARRAY) != 0) {
+        if(args[i]->ref == 0) {
             free_eval_expression(args[i]->type, args[i], NULL, true);
+        } else {
+            args[i]->type = ARRAY;
         }
     }
 
     free_eval_expression(obj->type, obj, NULL, true);
+}
+
+Object * bi_type(Object * obj, Object ** args, int argc) {
+    char * m = NULL;
+    Object * new = NULL, * rt = NULL;
+    String * ns = NULL;
+    StringObject * so = NULL;
+
+    if(argc != 1) {
+        m = malloc(sizeof(char) * 40);
+        sprintf(m, "Invalid args (expected: %i, got: %i)", 1, argc);
+        rt = new_error(m);
+    } else {
+        new = eval_new_string();
+        so = new->value;
+
+        string_cat(so->value, args[0]->type, 0);
+
+        rt = new;
+    }
+
+    bi_free_args(obj, args, argc);
+
+    return rt;
 }
 
 Object * bi_rest(Object * obj, Object ** args, int argc) {
@@ -170,6 +198,7 @@ Object * bi_str(Object * obj, Object ** args, int argc) {
 
         new->type = STRING;
         new->value = nv;
+        new->ref = 0;
         nv->value = new_string;
 
         string_cat(new_string, print_obj_str(args[0], 0), 1);
@@ -259,6 +288,8 @@ Object * get_built_in_fn(char * type, Object * obj, Object ** args, int argc) {
         return bi_last(obj, args, argc);
     } else if(strcmp(type, "rest") == 0) {
         return bi_rest(obj, args, argc);
+    } else if(strcmp(type, "type") == 0) {
+        return bi_type(obj, args, argc);
     }
 
     return null_obj;

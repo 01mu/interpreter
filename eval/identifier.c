@@ -14,6 +14,7 @@ Object * new_builtin(char * fn) {
     bi->fn = fn;
     obj->type = BUILTIN;
     obj->value = bi;
+    obj->ref = 0;
 
     return obj;
 }

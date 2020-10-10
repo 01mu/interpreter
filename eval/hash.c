@@ -17,6 +17,7 @@ Object * eval_hash_literal(HashLiteral * hl, Env * env) {
 
     obj->type = HASHMAP;
     obj->value = ho;
+    obj->ref = 0;
     ho->pairs = hash_map_new(26);
 
     for(i = 0; i < hm->size; i++) {

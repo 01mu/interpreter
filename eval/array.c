@@ -17,6 +17,7 @@ Object * eval_array_literal(ArrayLiteral * al, Env * env) {
 
     obj->type = ARRAY;
     obj->value = ao;
+    obj->ref = 0;
     ao->elements = b;
 
     for(i = 0; i < a->size; i++) {
