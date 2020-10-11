@@ -64,7 +64,6 @@
 #define NULL_ "NULL"
 #define HASHMAP "HASHMAP"
 #define HASHPAIR "HASHPAIR"
-#define REFARRAY "REFARRAY"
 
 #define PREC_PEEK 0
 #define PREC_CURRENT 1

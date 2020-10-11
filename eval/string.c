@@ -9,14 +9,10 @@
 
 Object * eval_string(StringLiteral * str, Env * env) {
     Object * obj = eval_new_string();
-    StringObject * str_obj = obj->value;
+    StringObject * so = obj->value;
     String * z = str->value;
 
-    string_cat(str_obj->value, z->string, 0);
-
-    obj->type = STRING;
-    obj->value = str_obj;
-    obj->ref = 0;
+    string_cat(so->value, z->string, 0);
 
     return obj;
 }

@@ -9,39 +9,38 @@
 
 Object * eval_hash_literal(HashLiteral * hl, Env * env) {
     int i;
+    char * key_cpy = NULL;
     HashMap * hm = hl->pairs;
     SortedList * current = NULL;
 
-    Object * obj = malloc(sizeof(Object));
-    HashObject * ho = malloc(sizeof(HashObject));
+    Object * obj = eval_new_hashmap(), * set = NULL;
+    HashObject * ho = obj->value;
+    HashPair * hp = NULL;
 
-    obj->type = HASHMAP;
-    obj->value = ho;
-    obj->ref = 0;
-    ho->pairs = hash_map_new(26);
+    ExpressionStatement * es = NULL;
 
     for(i = 0; i < hm->size; i++) {
         current = hm->array[i];
 
         while(current != NULL) {
-            ExpressionStatement * d = current->data;
-            char * key = current->key;
-            HashPair * hp = malloc(sizeof(HashPair));
+            es = current->data;
+            hp = malloc(sizeof(HashPair));
+            set = eval_expression(es->expression_type, es->expression, env);
 
-            Object * g = eval_expression(d->expression_type, d->expression, env);
+            key_cpy = malloc(strlen(current->key) + 1);
+            strcpy(key_cpy, current->key);
 
-            char * keyc = malloc(strlen(key) + 1);
-            strcpy(keyc, key);
+            hp->key = key_cpy;
+            hp->value = set;
 
-            hp->key = keyc;
-            hp->value = g;
-
-            if(is_error(g)) {
-                return g;
+            if(is_error(set)) {
+                free_eval_expression(obj->type, obj, env, 1);
+                free(hp);
+                free(key_cpy);
+                return set;
             }
 
-            hash_map_insert(ho->pairs, keyc, hp);
-
+            hash_map_insert(ho->pairs, key_cpy, hp);
             current = current->next;
         }
     }

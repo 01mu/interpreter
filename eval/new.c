@@ -7,6 +7,17 @@
  *
  */
 
+Object * eval_new_return() {
+    Object * obj = malloc(sizeof(Object));
+    ReturnValue * rv = malloc(sizeof(ReturnValue));
+
+    obj->type = RETURN;
+    obj->value = rv;
+    obj->ref = 0;
+
+    return obj;
+}
+
 Object * eval_new_array() {
     Object * new = malloc(sizeof(Object));
     ArrayObject * ao = malloc(sizeof(ArrayObject));
@@ -43,6 +54,19 @@ Object * new_error(char * msg) {
 
     strcat(err->message, msg);
     free(msg);
+
+    return obj;
+}
+
+Object * eval_new_hashmap() {
+    Object * obj = malloc(sizeof(Object));
+    HashObject * ho = malloc(sizeof(HashObject));
+
+    obj->type = HASHMAP;
+    obj->value = ho;
+    obj->ref = 0;
+
+    ho->pairs = hash_map_new(26);
 
     return obj;
 }

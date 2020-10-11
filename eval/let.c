@@ -20,6 +20,7 @@ Object * eval_update_value(Object * obj, Object * new, Env * env, char * n) {
         }
     } else {
         obj->value = new->value;
+        obj->type = new->type;
         free(new);
     }
 

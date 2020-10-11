@@ -72,6 +72,46 @@ Object * copy_function_object(Object * obj) {
     return new;
 }
 
+HashPair * copy_hash_pair(HashPair * hp, char * key_cpy) {
+    HashPair * new = malloc(sizeof(HashPair));
+
+    new->key = key_cpy;
+    new->value = copy_object(hp->value);
+
+    return new;
+}
+
+Object * copy_hash_literal(Object * obj) {
+    int i;
+    SortedList * current = NULL;
+    char * key_cpy = NULL;
+
+    Object * new = eval_new_hashmap();
+    HashObject * new_ho = new->value;
+    HashMap * new_hm = new_ho->pairs;
+
+    HashObject * ho = obj->value;
+    HashMap * hm = ho->pairs;
+    HashPair * hp = NULL;
+
+    for(i = 0; i < hm->size; i++) {
+        current = hm->array[i];
+
+        while(current != NULL) {
+            hp = current->data;
+
+            key_cpy = malloc(strlen(current->key) + 1);
+            strcpy(key_cpy, current->key);
+
+            hash_map_insert(new_hm, key_cpy, copy_hash_pair(hp, key_cpy));
+
+            current = current->next;
+        }
+    }
+
+    return new;
+}
+
 Object * copy_object(Object * obj) {
     Object * ret = NULL;
 
@@ -79,10 +119,13 @@ Object * copy_object(Object * obj) {
         ret = copy_string_object(obj);
     } else if(strcmp(obj->type, INT) == 0) {
         ret = copy_integer_object(obj);
-    } else if(is_array(obj)) {
+    } else if(strcmp(obj->type, ARRAY) == 0) {
         ret = copy_array_object(obj);
     } else if(strcmp(obj->type, FUNCTION) == 0) {
         ret = copy_function_object(obj);
+    } else if(strcmp(obj->type, HASHMAP) == 0) {
+        ret = copy_hash_literal(obj);
+        return ret;
     } else {
         return obj;
     }

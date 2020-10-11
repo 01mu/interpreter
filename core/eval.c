@@ -8,7 +8,9 @@
  */
 
 bool is_array(Object * obj);
+bool eval_is_hashmap(Object * obj);
 
+#include "../eval/get.c"
 #include "../eval/free.c"
 #include "../eval/new.c"
 #include "../eval/copy.c"
@@ -29,7 +31,11 @@ bool is_array(Object * obj);
 #include "../eval/print.c"
 
 bool is_array(Object * obj) {
-    return strcmp(obj->type, ARRAY) == 0 || strcmp(obj->type, REFARRAY) == 0;
+    return strcmp(obj->type, ARRAY) == 0;
+}
+
+bool eval_is_hashmap(Object * obj) {
+    return strcmp(obj->type, HASHMAP) == 0;
 }
 
 void init_bool(Object ** b, bool lit) {
@@ -56,7 +62,7 @@ bool is_bool_or_ident(char * t) {
     bool eval_is_bool = strcmp(t, TRUE) == 0 || strcmp(t, FALSE) == 0 ||
         strcmp(t, BOOLEAN) == 0;
 
-    if(strcmp(t, IDENT) == 0 || eval_is_bool || strcmp(t, "NULL") == 0) {
+    if(strcmp(t, IDENT) == 0 || eval_is_bool || strcmp(t, NULL_) == 0) {
         return true;
     }
 
@@ -125,9 +131,8 @@ Object * eval_statement(Statement statement, Env * env) {
 
 bool eval_free_error(Object * obj, Env * env) {
     ErrorObject * err = NULL;
-    bool is_error = strcmp(obj->type, ERROR) == 0;
 
-    if(is_error) {
+    if(is_error(obj)) {
         err = (ErrorObject *) obj->value;
         free(err->message);
         free(err);
@@ -140,9 +145,8 @@ bool eval_free_error(Object * obj, Env * env) {
 
 bool eval_free_return(Object * obj, Env * env, char * ety) {
     ReturnValue * rv = NULL;
-    bool is_return = strcmp(obj->type, RETURN) == 0;
 
-    if(env == env_store->store[0] && is_return) {
+    if(env == env_store->store[0] && strcmp(obj->type, RETURN) == 0) {
         rv = (ReturnValue *) obj->value;
         free_eval_expression(ety, rv->value, env, true);
         free(obj->value);

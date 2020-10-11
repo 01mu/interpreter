@@ -180,8 +180,7 @@ Object * bi_push(Object * obj, Object ** args, int argc) {
 Object * bi_str(Object * obj, Object ** args, int argc) {
     char * m = NULL, * l = NULL;
     Object * new = NULL, * rt = NULL;
-    StringObject * nv = NULL;
-    String * new_string = NULL;
+    StringObject * so = NULL;
 
     if(argc != 1) {
         m = malloc(sizeof(char) * 40);
@@ -192,16 +191,10 @@ Object * bi_str(Object * obj, Object ** args, int argc) {
         sprintf(m, "Argument already a string");
         rt = new_error(m);
     } else {
-        new = malloc(sizeof(Object));
-        nv = malloc(sizeof(StringObject));
-        new_string = string_new();
+        new = eval_new_string();
+        so = new->value;
 
-        new->type = STRING;
-        new->value = nv;
-        new->ref = 0;
-        nv->value = new_string;
-
-        string_cat(new_string, print_obj_str(args[0], 0), 1);
+        string_cat(so->value, print_obj_str(args[0], 0), 1);
 
         rt = new;
     }

@@ -74,7 +74,9 @@ void args_tag_reference(Object ** args, ExpressionStatement ** ea, int argc) {
         obj = args[i]->type;
         ext = ea[0]->expression_type;
 
-        if(strcmp(obj, ARRAY) == 0 && strcmp(ext, IDENT) == 0) {
+        if((strcmp(obj, HASHMAP) == 0 || strcmp(obj, ARRAY) == 0)
+            && strcmp(ext, IDENT) == 0) {
+
             args[i]->ref = 1;
         }
     }
@@ -122,7 +124,7 @@ Object ** eval_expressions(ExpressionStatement ** args, int c, Env * env) {
         eval = eval_expression(est->expression_type, est->expression, env);
 
         if(strcmp(est->expression_type, IDENT) == 0 && !is_error(eval) &&
-            !is_array(eval)) {
+            !is_array(eval) && !eval_is_hashmap(eval)) {
 
             eval = copy_object(eval);
         }

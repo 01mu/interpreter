@@ -36,22 +36,14 @@ Object * eval_idx_err(char * t, Object * l, Object * i, char * lx, char * ix) {
 Object * eval_index_hash_exp(Object * left, Object * idx, char * iext) {
     String * s = ((StringObject *) idx->value)->value;
 
-    HashObject * ho = left->value;
-    HashMap * hm = ho->pairs;
-    SortedList * sl = hash_map_find(hm, s->string);
-    HashPair * hp = sl->data;
-
-    return copy_object(hp->value);
+    return copy_object(eval_hash_get_value(left, s->string));
 }
 
 Object * eval_index_array_exp(Object * left, Object * idx, char * iext) {
     IntegerObject * io = idx->value;
     int v = io->value;
 
-    ArrayObject * ao = left->value;
-    Array * arr = ao->elements;
-
-    return copy_object(arr->array[v]);
+    return copy_object(eval_array_get_value(left, v));
 }
 
 Object * eval_index_expression(IndexExpression * ie, Env * env) {
