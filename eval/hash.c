@@ -25,7 +25,12 @@ Object * eval_hash_literal(HashLiteral * hl, Env * env) {
         while(current != NULL) {
             es = current->data;
             hp = malloc(sizeof(HashPair));
+
             set = eval_expression(es->expression_type, es->expression, env);
+
+            if(strcmp(es->expression_type, IDENT) == 0) {
+                set = copy_object(set);
+            }
 
             key_cpy = malloc(strlen(current->key) + 1);
             strcpy(key_cpy, current->key);

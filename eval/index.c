@@ -13,7 +13,7 @@ void eval_index_free_idx(char * iext, Object * idx) {
     }
 }
 
-void eval_index_free_left(char * lext, Object * left, Object * idx) {
+void eval_index_free_left(char * lext, Object * left) {
     if(lext == CALL || lext == HASHMAP || lext == ARRAY || lext == ARRAYIDX) {
         free_eval_expression(left->type, left, NULL, 1);
     }
@@ -26,7 +26,7 @@ Object * eval_idx_err(char * t, Object * l, Object * i, char * lx, char * ix) {
         m = malloc(strlen(l->type) + strlen(i->type) + 23);
         sprintf(m, "Invalid types: %s %s", l->type, i->type);
         eval_index_free_idx(ix, i);
-        eval_index_free_left(lx, l, i);
+        eval_index_free_left(lx, l);
         return new_error(m);
     }
 
@@ -58,7 +58,7 @@ Object * eval_index_expression(IndexExpression * ie, Env * env) {
     }
 
     if(is_error(idx)) {
-        eval_index_free_left(lext, left, idx);
+        eval_index_free_left(lext, left);
         return idx;
     }
 
@@ -81,7 +81,7 @@ Object * eval_index_expression(IndexExpression * ie, Env * env) {
     }
 
     eval_index_free_idx(iext, idx);
-    eval_index_free_left(lext, left, idx);
+    eval_index_free_left(lext, left);
 
     return ret;
 }

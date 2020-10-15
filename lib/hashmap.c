@@ -12,10 +12,9 @@ HashMap * hash_map_new(int size) {
     HashMap * map = malloc(sizeof(HashMap));
 
     map->size = size;
-    map->array = malloc(sizeof(SortedList *));
+    map->array = malloc(sizeof(SortedList *) * size);
 
     for(i = 0; i < map->size; i++) {
-        map->array = realloc(map->array, sizeof(SortedList *) * (i + 1));
         map->array[i] = NULL;
     }
 
@@ -23,7 +22,7 @@ HashMap * hash_map_new(int size) {
 }
 
 void * hash_map_insert(HashMap * hm, char * key, void * data) {
-    int idx;
+    unsigned long idx;
     SortedList * find = NULL, * insert = NULL;
 
     if(hm == NULL || key == NULL) {
@@ -49,7 +48,7 @@ void * hash_map_insert(HashMap * hm, char * key, void * data) {
 }
 
 void hash_map_remove(HashMap * hm, char * key) {
-    int idx = hash_map_hash(hm, key);
+    unsigned long idx = hash_map_hash(hm, key);
     SortedList * sl = hm->array[idx];
 
     if(sl != NULL) {
@@ -58,7 +57,7 @@ void hash_map_remove(HashMap * hm, char * key) {
 }
 
 SortedList * hash_map_find(HashMap * hm, char * key) {
-    int idx = hash_map_hash(hm, key);
+    unsigned long idx = hash_map_hash(hm, key);
     SortedList * sl = hm->array[idx];
 
     if(sl == NULL) {
@@ -68,14 +67,16 @@ SortedList * hash_map_find(HashMap * hm, char * key) {
     return sorted_list_find(sl, key);
 }
 
-int hash_map_hash(HashMap * hm, char * key) {
-    int i, hash_val = 0;
 
-    for(i = 0; i < strlen(key); i++) {
-        hash_val = (hash_val * 27 + key[i]) % hm->size;
+unsigned long hash_map_hash(HashMap * hm, char * key) {
+    unsigned long i;
+    int hash_val = 5381;
+
+    while(i = *key++) {
+        hash_val = ((hash_val << 5) + hash_val) + i;
     }
 
-    return hash_val;
+    return hash_val % hm->size;
 }
 
 String * hash_map_print(HashMap * hm) {

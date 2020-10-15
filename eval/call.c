@@ -8,8 +8,9 @@
  */
 
 void eval_env_store_add(Env * env) {
-    env_store->store = realloc(env_store->store, sizeof(FunctionLiteral *) *
-        (env_store->count + 1));
+    int sz = sizeof(Env *) * (env_store->count + 1);
+
+    env_store->store = realloc(env_store->store, sz);
     env_store->store[env_store->count++] = env;
 }
 
@@ -59,6 +60,7 @@ void env_tag_reference(Env * env) {
             if(obj->ref == 1) {
                 current->data = malloc(sizeof(Object));
                 ((Object *) current->data)->type = "REFERENCE";
+                obj->ref = 0;
             }
 
             current = current->next;
@@ -74,8 +76,8 @@ void args_tag_reference(Object ** args, ExpressionStatement ** ea, int argc) {
         obj = args[i]->type;
         ext = ea[0]->expression_type;
 
-        if((strcmp(obj, HASHMAP) == 0 || strcmp(obj, ARRAY) == 0)
-            && strcmp(ext, IDENT) == 0) {
+        if((strcmp(obj, HASHMAP) == 0 || strcmp(obj, ARRAY) == 0 ||
+            strcmp(obj, FUNCTION) == 0) && strcmp(ext, IDENT) == 0) {
 
             args[i]->ref = 1;
         }
@@ -83,7 +85,7 @@ void args_tag_reference(Object ** args, ExpressionStatement ** ea, int argc) {
 }
 
 Object * apply_function(Object * obj, Object ** args, int c) {
-    char * m = NULL, * type = NULL;
+    char * m = NULL;
     Object * evaluated = NULL;
     Function * func = NULL;
     BlockStatement * bs = NULL;
@@ -100,13 +102,14 @@ Object * apply_function(Object * obj, Object ** args, int c) {
         bs = func->body;
         out = extend_function_env(func, args);
         evaluated = eval_statements(bs->statements, bs->sc, out);
-
-        eval_env_store_add(out);
         env_tag_reference(out);
 
         if(strcmp(evaluated->type, RETURN) != 0) {
+            env_free(out);
             return null_obj;
         }
+
+        env_free(out);
 
         return unwrap_return_value(evaluated);
     }

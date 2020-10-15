@@ -156,6 +156,8 @@ void repl_test() {
             "[0, [[1]], 0] NULL [0, [['z']], 0] "},
         {"let z = {'a': [1]}; z['a'][0] = 2; z;",
             "{'a': [1]} NULL {'a': [2]} "},
+        {"fn () { let d = [1]; let a = [{'a': d}]; return a; }()[0]['a'][0];",
+            "[1] [{'a': [1]}] 1 "},
     };
 
     int e = sizeof(t) / sizeof(t[0]);

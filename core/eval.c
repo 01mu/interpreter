@@ -189,8 +189,6 @@ Object * eval_statements(Statement * statements, int sc, Env * env) {
             string_free(s);
         }
 
-        //printf("[%p: %i] %s %s %s\n", env, i, stt, ety, obj->type);
-
         if(eval_free_error(obj, env) || eval_free_return(obj, env, ety)) {
             return null_obj;
         }

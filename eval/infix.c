@@ -39,20 +39,11 @@ Object * eval_infix_expression(InfixExpression * iex, Env * env) {
     Object * l = NULL, * r = NULL, * ret = NULL;
     char * op = iex->operator, * lext = iex->left_expression_type,
         * rext = iex->right_expression_type, * m = NULL;
-    char * err_lt = NULL;
-    InfixExpression * err_idx = NULL;
 
     l = eval_expression(lext, iex->left, env);
 
     if(is_error(l)) {
-        if(is_infix_or_call(lext, rext)) {
-            err_idx = iex->left;
-            err_lt = err_idx->left_expression_type;
-
-            if(strcmp(err_lt, ERROR) == 0) {
-                free_eval_expression(err_lt, err_idx->left, NULL, true);
-            }
-        } else {
+        if(!is_infix_or_call(lext, rext)) {
             eval_free_infix(lext, l, NULL, NULL);
         }
 

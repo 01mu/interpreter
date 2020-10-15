@@ -168,7 +168,7 @@ void create_fn_map() {
     int i, c = sizeof(t) / sizeof(t[0]);
     char * z[c];
 
-    fn_map = hash_map_new(40);
+    fn_map = hash_map_new(50);
 
     for(i = 0; i < c; i++) {
         z[i] = malloc(strlen(t[i]) + 1);
