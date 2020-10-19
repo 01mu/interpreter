@@ -37,15 +37,18 @@
 
 #include "core/compiler.c"
 
+#include <byteswap.h>
+
 int main(int argc, char * argv[])
 {
     init_bool(&true_bool, true);
     init_bool(&false_bool, false);
     init_null(&null_obj);
-    init_opstore();
 
-    if(strcmp(argv[1], "test-array") == 0) {
+    op_count = 0;
 
+    if(strcmp(argv[1], "comp") == 0) {
+        comp_test();
     } else if(strcmp(argv[1], "test-print") == 0) {
         test_print_program();
     } else if(strcmp(argv[1], "test-eval") == 0) {
@@ -60,7 +63,6 @@ int main(int argc, char * argv[])
         printf("Invalid command\n");
     }
 
-    free(opstore);
     free_stat(true_bool);
     free_stat(false_bool);
     free_stat(null_obj);
