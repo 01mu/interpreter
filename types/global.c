@@ -17,5 +17,3 @@ String * repl_test_string = NULL;
 bool is_repl_test_string = false;
 
 HashMap * fn_map = NULL;
-
-typedef unsigned char byte;

@@ -12,6 +12,7 @@
 #include "string.h"
 
 #include <stdbool.h>
+#include <byteswap.h>
 
 #include "header/tokens.h"
 #include "header/types.h"
@@ -36,8 +37,6 @@
 #include "test/eval.c"
 
 #include "core/compiler.c"
-
-#include <byteswap.h>
 
 int main(int argc, char * argv[])
 {
