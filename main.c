@@ -44,8 +44,6 @@ int main(int argc, char * argv[])
     init_bool(&false_bool, false);
     init_null(&null_obj);
 
-    op_count = 0;
-
     if(strcmp(argv[1], "comp") == 0) {
         comp_test();
     } else if(strcmp(argv[1], "test-print") == 0) {
