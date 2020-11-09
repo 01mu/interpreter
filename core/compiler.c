@@ -11,6 +11,7 @@ typedef unsigned char byte;
 
 typedef enum {
     OP_CONSTANT = 0,
+    OP_ADD,
 } OPCODES;
 
 typedef struct {
@@ -91,9 +92,10 @@ int compiler_add_instruction(Compiler * compiler, Instruction * ins) {
 
     for(int i = pos, j = 0; i < pos + append_len; i++, j++) {
         comp_instruction->instruction[i] = ins->instruction[j];
+        comp_instruction->instruction_length += 1;
     }
 
-    comp_instruction->instruction_length += (pos + append_len);
+    //comp_instruction->instruction_length += (pos + append_len);
 }
 
 int compile_emit(Compiler * compiler, byte op, int operands[]) {
@@ -113,10 +115,16 @@ int compiler_add_constant(Compiler * compiler, void * constant) {
 void * compile_expression(Compiler * compiler, char * type, void * expression) {
     //printf("%s\n", type);
 
+    int a[0] = {};
+
     if(strcmp(type, INFIX) == 0) {
         InfixExpression * iex = (InfixExpression *) expression;
         compile_expression(compiler, iex->left_expression_type, iex->left);
         compile_expression(compiler, iex->right_expression_type, iex->right);
+
+        if(strcmp(iex->operator, "+") == 0) {
+            compile_emit(compiler, OP_ADD, a);
+        }
     } else if(strcmp(type, INT) == 0) {
         IntegerLiteral * il = (IntegerLiteral *) expression;
         Object * int_obj = eval_integer(il, NULL);
@@ -150,14 +158,33 @@ void * compile(Compiler * compiler, Program * program) {
         }
     }
 
-    printf("%p\n%p\n\n", compiler->constants[0], compiler->constants[1]);
+    //printf("%p\n%p\n\n", compiler->constants[0], compiler->constants[1]);
 }
+
+// =============================================================================
+// manage defs
+// =============================================================================
 
 void init_definitions() {
     definitions = hash_map_new(60);
 }
 
 void free_definitions() {
+    int i;
+    SortedList * current = NULL;
+    Definition * definition = NULL;
+
+    for(i = 0; i < definitions->size; i++) {
+        current = definitions->array[i];
+
+        while(current != NULL) {
+            definition = current->data;
+            free(definition->name);
+            free(definition->widths);
+            current = current->next;
+        }
+    }
+
     hash_map_free(definitions);
 }
 
@@ -169,90 +196,10 @@ char * op_code_to_str(int op) {
     return z;
 }
 
-Definition * op_new_definition(char * name, int * widths, int wc) {
-    Definition * new_def = malloc(sizeof(Definition));
-
-    new_def->name = name;
-    new_def->widths = widths;
-    new_def->wc = wc;
-
-    return new_def;
-}
-
-void comp_make_ins(byte * instructions, int * c, int v) {
-    instructions = realloc(instructions, sizeof(byte) * (* c + 1));
-    instructions[(* c)++] = v;
-}
-
-Instruction * make(byte op, int operands[]) {
-    SortedList * sl = hash_map_find(definitions, op_code_to_str(op));
-
-    if(sl == NULL) {
-        Instruction * inst = malloc(sizeof(Instruction));
-        inst->instruction = NULL;
-        inst->instruction_length = 0;
-
-        return inst;
-    }
-
-    int oc = sizeof(*operands)/sizeof(operands[0]);
-    int instruction_len = 1;
-
-    Definition * def = sl->data;
-
-    for(int i = 0; i < def->wc; i++) {
-        instruction_len += def->widths[i];
-    }
-
-    byte * instructions = malloc(sizeof(byte));
-    int c = 1, offset = 1;
-
-    instructions[0] = op;
-
-    for(int i = 0; i < oc; i++) {
-        int width = def->widths[i];
-
-        switch(width) {
-            case 1:
-                comp_make_ins(instructions, &c, operands[i]);
-            case 2:
-                comp_make_ins(instructions, &c, operands[i] >> 8);
-                comp_make_ins(instructions, &c, operands[i] >> 0);
-                break;
-            case 4:
-                comp_make_ins(instructions, &c, operands[i] >> 24);
-                comp_make_ins(instructions, &c, operands[i] >> 16);
-                comp_make_ins(instructions, &c, operands[i] >> 8);
-                comp_make_ins(instructions, &c, operands[i] >> 0);
-                break;
-            case 8:
-                comp_make_ins(instructions, &c, (u_int64_t) operands[i] >> 56);
-                comp_make_ins(instructions, &c, (u_int64_t) operands[i] >> 48);
-                comp_make_ins(instructions, &c, (u_int64_t) operands[i] >> 40);
-                comp_make_ins(instructions, &c, (u_int64_t) operands[i] >> 32);
-                comp_make_ins(instructions, &c, operands[i] >> 24);
-                comp_make_ins(instructions, &c, operands[i] >> 16);
-                comp_make_ins(instructions, &c, operands[i] >> 8);
-                comp_make_ins(instructions, &c, operands[i] >> 0);
-                break;
-        }
-
-        offset += width;
-    }
-
-    Instruction * inst = malloc(sizeof(Instruction));
-    inst->instruction = instructions;
-    inst->instruction_length = offset;
-
-    return inst;
-}
-
 void comp_new_definition(int type) {
     char * name = malloc(20);
     int * widths = malloc(sizeof(int) * 1), wc;
-    Definition *  new_def = NULL;
-
-    name[0] = '\0';
+    Definition *  new_def = malloc(sizeof(Definition));;
 
     switch(type) {
         case OP_CONSTANT:
@@ -260,10 +207,17 @@ void comp_new_definition(int type) {
             widths[0] = 2;
             wc = 1;
             break;
+        case OP_ADD:
+            strcpy(name, "OP_ADD");
+            wc = 0;
+            break;
         default: break;
     }
 
-    new_def = op_new_definition(name, widths, wc);
+    new_def->name = name;
+    new_def->widths = widths;
+    new_def->wc = wc;
+
     hash_map_insert(definitions, op_code_to_str(type), new_def);
 }
 
@@ -275,7 +229,68 @@ Definition * comp_lookup_op(byte op) {
         return NULL;
     }
 
+    free(z);
+
     return find->data;
+}
+
+// =============================================================================
+//
+// =============================================================================
+
+Instruction * make(byte op, int operands[]) {
+    Definition * definition = comp_lookup_op(op);
+    int oc = sizeof(* operands) / sizeof(operands[0]);
+    byte * instructions = malloc(sizeof(byte));
+    int c = 1, offset = 1;
+    Instruction * instruction = malloc(sizeof(Instruction));
+
+    instructions[0] = op;
+
+    if(definition == NULL) {
+        return NULL;
+    }
+
+    for(int i = 0; i < oc; i++) {
+        int width = definition->widths[i];
+
+        switch(width) {
+            case 1:
+                instructions = realloc(instructions, sizeof(byte) * (c + 1));
+                instructions[c++] = operands[i];
+                break;
+            case 2:
+                instructions = realloc(instructions, sizeof(byte) * (c + 2));
+                instructions[c++] = operands[i] >> 8;
+                instructions[c++] = operands[i] >> 0;
+                break;
+            case 4:
+                instructions = realloc(instructions, sizeof(byte) * (c + 4));
+                instructions[c++] = operands[i] >> 24;
+                instructions[c++] = operands[i] >> 16;
+                instructions[c++] = operands[i] >> 8;
+                instructions[c++] = operands[i] >> 0;
+                break;
+            case 8:
+                instructions = realloc(instructions, sizeof(byte) * (c + 8));
+                instructions[c++] = (u_int64_t) operands[i] >> 56;
+                instructions[c++] = (u_int64_t) operands[i] >> 48;
+                instructions[c++] = (u_int64_t) operands[i] >> 40;
+                instructions[c++] = (u_int64_t) operands[i] >> 32;
+                instructions[c++] = operands[i] >> 24;
+                instructions[c++] = operands[i] >> 16;
+                instructions[c++] = operands[i] >> 8;
+                instructions[c++] = operands[i] >> 0;
+                break;
+        }
+
+        offset += width;
+    }
+
+    instruction->instruction = instructions;
+    instruction->instruction_length = offset;
+
+    return instruction;
 }
 
 // =============================================================================
@@ -317,12 +332,20 @@ VM * new_vm(Bytecode * bytecode) {
     return vm;
 }
 
+Object * vm_pop(VM * vm) {
+    Object * o = vm->stack[vm->sp - 1];
+
+    vm->sp--;
+
+    return o;
+}
+
 Object * stack_top(VM * vm) {
     if(vm->sp == 0) {
         return NULL;
     }
 
-    printf("%p\n%p\n", vm->stack[0], vm->stack[1]);
+    //printf("%p\n%p\n", vm->stack[0], vm->stack[1]);
 
     return vm->stack[vm->sp - 1];
 }
@@ -344,6 +367,7 @@ void * run_vm(VM * vm) {
     int i;
     Instruction * inst = vm->instructions;
     byte const_index = 0;
+    Object * left, * right;
 
     for(i = 0; i < inst->instruction_length; i++) {
         byte * ins = inst->instruction;
@@ -356,10 +380,20 @@ void * run_vm(VM * vm) {
                 i += 2;
                 vm_push(vm, vm->constants[const_index]);
                 break;
+            case OP_ADD:
+                left = vm_pop(vm);
+                right = vm_pop(vm);
+                IntegerObject * left_int = left->value;
+                IntegerObject * right_int = right->value;
+                int result = left_int->value + right_int->value;
+                printf("%i\n", result);
+                vm_push(vm, new_int_from_val(result));
+                break;
         }
     }
 }
 
+String * instruction_to_string(byte * instructions, int ic);
 void run_vm_test(VMTest tests[], int tc) {
     int i;
 
@@ -386,7 +420,7 @@ void test_vm() {
 // test_integer_arithmetic
 // =============================================================================
 
-byte * concat_instructions(Instruction ** ei, int ic) {
+byte * concat_instructions(Instruction ** ei, int ic, int * conc_sz) {
     int i, j, b, sz = 0;
     byte * concat = NULL;
 
@@ -399,6 +433,8 @@ byte * concat_instructions(Instruction ** ei, int ic) {
     for(i = 0, b = 0; i < ic; i++) {
         for(j = 0; j < ei[i]->instruction_length; j++, b++) {
             concat[b] = ei[i]->instruction[j];
+            //printf("%i\n", ei[i]->instruction[j]);
+            (*conc_sz) ++;
         }
     }
 
@@ -427,9 +463,12 @@ void test_constants(int * ec, int cc, Object ** actual, int ac) {
 
 void test_instructions(Instruction ** ei, int ic, Instruction * ins) {
     int i;
-    byte * conc = concat_instructions(ei, ic);
+    int conc_sz = 0;
+    byte * conc = concat_instructions(ei, ic, &conc_sz);
 
-    if(sizeof(conc)/sizeof(conc[0]) != ins->instruction_length) {
+    //printf("%i %i\n", conc_sz, ins->instruction_length);
+
+    if(conc_sz != ins->instruction_length) {
         printf("Invalid size\n");
         return;
     }
@@ -453,7 +492,7 @@ void run_compiler_tests(CompilerTest ** tests, int tc, int z[]) {
         compiler = compiler_new();
 
         if(compile(compiler, program) != NULL) {
-            break;
+            //break;
         }
 
         bytecode = compiler_get_bytecode(compiler);
@@ -478,13 +517,14 @@ void test_integer_arithmetic() {
     test->expected_constants = malloc(sizeof(int) * 2);
     test->expected_constants[0] = 1;
     test->expected_constants[1] = 2;
-    test->expected_instructions = malloc(sizeof(byte *) * 2);
+    test->expected_instructions = malloc(sizeof(Instruction *) * 3);
 
-    int a[1] = {0}, b[1] = {1};
-    test->expected_instructions[0] = make(0, a);
-    test->expected_instructions[1] = make(0, b);
+    int a[1] = {0}, b[1] = {1}, c[0] = {};
+    test->expected_instructions[0] = make(OP_CONSTANT, a);
+    test->expected_instructions[1] = make(OP_CONSTANT, b);
+    test->expected_instructions[2] = make(OP_ADD, c);
 
-    test->ic = 2;
+    test->ic = 3;
     test->cc = 2;
 
     tests[0] = test;
@@ -506,6 +546,7 @@ char * format_instruction(Definition * def, int * operands, int oc) {
     }
 
     switch(oc) {
+        case 0: return def->name;
         case 1: return def->name;
     }
 
@@ -528,41 +569,51 @@ String * instruction_to_string(byte * instructions, int ic) {
 
         op = read_operands(def, instructions, i + 1);
         def_name = format_instruction(def, op->operands, op->offset - 1);
-        sprintf(fmt, "%i %s %i\n", i, def_name, op->operands[0]);
+
+        if(op->offset - 1 > 0) {
+            sprintf(fmt, "%i %s %i\n", i, def_name, op->operands[0]);
+            i += 1 + op->offset;
+        } else {
+            sprintf(fmt, "%i %s\n", i, def_name);
+            i+=1;
+        }
+
         string_cat(msg, fmt, 1);
-        i += 1 + op->offset;
+
     }
 
     return msg;
 }
 
 void test_instruction_string() {
-    Instruction ** instructions = malloc(sizeof(Instruction *) * 3);
-    int a[1] = {1}, b[1] = {2}, c[1] = {65535};
-    char * expected = "0 OP_CONSTANT 1\n3 OP_CONSTANT 2\n6 OP_CONSTANT 65535\n";
+    Instruction ** instructions = malloc(sizeof(Instruction *) * 4);
+    int a[1] = {1}, b[1] = {2}, c[1] = {65535}, d[0] = {};
+    char * expected = "0 OP_CONSTANT 1\n3 OP_CONSTANT 2\n6 OP_CONSTANT 65535\n9 OP_ADD\n";
     String * ins_str = NULL;
     byte * concat = NULL;
+    int conc_sz = 0;
 
     instructions[0] = make(OP_CONSTANT, a);
     instructions[1] = make(OP_CONSTANT, b);
     instructions[2] = make(OP_CONSTANT, c);
+    instructions[3] = make(OP_ADD, d);
 
-    concat = concat_instructions(instructions, 3);
-    ins_str = instruction_to_string(concat, sizeof(concat)/sizeof(concat[0]));
+    concat = concat_instructions(instructions, 4, &conc_sz);
+    ins_str = instruction_to_string(concat, conc_sz);
 
     if(strcmp(ins_str->string, expected) != 0) {
         printf("Instructions wrongly formatted. Got \n%s\n Expected \n%s\n",
             ins_str->string, expected);
-        }
+    }
 }
 
 // =============================================================================
 // test_read_operands
 // =============================================================================
 
-void comp_operand_ins(int * instructions, int * c, int v) {
-    instructions = realloc(instructions, sizeof(int) * (* c + 1));
-    instructions[(* c)++] = v;
+void comp_operand_ins(int ** instructions, int * c, int v) {
+    *instructions = realloc(*instructions, sizeof(int) * (* c + 1));
+    *instructions[(* c)++] = v;
 }
 
 Operands * read_operands(Definition * def, byte * ins, int st) {
@@ -573,6 +624,11 @@ Operands * read_operands(Definition * def, byte * ins, int st) {
     op->operands = malloc(sizeof(int));
     op->length = 0;
     op->offset = 0;
+
+    if(def->wc == 0) {
+        op->offset = 1;
+        return op;
+    }
 
     for(i = 0; i < def->wc; i++) {
         width = def->widths[i];
@@ -606,12 +662,22 @@ Operands * read_operands(Definition * def, byte * ins, int st) {
                 break;
         }
 
-        comp_operand_ins(op->operands, &op->length, operand);
+        comp_operand_ins(&(op->operands), &op->length, operand);
         op->offset += width;
         st += width;
     }
 
     return op;
+}
+
+void free_instruction(Instruction * instruction) {
+    free(instruction->instruction);
+    free(instruction);
+}
+
+void free_operands(Operands * operands) {
+    free(operands->operands);
+    free(operands);
 }
 
 void test_read_operands() {
@@ -622,23 +688,37 @@ void test_read_operands() {
         int * operands;
         int bytes_read;
     } t[1] = {0, a, 2};
+    Instruction * instruction = NULL;
+    Definition * definition = NULL;
+    Operands * operands = NULL;
 
     for(i = 0; i < c; i++) {
-        Instruction * instruction = make(t[i].opcode, t[i].operands);
-        Definition * def = comp_lookup_op(t[i].opcode);
-        Operands * operands = read_operands(def, instruction->instruction, 1);
+        instruction = make(t[i].opcode, t[i].operands);
+        definition = comp_lookup_op(t[i].opcode);
+        operands = read_operands(definition, instruction->instruction, 1);
 
         if(operands->offset != t[i].bytes_read) {
             printf("Expected offset %i got %i\n", t[i].bytes_read,
                 operands->offset);
+        } else {
+            printf("[%i] Passed: bytes read: %i, expected: %i\n",
+                i, operands->offset, t[i].bytes_read);
         }
 
         for(j = 0; j < operands->length; j++) {
             if(t[i].operands[j] != operands->operands[j]) {
-                printf("Expected operand %i got %i", t[i].operands[j],
-                    operands->operands[j]);
+                printf("[%i] Expected operand %i got %i\n", i,
+                    t[i].operands[j], operands->operands[j]);
+            } else {
+                printf("[%i] Index %i got: %i, expected: %i\n",
+                    i, j, t[i].operands[j], operands->operands[j]);
             }
         }
+
+        printf("[%i] Passed: operands match length: %i\n", i, operands->length);
+
+        free_instruction(instruction);
+        free_operands(operands);
     }
 }
 
@@ -649,10 +729,11 @@ void test_read_operands() {
 void comp_test() {
     init_definitions();
     comp_new_definition(OP_CONSTANT);
-    SortedList * m = hash_map_find(definitions, "0");
-
+    comp_new_definition(OP_ADD);
+    //SortedList * m = hash_map_find(definitions, "0");
     //test_integer_arithmetic();
     //test_instruction_string();
-    //test_read_operands();
-    test_vm();
+    test_read_operands();
+    //test_vm();
+    free_definitions();
 }
