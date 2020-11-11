@@ -36,7 +36,7 @@
 #include "test/parsing.c"
 #include "test/eval.c"
 
-#include "core/compiler.c"
+#include "compiler/comp.c"
 
 int main(int argc, char * argv[])
 {
