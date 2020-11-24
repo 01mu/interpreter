@@ -12,8 +12,8 @@ const int stack_size = 2048;
 typedef struct {
     Instruction * instructions;
     Object ** constants;
-    int constant_count;
     Object ** stack;
+    int constant_count;
     int stack_count;
     int sp;
 } VM;

@@ -2,7 +2,7 @@ let c = fn(x, g) {
     if(x < g) {
         return c(x + 1, g);
     } else {
-        return x;
+        return x * 2;
     }
 };
 
@@ -19,4 +19,5 @@ let fib = fn(x) {
     }
 };
 
+c(0, 1000);
 fib(10);
